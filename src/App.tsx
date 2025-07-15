@@ -1,16 +1,16 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
-import { Button } from "./components/ui/button";
+import { Route, Routes } from "react-router-dom";
+import { About } from "./app/about/page";
+import { Layout } from "./app/layout";
+import Home from "./app/page";
 
 function App() {
-	const [count, setCount] = useState(0);
-
 	return (
-		<>
-			<Button>người đẹp</Button>
-		</>
+		<Routes>
+			<Route path="/" element={<Layout />}>
+				<Route index element={<Home />} />
+				<Route path="about" element={<About />} />
+			</Route>
+		</Routes>
 	);
 }
 
