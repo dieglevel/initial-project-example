@@ -1,23 +1,13 @@
-import axios from "axios";
+// ✅ src/api/customAxios.ts
+import axios, { AxiosRequestConfig } from "axios";
 
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  timeout: 10000,
-});
+// Đây là hàm mutator đúng chuẩn
+export const customAxios = <T = unknown>(
+  config: AxiosRequestConfig
+): Promise<T> => {
+  const instance = axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3030"
+  });
 
-api.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.log("Token hết hạn");
-      // ! Xử lý logout hoặc refresh token
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-export default api;
+  return instance.request<T>(config).then((res) => res.data);
+};
