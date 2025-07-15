@@ -14,3 +14,23 @@ export class ErrorResponseDto {
   @ApiProperty()
   message: string;
 }
+
+export class BadRequestResponseDto {
+  @ApiProperty()
+  path: string;
+
+  @ApiProperty()
+  timeStamp: Date;
+
+  @ApiProperty()
+  statusCode: number;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  errors: {
+    field: string;
+    messages: string[];
+  }[];
+}

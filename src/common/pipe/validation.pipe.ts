@@ -5,9 +5,14 @@ export const ValidatePipeConfig = new ValidationPipe({
   forbidNonWhitelisted: false,
   transform: true,
   exceptionFactory: (errors) => {
-    const messages = errors
-      .map((err) => Object.values(err.constraints || {}).join(", "))
-      .join("; ");
-    return new BadRequestException(messages);
+    const formattedErrors = errors.map((err) => ({
+      field: err.property,
+      messages: Object.values(err.constraints || {}),
+    }));
+
+    return new BadRequestException({
+      message: "Dữ liệu không hợp lệ",
+      errors: formattedErrors,
+    });
   },
 });

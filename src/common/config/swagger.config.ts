@@ -1,8 +1,8 @@
 import { DocumentBuilder } from "@nestjs/swagger";
 
 export const SwaggerBuilder = new DocumentBuilder()
-  .setTitle("Hội nhà thơ")
-  .setDescription("API documentation for the Hội nhà thơ application")
+  .setTitle("Author")
+  .setDescription("API documentation for the Author application")
   .setExternalDoc("Swagger JSON", "/swagger/json")
   .setVersion("1.0")
   .addBearerAuth(
@@ -10,8 +10,8 @@ export const SwaggerBuilder = new DocumentBuilder()
       type: "http",
       scheme: "bearer",
       bearerFormat: "JWT",
-      name: "Authorization",
-      in: "header",
+      // name: "Authorization",
+      // in: "header",
     },
     "access-token",
   )
