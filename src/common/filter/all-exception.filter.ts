@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { ErrorResponse } from "../dto/interface/error-response.interface";
@@ -12,6 +13,8 @@ import { ErrorResponse } from "../dto/interface/error-response.interface";
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
+    const logger = new Logger("Exception");
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
@@ -50,6 +53,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // 🟨 Nếu có errors (chỉ cho 400), trả kèm theo
     const responseBody = errors ? { ...baseResponse, errors } : baseResponse;
+
+    if (status !== 401) {
+      logger.error(
+        `${request.method} ${request.url} → ${status} | ${JSON.stringify(message)}`,
+        (exception as any).stack,
+      );
+    }
 
     response.status(status).json(responseBody);
   }

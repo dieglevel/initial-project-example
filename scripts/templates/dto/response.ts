@@ -1,15 +1,10 @@
 export const generateResponseDto = (className: string) =>
   `
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, PartialType } from "@nestjs/swagger";
+import { BaseEntityDto } from "src/common/dto/swagger-schema/base-entity.dto";
 
-export class Create${className}_ResponseDto {
-  @ApiProperty({ example: "Buy groceries" })
-  title: string;
+export class Base${className}_ResponseDto extends PartialType(BaseEntityDto) {
 
-  @ApiProperty({ example: "Milk, eggs, and bread" })
-  description: string;
-
-  @ApiProperty({ example: false })
-  isCompleted: boolean;
 }
+
 `.trimStart();

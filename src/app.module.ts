@@ -1,20 +1,20 @@
-import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  OnApplicationBootstrap,
+} from "@nestjs/common";
 import { LoggerMiddleware } from "./common/middleware/log.middleware";
-import { ConfigServiceModule } from "./common/config/config-serivce.module";
-import { PostgresModule } from "./common/config/postgres.database.module";
-import { APP_GUARD } from "@nestjs/core";
-import { AuthGuard } from "./common/guard/auth.guard";
-import { AuthModule } from "./app/auth/auth.module";
+
+import { InitialConfigServiceModule } from "./common/environment/config-service.module";
+import { InformationServerLogService } from "./service/information-server/information-server.service";
+import { InitialPostgresModule } from "./common/config/postgres.database.module";
+import { AccountModule } from "./module/account-module/account.module";
 
 @Module({
-  imports: [
-    ConfigServiceModule,
-    PostgresModule,
-    // Module Feature
-    AuthModule,
-  ],
+  imports: [InitialConfigServiceModule, InitialPostgresModule, AccountModule],
   controllers: [],
-  providers: [],
+  providers: [InformationServerLogService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -5,6 +5,7 @@ import { generateService } from "./templates/service";
 import { generateModule } from "./templates/module";
 import { generateRequestDto } from "./templates/dto/request";
 import { generateResponseDto } from "./templates/dto/response";
+import { generateBaseDto } from "./templates/dto/base";
 
 // === UTILS ===
 const moduleName = process.argv[2];
@@ -16,15 +17,29 @@ if (!moduleName) {
   process.exit(1);
 }
 
+// Example: hello-world -> HelloWorld
 const capitalize = (str: string): string =>
   str
     .split(/[-_]/)
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join("");
 
+const camelCase = (str: string): string => {
+  const capitalized = capitalize(str);
+  return capitalized.charAt(0).toLowerCase() + capitalized.slice(1);
+};
+
 const className = capitalize(moduleName); // ToDo, UserProfile...
-const folderPath = path.join(__dirname, "..", "src", "app", moduleName);
+const serviceName = camelCase(moduleName); // toDo
+const folderPath = path.join(
+  __dirname,
+  "..",
+  "src",
+  "module",
+  moduleName + "-module",
+);
 const dtoFolderPath = path.join(folderPath, "dto");
+const entitiesFolderPath = path.join(folderPath, "_entities");
 
 // === CHECK + CREATE FOLDERS ===
 if (fs.existsSync(folderPath)) {
@@ -33,14 +48,15 @@ if (fs.existsSync(folderPath)) {
 }
 fs.mkdirSync(folderPath, { recursive: true });
 fs.mkdirSync(dtoFolderPath, { recursive: true });
+fs.mkdirSync(entitiesFolderPath, { recursive: true });
 
 fs.writeFileSync(
   path.join(folderPath, `${moduleName}.controller.ts`),
-  generateController(moduleName, className),
+  generateController(moduleName, className, serviceName),
 );
 fs.writeFileSync(
   path.join(folderPath, `${moduleName}.service.ts`),
-  generateService(moduleName, className),
+  generateService(className),
 );
 fs.writeFileSync(
   path.join(folderPath, `${moduleName}.module.ts`),
@@ -55,5 +71,7 @@ fs.writeFileSync(
   path.join(dtoFolderPath, "response.dto.ts"),
   generateResponseDto(className),
 );
+
+fs.writeFileSync(path.join(dtoFolderPath, "base.dto.ts"), generateBaseDto());
 
 console.log(`✅ Đã tạo module "${moduleName}" tại ${folderPath}`);

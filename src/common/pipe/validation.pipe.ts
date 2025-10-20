@@ -2,7 +2,7 @@ import { BadRequestException, ValidationPipe } from "@nestjs/common";
 
 export const ValidatePipeConfig = new ValidationPipe({
   whitelist: true,
-  forbidNonWhitelisted: false,
+  forbidNonWhitelisted: true,
   transform: true,
   exceptionFactory: (errors) => {
     const formattedErrors = errors.map((err) => ({
@@ -11,7 +11,7 @@ export const ValidatePipeConfig = new ValidationPipe({
     }));
 
     return new BadRequestException({
-      message: "Dữ liệu không hợp lệ",
+      message: "Validation failed",
       errors: formattedErrors,
     });
   },

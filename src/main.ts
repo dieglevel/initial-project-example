@@ -1,44 +1,53 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
+import { ConfigService, ConfigType } from "@nestjs/config";
 import { SwaggerModule } from "@nestjs/swagger";
-import { ConfigService } from "@nestjs/config";
 import helmet from "helmet";
-import { InformationServerLog } from "./util/information-server.util";
-import { SwaggerBuilder } from "./common/config/swagger.config";
-import { ResponseInterceptor } from "./common/interceptor/response.interceptor";
+import { SwaggerBuilder } from "./common/config/swagger/swagger.config";
+import {
+  BadRequestResponseDto,
+  ErrorResponseDto,
+} from "./common/dto/swagger-schema/error-response.dto";
 import { AllExceptionsFilter } from "./common/filter/all-exception.filter";
+import { ResponseInterceptor } from "./common/interceptor/response.interceptor";
 import { ValidatePipeConfig } from "./common/pipe/validation.pipe";
+import { swaggerCss } from "./common/config/swagger/swagger.css";
+import { appConfig } from "./common/environment/types/app.config";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const configService = app.get(ConfigService);
+  const config = app.get<ConfigType<typeof appConfig>>(appConfig.KEY);
 
-  const port = configService.get<number>("PORT") || 9999;
-  const hostname = configService.get<string>("HOST") || "0.0.0.0";
-  const env = configService.get<string>("NODE_ENV") || "development";
-  const dropSchema =
-    configService.get<boolean>("DATABASE_DROP_SCHEMA") || false;
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          frameAncestors: ["'self'", "http://localhost:5173"],
+        },
+      },
+    }),
+  );
 
-  app.use(helmet());
   app.enableCors();
 
-  app.setGlobalPrefix(configService.get<string>("API_PREFIX") || "api");
+  app.setGlobalPrefix(config.API_PREFIX);
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(ValidatePipeConfig);
 
-  const documentFactory = () =>
-    SwaggerModule.createDocument(app, SwaggerBuilder);
+  const document = SwaggerModule.createDocument(app, SwaggerBuilder, {
+    extraModels: [ErrorResponseDto, BadRequestResponseDto],
+  });
 
-  SwaggerModule.setup("api", app, documentFactory, {
+  SwaggerModule.setup("api", app, document, {
     jsonDocumentUrl: "swagger/json",
+    customCss: swaggerCss,
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(port, hostname, () => {
-    InformationServerLog(port, hostname, env, dropSchema);
-  });
+  await app.listen(config.PORT, config.HOST);
 }
 void bootstrap();

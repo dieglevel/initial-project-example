@@ -1,0 +1,131 @@
+name: CI & Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Restore pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install deps (lockfile strict)
+        run: pnpm install --frozen-lockfile
+
+      - name: Assert required secrets
+        run: |
+          [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ] || { echo "Missing SSH_PRIVATE_KEY"; exit 1; }
+          [ -n "${{ secrets.VPS_HOST }}" ] || { echo "Missing VPS_HOST"; exit 1; }
+          [ -n "${{ secrets.VPS_USER }}" ] || { echo "Missing VPS_USER"; exit 1; }
+          [ -n "${{ secrets.VPS_PORT }}" ] || { echo "Missing VPS_PORT"; exit 1; }
+
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          log-public-key: true
+
+      - name: Add VPS host key to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.VPS_PORT }} -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      # Đẩy mã nguồn lên VPS
+      - name: Rsync to VPS
+        run: |
+          rsync -az --delete \
+            --exclude=".git" --exclude="node_modules" --exclude=".github" --exclude="uploads" \
+            -e "ssh -p ${{ secrets.VPS_PORT }}" \
+            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/Back-end/
+
+      - name: Remote build & reload PM2 (with rollback)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            APP_DIR=/root/Back-end
+            BACKUP_DIR=/root/Back-end_backup
+
+            mkdir -p $APP_DIR
+
+            # Backup dist cũ nếu tồn tại
+            if [ -d "$APP_DIR/dist" ]; then
+              echo "Backup dist cũ..."
+              rm -rf $BACKUP_DIR
+              mv $APP_DIR/dist $BACKUP_DIR
+            fi
+
+            cd $APP_DIR
+
+            # Link .env
+            [ -f /root/shared/.env ] || { echo "/root/shared/.env chưa tồn tại"; exit 1; }
+            ln -sfn /root/shared/.env .env
+
+            corepack enable || true
+            corepack use pnpm || true
+
+            echo "Cài dependencies..."
+            if ! pnpm install --frozen-lockfile; then
+              echo "❌ Cài deps thất bại, rollback..."
+              rm -rf $APP_DIR/dist
+              [ -d "$BACKUP_DIR" ] && mv $BACKUP_DIR $APP_DIR/dist
+              pm2 reload nest-app || true
+              exit 1
+            fi
+
+            echo "Build project..."
+            if ! pnpm build; then
+              echo "❌ Build thất bại, rollback..."
+              rm -rf $APP_DIR/dist
+              [ -d "$BACKUP_DIR" ] && mv $BACKUP_DIR $APP_DIR/dist
+              pm2 reload nest-app || true
+              exit 1
+            fi
+
+            echo "✅ Build thành công, xóa backup..."
+            rm -rf $BACKUP_DIR
+
+            # Start hoặc reload PM2
+            if pm2 describe nest-app > /dev/null; then
+              pm2 reload nest-app --update-env
+            else
+              PORT=3030 HOST=127.0.0.1 pm2 start dist/main.js --name nest-app --update-env
+            fi
+
+            pm2 save

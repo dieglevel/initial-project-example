@@ -4,12 +4,15 @@ import * as process from "node:process";
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  private logger = new Logger("HTTP");
+  private logger = new Logger("Logger");
 
   use(req: Request, res: Response, next: NextFunction): void {
-    const { ip, method, originalUrl } = req;
-    const userAgent = req.get("user-agent") || "";
+    const { ip, method, originalUrl, headers } = req;
+    const userAgent = headers["user-agent"] || "";
+    const authHeader = headers["authorization"];
     const start = process.hrtime();
+
+    // this.logger.debug(`🔐 Authorization Header: ${authHeader || "None"}`);
 
     res.on("finish", () => {
       const { statusCode } = res;
@@ -19,14 +22,16 @@ export class LoggerMiddleware implements NestMiddleware {
         responseTime[0] * 1000 + responseTime[1] / 1e6;
 
       this.logger.log(
-        `${method} ${originalUrl} ${statusCode} ${contentLength} - ${elapsedTimeInMilliseconds.toFixed(2)} ms`,
+        `${method} ${originalUrl} [${statusCode}] - ${elapsedTimeInMilliseconds.toFixed(2)} ms`,
       );
     });
+
     res.on("error", (err) => {
       this.logger.error(
         `Error: ${err} ${method} ${originalUrl} ${userAgent} ${ip}`,
       );
     });
+
     next();
   }
 }

@@ -1,25 +1,33 @@
 import { Module, OnModuleInit } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { ConfigService, ConfigType } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { databaseConfig } from "../environment/types/database.type";
 
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
+      inject: [databaseConfig.KEY],
+      useFactory: (database: ConfigType<typeof databaseConfig>) => {
         return {
           type: "postgres",
           ssl: {
             rejectUnauthorized: false,
           },
-          host: configService.get<string>("POSTGRES_HOST"),
-          port: configService.get<number>("POSTGRES_PORT"),
-          username: configService.get<string>("POSTGRES_USER"),
-          password: configService.get<string>("POSTGRES_PASSWORD"),
-          database: configService.get<string>("POSTGRES_DB"),
+          host: database.POSTGRES_HOST,
+          port: database.POSTGRES_PORT,
+          username: database.POSTGRES_USER,
+          password: database.POSTGRES_PASSWORD,
+          database: database.POSTGRES_DB,
           autoLoadEntities: true,
-          synchronize: true,
-          dropSchema: configService.get<boolean>("DATABASE_DROP_SCHEMA", false),
+          // * Check later
+          entities: ["dist/**/*.entity.js"],
+          synchronize: database.POSTGRES_SYNC,
+          dropSchema: true,
+
+          // dropSchema: database.DATABASE_DROP_SCHEMA,
+          // migrations: ["src/migrations/*.ts"],
+          // logging: true,
+          // logger: "advanced-console",
         };
       },
     }),
@@ -27,6 +35,6 @@ import { TypeOrmModule } from "@nestjs/typeorm";
   exports: [],
   providers: [],
 })
-export class PostgresModule implements OnModuleInit {
+export class InitialPostgresModule implements OnModuleInit {
   onModuleInit() {}
 }
