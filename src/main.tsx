@@ -1,23 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./index.css";
-import App from "./App.tsx";
-
-import { BrowserRouter } from "react-router-dom";
-import { HeroUIProvider, ToastProvider } from "@heroui/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient();
+import App from "./app/App.tsx";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/query-client.ts";
+import { SidebarProvider } from "./components/ui/sidebar.tsx";
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
-		<HeroUIProvider>
-			<ToastProvider />
-			<QueryClientProvider client={queryClient}>
-				<BrowserRouter>
-					<App />
-				</BrowserRouter>
-			</QueryClientProvider>
-		</HeroUIProvider>
+		<QueryClientProvider client={queryClient}>
+			<SidebarProvider>
+				<App />
+			</SidebarProvider>
+		</QueryClientProvider>
 	</StrictMode>,
 );
