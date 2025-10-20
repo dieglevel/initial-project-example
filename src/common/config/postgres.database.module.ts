@@ -22,9 +22,9 @@ import { databaseConfig } from "../environment/types/database.type";
           // * Check later
           entities: ["dist/**/*.entity.js"],
           synchronize: database.POSTGRES_SYNC,
-          dropSchema: true,
+          // dropSchema: true,
 
-          // dropSchema: database.DATABASE_DROP_SCHEMA,
+          dropSchema: database.DATABASE_DROP_SCHEMA,
           // migrations: ["src/migrations/*.ts"],
           // logging: true,
           // logger: "advanced-console",

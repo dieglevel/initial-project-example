@@ -4,7 +4,7 @@ import { getMetadataArgsStorage } from "typeorm";
 export function ApiEntity(): ClassDecorator {
   return (target: any) => {
     const columns = getMetadataArgsStorage().columns.filter(
-      (col) => col.target === target
+      (col) => col.target === target,
     );
 
     for (const column of columns) {
@@ -13,7 +13,7 @@ export function ApiEntity(): ClassDecorator {
         Reflect.getMetadata("swagger/apiModelPropertiesArray", target) || [];
 
       const alreadyDecorated = existingDecorators.some(
-        (prop: any) => prop.propertyKey === propertyKey
+        (prop: any) => prop.propertyKey === propertyKey,
       );
 
       if (!alreadyDecorated) {

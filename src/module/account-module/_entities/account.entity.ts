@@ -23,7 +23,8 @@ export class Account extends BaseEntity {
   @OneToOne(() => Profile, (profile) => profile.account, {
     cascade: true,
     onDelete: "CASCADE",
+    eager: true,
   })
-  @ApiProperty({ type: () => Profile })
-  profile: Profile;
+  @ApiPropertyOptional({ type: () => Profile })
+  profile?: Profile;
 }
