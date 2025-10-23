@@ -3,9 +3,6 @@ import * as path from "path";
 import { generateController } from "./templates/controller";
 import { generateService } from "./templates/service";
 import { generateModule } from "./templates/module";
-import { generateRequestDto } from "./templates/dto/request";
-import { generateResponseDto } from "./templates/dto/response";
-import { generateBaseDto } from "./templates/dto/base";
 
 // === UTILS ===
 const moduleName = process.argv[2];
@@ -31,13 +28,7 @@ const camelCase = (str: string): string => {
 
 const className = capitalize(moduleName); // ToDo, UserProfile...
 const serviceName = camelCase(moduleName); // toDo
-const folderPath = path.join(
-  __dirname,
-  "..",
-  "src",
-  "module",
-  moduleName + "-module",
-);
+const folderPath = path.join(__dirname, "..", "src", "module", moduleName);
 const dtoFolderPath = path.join(folderPath, "dto");
 const entitiesFolderPath = path.join(folderPath, "_entities");
 
@@ -63,15 +54,15 @@ fs.writeFileSync(
   generateModule(moduleName, className),
 );
 
-fs.writeFileSync(
-  path.join(dtoFolderPath, "request.dto.ts"),
-  generateRequestDto(className),
-);
-fs.writeFileSync(
-  path.join(dtoFolderPath, "response.dto.ts"),
-  generateResponseDto(className),
-);
+// fs.writeFileSync(
+//   path.join(dtoFolderPath, "request.dto.ts"),
+//   generateRequestDto(className),
+// );
+// fs.writeFileSync(
+//   path.join(dtoFolderPath, "response.dto.ts"),
+//   generateResponseDto(className),
+// );
 
-fs.writeFileSync(path.join(dtoFolderPath, "base.dto.ts"), generateBaseDto());
+// fs.writeFileSync(path.join(dtoFolderPath, "base.dto.ts"), generateBaseDto());
 
 console.log(`✅ Đã tạo module "${moduleName}" tại ${folderPath}`);

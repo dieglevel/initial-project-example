@@ -4,14 +4,14 @@ import { envValidationSchema } from "./valid-schema";
 import { appConfig } from "./types/app.config";
 import { databaseConfig } from "./types/database.type";
 import { jwtConfig } from "./types/jwt.type";
-
+import { redisConfig } from "./types/redis.type";
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV}`, ".env"],
       validationSchema: envValidationSchema,
-      load: [appConfig, databaseConfig, jwtConfig],
+      load: [appConfig, databaseConfig, jwtConfig, redisConfig],
     }),
   ],
   controllers: [],

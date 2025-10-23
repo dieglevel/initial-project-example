@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { ApiEntity } from "src/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "src/common/global-entity/base-entity.entity";
 import { Column, Entity, OneToOne } from "typeorm";
-import { Profile } from "./profile.entity";
+import { Profile } from "../../profile/_entities/profile.entity";
 
 @Entity()
 @ApiEntity()
@@ -26,6 +26,6 @@ export class Account extends BaseEntity {
     onDelete: "CASCADE",
     eager: true,
   })
-  @ApiPropertyOptional({ type: () => Profile })
+  @ApiPropertyOptional({ type: () => Profile, default: "Profile" })
   profile?: Profile;
 }

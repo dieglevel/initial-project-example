@@ -1,21 +1,20 @@
-import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, Post } from "@nestjs/common";
 import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
 import { AuthService } from "./auth.service";
-import { SignInDto, SignInDtoResponse } from "./dto/sign-in.dto";
-import { MeDtoResponse } from "./dto/me.dto";
-import { AccountService } from "./account.service";
 import { CurrentUser } from "./decorator/current-user.decorator";
+import { Public } from "./decorator/public.decorator";
+import { LogOutDtoResponse } from "./dto/log-out.dto";
+import {
+  RefreshTokenDto,
+  RefreshTokenDtoResponse,
+} from "./dto/refresh-token.dto";
+import { SignInDto, SignInDtoResponse } from "./dto/sign-in.dto";
 import { JwtPayload } from "./payload.type";
 import { ApiBearerAuth } from "@nestjs/swagger";
-import { Public } from "./decorator/public.decorator";
 
 @Controller("auth")
-@ApiBearerAuth("access-token")
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly accountService: AccountService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Public()
   @Post("sign-in")
@@ -25,10 +24,19 @@ export class AuthController {
     return this.authService.signIn(data);
   }
 
-  @Get("me")
+  @Post("log-out")
   @HttpCode(200)
-  @ApiBaseResponse(MeDtoResponse)
-  async me(@CurrentUser() user: JwtPayload) {
-    return this.accountService.me(user.sub);
+  @ApiBearerAuth("access-token")
+  @ApiBaseResponse(LogOutDtoResponse)
+  async logOut(@CurrentUser() user: JwtPayload) {
+    await this.authService.logOut({ userId: user.sub });
+  }
+
+  @Public()
+  @Post("refresh-token")
+  @HttpCode(200)
+  @ApiBaseResponse(RefreshTokenDtoResponse)
+  async refreshToken(@Body() data: RefreshTokenDto) {
+    return this.authService.refreshToken(data);
   }
 }

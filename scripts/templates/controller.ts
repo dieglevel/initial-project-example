@@ -7,8 +7,6 @@ export const generateController = (
 import { Body, Controller, HttpCode, Post } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
-import { } from "./dto/request.dto";
-import { } from "./dto/response.dto";
 import { ${className}Service } from "./${moduleName}.service";
 
 @Controller("${moduleName}")

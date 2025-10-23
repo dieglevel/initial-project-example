@@ -15,7 +15,6 @@ import { jwtConfig } from "../environment/types/jwt.type";
         global: true,
         secret: config.JWT_SECRET,
         signOptions: {
-          expiresIn: config.JWT_EXPIRATION_TIME,
           algorithm: "HS256",
         },
       }),

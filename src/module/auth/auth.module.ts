@@ -1,16 +1,15 @@
 import { Module } from "@nestjs/common";
-import { AuthController } from "./auth.controller";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Account } from "./_entities/account.entity";
-import { Profile } from "./_entities/profile.entity";
+import { Account } from "../account/_entities/account.entity";
+import { AccountModule } from "../account/account.module";
+import { Profile } from "../profile/_entities/profile.entity";
+import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
-import { AccountService } from "./account.service";
-import { JwtModule } from "@nestjs/jwt";
-import { InitialJwtModule } from "src/common/config/jwt.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Account, Profile])],
+  imports: [AccountModule, TypeOrmModule.forFeature([Account, Profile])],
   controllers: [AuthController],
-  providers: [AuthService, AccountService],
+  providers: [AuthService],
+  exports: [AuthService],
 })
 export class AuthModule {}

@@ -1,7 +1,7 @@
 import { ApiEntity } from "src/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "src/common/global-entity/base-entity.entity";
 import { Column, Entity, JoinColumn, OneToOne } from "typeorm";
-import { Account } from "./account.entity";
+import { Account } from "../../account/_entities/account.entity";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 @Entity()
@@ -27,6 +27,6 @@ export class Profile extends BaseEntity {
     onDelete: "CASCADE",
   })
   @JoinColumn({ name: "accountId" })
-  @ApiProperty({ type: () => Account })
+  @ApiProperty({ type: () => Account, default: "Account" })
   account: Account;
 }

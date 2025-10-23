@@ -13,14 +13,20 @@ import { AuthModule } from "./module/auth/auth.module";
 import { InitialJwtModule } from "./common/config/jwt.module";
 import { APP_GUARD } from "@nestjs/core";
 import { AuthGuard } from "./module/auth/jwt.guard";
+import { AccountModule } from "./module/account/account.module";
+import { ProfileModule } from "./module/profile/profile.module";
+import { InitialCacheManagerModule } from "./common/config/cache-manager.module";
 
 @Module({
   imports: [
     InitialConfigServiceModule,
     InitialPostgresModule,
     InitialJwtModule,
+    InitialCacheManagerModule,
 
     AuthModule,
+    AccountModule,
+    ProfileModule,
   ],
   controllers: [],
   providers: [

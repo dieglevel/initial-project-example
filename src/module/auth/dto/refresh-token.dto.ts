@@ -1,16 +1,12 @@
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class SignInDto {
+export class RefreshTokenDto {
   @IsString()
   @IsNotEmpty()
-  identifier: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password: string;
+  refreshToken: string;
 }
 
-export class SignInDtoResponse {
+export class RefreshTokenDtoResponse {
   accessToken: string;
   refreshToken: string;
 }
