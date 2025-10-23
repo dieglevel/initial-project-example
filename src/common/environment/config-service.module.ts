@@ -3,6 +3,7 @@ import { ConfigModule, registerAs } from "@nestjs/config";
 import { envValidationSchema } from "./valid-schema";
 import { appConfig } from "./types/app.config";
 import { databaseConfig } from "./types/database.type";
+import { jwtConfig } from "./types/jwt.type";
 
 @Module({
   imports: [
@@ -10,7 +11,7 @@ import { databaseConfig } from "./types/database.type";
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV}`, ".env"],
       validationSchema: envValidationSchema,
-      load: [appConfig, databaseConfig],
+      load: [appConfig, databaseConfig, jwtConfig],
     }),
   ],
   controllers: [],

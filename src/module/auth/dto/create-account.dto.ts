@@ -1,6 +1,7 @@
 import { IsEmail, IsNotEmpty, IsString } from "class-validator";
+import { Account } from "../_entities/account.entity";
 
-export class CreateAccountDto {
+export class CreateAccountDtoRequest {
   @IsString()
   @IsNotEmpty()
   username: string;
@@ -14,3 +15,5 @@ export class CreateAccountDto {
   @IsEmail()
   email: string;
 }
+
+export class CreateAccountDtoResponse extends Account {}

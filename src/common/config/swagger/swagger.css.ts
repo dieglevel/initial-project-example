@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const swaggerCss = `
 @media only screen and (prefers-color-scheme: dark) {
 

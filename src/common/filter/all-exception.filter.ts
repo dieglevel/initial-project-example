@@ -54,10 +54,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // 🟨 Nếu có errors (chỉ cho 400), trả kèm theo
     const responseBody = errors ? { ...baseResponse, errors } : baseResponse;
 
-    if (status !== 401) {
+    if (status !== HttpStatus.UNAUTHORIZED) {
+      const stack = exception instanceof Error ? exception.stack : undefined;
       logger.error(
         `${request.method} ${request.url} → ${status} | ${JSON.stringify(message)}`,
-        (exception as any).stack,
+        stack,
       );
     }
 

@@ -15,6 +15,7 @@ export class SeedService implements OnModuleInit {
     const isDropDatabase = this.database.DATABASE_DROP_SCHEMA;
 
     if (isDropDatabase) {
+      // Seeder
     }
   }
 }

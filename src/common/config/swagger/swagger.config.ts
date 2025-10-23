@@ -5,11 +5,14 @@ export const SwaggerBuilder = new DocumentBuilder()
   .setDescription("API documentation for the Author application")
   .setExternalDoc("Swagger JSON", "/swagger/json")
   .setVersion("1.0")
-  .addBearerAuth({
-    type: "http",
-    scheme: "bearer",
-    bearerFormat: "JWT",
-    name: "Authorization",
-    in: "header",
-  })
+  .addBearerAuth(
+    {
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
+      name: "Authorization",
+      in: "header",
+    },
+    "access-token",
+  )
   .build();

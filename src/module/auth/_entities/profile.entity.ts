@@ -8,21 +8,25 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 @ApiEntity()
 export class Profile extends BaseEntity {
   @Column({ nullable: true })
+  @ApiPropertyOptional()
   firstName: string;
 
   @Column({ nullable: true })
+  @ApiPropertyOptional()
   lastName: string;
 
   @Column({ nullable: true })
+  @ApiPropertyOptional()
   dateOfBirth: Date;
 
   @Column({ nullable: true })
+  @ApiPropertyOptional()
   avatar: string;
 
   @OneToOne(() => Account, (account) => account.profile, {
     onDelete: "CASCADE",
   })
   @JoinColumn({ name: "accountId" })
-  @ApiPropertyOptional({ type: () => Account })
-  account?: Account;
+  @ApiProperty({ type: () => Account })
+  account: Account;
 }

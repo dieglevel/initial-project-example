@@ -14,6 +14,7 @@ export class Account extends BaseEntity {
   username: string;
 
   @Column({ select: false })
+  @ApiProperty({ writeOnly: true })
   password: string;
 
   @Column({ default: false })
