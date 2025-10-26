@@ -1,12 +1,21 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Not, Repository } from "typeorm";
 import { Account } from "./_entities/account.entity";
 import { Profile } from "../profile/_entities/profile.entity";
 import { RegisterDtoRequest, RegisterDtoResponse } from "./dto/register.dto";
 
 import { hashPassword } from "src/common/util/bcrypt.util";
 import { plainToInstance } from "class-transformer";
+import {
+  ChangePasswordDto,
+  ChangePasswordDtoResponse,
+} from "./dto/change-password.dto";
+import { JwtPayload } from "../auth/payload.type";
 
 @Injectable()
 export class AccountService {
@@ -35,6 +44,23 @@ export class AccountService {
     const { password, ...withoutPassword } = result;
 
     return plainToInstance(RegisterDtoResponse, withoutPassword, {});
+  }
+
+  async changePassword(
+    user: JwtPayload,
+    data: ChangePasswordDto,
+  ): Promise<ChangePasswordDtoResponse> {
+    const account = await this.accountRepository.findOne({
+      where: { id: user.sub },
+    });
+
+    if (!account) {
+      throw new NotFoundException("Account not found");
+    }
+    account.password = await hashPassword(data.password);
+    await this.accountRepository.save(account);
+
+    return { success: true };
   }
 
   // Other methods

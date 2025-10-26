@@ -16,6 +16,7 @@ import { AuthGuard } from "./module/auth/jwt.guard";
 import { AccountModule } from "./module/account/account.module";
 import { ProfileModule } from "./module/profile/profile.module";
 import { InitialCacheManagerModule } from "./common/config/cache-manager.module";
+import { FileModule } from "./module/file/file.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { InitialCacheManagerModule } from "./common/config/cache-manager.module"
     AuthModule,
     AccountModule,
     ProfileModule,
+    FileModule,
   ],
   controllers: [],
   providers: [
