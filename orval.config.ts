@@ -9,6 +9,7 @@ export default defineConfig({
 			target: "./src/api/index.ts",
 			client: "react-query", // 🔥 Tự động tạo hooks react-query
 			schemas: "./src/api/schemas",
+			clean: true,
 			override: {
 				mutator: {
 					path: "./src/lib/axios.config.ts",
