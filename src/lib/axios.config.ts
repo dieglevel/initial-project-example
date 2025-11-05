@@ -91,3 +91,4 @@ export const customAxios = <T = unknown>(
 
 	return instance.request<T>(config).then((res) => res.data);
 };
+
