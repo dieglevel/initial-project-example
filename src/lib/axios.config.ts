@@ -74,7 +74,7 @@ export const customAxios = <T = unknown>(
 
 				// Redirect to login page
 				if (typeof window !== "undefined") {
-					window.location.href = "/login";
+					window.location.href = "/auth/login";
 				}
 
 				return Promise.reject(error);
@@ -91,4 +91,3 @@ export const customAxios = <T = unknown>(
 
 	return instance.request<T>(config).then((res) => res.data);
 };
-
