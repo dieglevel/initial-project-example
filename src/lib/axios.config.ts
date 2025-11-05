@@ -2,7 +2,7 @@ import axios, { AxiosError } from "axios";
 import type { AxiosRequestConfig } from "axios";
 
 // Token storage utilities (matching useAuth.ts)
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
 	ACCESS_TOKEN: "apartment_admin_access_token",
 	REFRESH_TOKEN: "apartment_admin_refresh_token",
 } as const;

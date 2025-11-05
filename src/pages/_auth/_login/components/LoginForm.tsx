@@ -14,6 +14,7 @@ import type { SignInDto } from "@/api/schemas";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
+import { STORAGE_KEYS } from "@/lib/axios.config";
 
 const registerSchema = z.object({
 	identifier: z.string().min(1, { message: "Identifier is required" }),
@@ -40,7 +41,10 @@ export default function LoginForm() {
 			},
 			{
 				onSuccess(data) {
-					console.log("Login successful", data);
+					localStorage.setItem(
+						STORAGE_KEYS.ACCESS_TOKEN,
+						data.data?.accessToken || "",
+					);
 				},
 			},
 		);
