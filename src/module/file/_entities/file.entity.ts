@@ -13,7 +13,7 @@ import { BaseEntity } from "src/common/global-entity/base-entity.entity";
 
 @ApiEntity()
 @Entity("files")
-@Index(["ownerId", "filename"])
+@Index(["filename"])
 export class FileEntity extends BaseEntity {
   @Column({ type: "varchar", length: 255 })
   filename: string;

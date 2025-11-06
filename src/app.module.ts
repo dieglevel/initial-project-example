@@ -17,6 +17,7 @@ import { AccountModule } from "./module/account/account.module";
 import { ProfileModule } from "./module/profile/profile.module";
 import { InitialCacheManagerModule } from "./common/config/cache-manager.module";
 import { FileModule } from "./module/file/file.module";
+import { TodoModule } from "./module/todo/todo.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { FileModule } from "./module/file/file.module";
     AccountModule,
     ProfileModule,
     FileModule,
+    TodoModule,
   ],
   controllers: [],
   providers: [

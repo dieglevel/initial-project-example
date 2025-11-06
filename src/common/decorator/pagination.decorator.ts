@@ -1,31 +1,132 @@
-import { createParamDecorator, ExecutionContext } from "@nestjs/common";
-import { plainToInstance } from "class-transformer";
-import { validateSync } from "class-validator";
-import { PaginationQueryDto } from "src/common/dto/swagger-schema/pagination/pagination.dto";
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+import {
+  createParamDecorator,
+  ExecutionContext,
+  BadRequestException,
+} from "@nestjs/common";
+import { plainToInstance, Transform, Type } from "class-transformer";
+import {
+  IsOptional,
+  IsPositive,
+  Max,
+  IsString,
+  IsArray,
+  ValidateNested,
+  IsEnum,
+} from "class-validator";
 
 export const Pagination = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): PaginationQueryDto => {
+  <T>(data: unknown, ctx: ExecutionContext): PaginationQueryDto<T> => {
     const request = ctx
       .switchToHttp()
-      .getRequest<{ query: PaginationQueryDto }>();
-    const query = request.query;
+      .getRequest<{ query: Record<string, any> }>();
+    const rawQuery = request.query;
 
-    // Chuyển query sang đúng kiểu Dto
+    // --- Parse sort from keys like sort[0][field], sort[0][order] ---
+    const sort: any[] = [];
+    const sortRegex = /^sort\[(\d+)\]\[(field|order)\]$/;
+
+    for (const key in rawQuery) {
+      const match = key.match(sortRegex);
+      if (match) {
+        const index = Number(match[1]);
+        const prop = match[2];
+        sort[index] = sort[index] || {};
+        sort[index][prop] = rawQuery[key];
+      }
+    }
+
+    // --- Parse searchFields from "searchFields[]" ---
+    let searchFields: string[] = [];
+    if (rawQuery["searchFields[]"]) {
+      if (Array.isArray(rawQuery["searchFields[]"])) {
+        searchFields = rawQuery["searchFields[]"];
+      } else {
+        searchFields = [rawQuery["searchFields[]"]];
+      }
+    } else if (typeof rawQuery.searchFields === "string") {
+      searchFields = rawQuery.searchFields.split(",").map((s) => s.trim());
+    }
+
+    // --- Lọc bỏ các key flatten không cần thiết ---
+    const cleanQuery = Object.fromEntries(
+      Object.entries(rawQuery).filter(
+        ([key]) =>
+          !key.match(/^sort\[\d+\]\[.*\]$/) && key !== "searchFields[]",
+      ),
+    );
+
+    // --- Gộp thành payload chuẩn ---
+    const query: PaginationQueryDto<T> = {
+      ...cleanQuery,
+      sort,
+      searchFields,
+    } as PaginationQueryDto<T>;
+
+    // --- Parse sang DTO ---
     const dto = plainToInstance(PaginationQueryDto, query, {
       enableImplicitConversion: true,
-    });
-
-    // Validate thủ công
-    const errors = validateSync(dto, {
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      skipMissingProperties: false,
-    });
-
-    if (errors.length > 0) {
-      throw new Error(`Validation failed: ${JSON.stringify(errors)}`);
-    }
+    }) as PaginationQueryDto<T>;
 
     return dto;
   },
 );
+
+export enum SortOrder {
+  ASC = "ASC",
+  DESC = "DESC",
+}
+
+export class SortOption<T> {
+  @IsString()
+  field!: keyof T & string;
+
+  @IsEnum(SortOrder)
+  order: SortOrder = SortOrder.ASC;
+}
+
+export class PaginationQueryDto<T> {
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  @Max(100)
+  limit = 10;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  page = 1;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SortOption)
+  @Transform(({ value }) =>
+    Array.isArray(value)
+      ? value.map((v) =>
+          v instanceof SortOption ? { field: v.field, order: v.order } : v,
+        )
+      : [],
+  )
+  sort: SortOption<T>[] = [];
+
+  @IsOptional()
+  @IsString()
+  search = "";
+
+  @IsOptional()
+  @IsArray()
+  @Transform(({ value }): (keyof T & string)[] =>
+    typeof value === "string"
+      ? (value.split(",") as (keyof T & string)[])
+      : (value as (keyof T & string)[]),
+  )
+  searchFields: (keyof T & string)[] = [];
+
+  get offset(): number {
+    return (this.page - 1) * this.limit;
+  }
+}

@@ -10,9 +10,7 @@ import { databaseConfig } from "../environment/types/database.type";
       useFactory: (database: ConfigType<typeof databaseConfig>) => {
         return {
           type: "postgres",
-          ssl: {
-            rejectUnauthorized: false,
-          },
+          ssl: false,
           host: database.POSTGRES_HOST,
           port: database.POSTGRES_PORT,
           username: database.POSTGRES_USER,

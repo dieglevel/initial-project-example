@@ -9,16 +9,18 @@ import {
 } from "./dto/change-password.dto";
 import { CurrentUser } from "../auth/decorator/current-user.decorator";
 import { JwtPayload } from "../auth/payload.type";
+import { Public } from "../auth/decorator/public.decorator";
 
 @Controller("account")
 @ApiBearerAuth("access-token")
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
+  @Public()
   @Post("register")
   @HttpCode(200)
   @ApiBaseResponse(RegisterDtoResponse)
-  async createAccount(@Body() body: RegisterDtoRequest) {
+  async register(@Body() body: RegisterDtoRequest) {
     return this.accountService.register(body);
   }
 
