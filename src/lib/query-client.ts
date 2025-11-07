@@ -24,9 +24,36 @@ export function withMutationOptions<
 	return {
 		...options,
 		onError: (error, variables, context, mutation) => {
-			toast.error("An error occurred during the operation.", {
-				description: (error as AxiosError).message,
-			});
+			const errorAxios = error as AxiosError;
+
+			switch (errorAxios.response?.status) {
+				case 400:
+					toast.error(
+						"Bad request. Please check your input and try again.",
+					);
+					break;
+				case 401:
+					toast.error("Unauthorized. Please log in to continue.");
+					break;
+				case 403:
+					toast.error(
+						"Forbidden. You do not have permission to perform this action.",
+					);
+					break;
+				case 404:
+					toast.error(
+						"Not found. The requested resource could not be found.",
+					);
+					break;
+				case 500:
+					toast.error("Server error. Please try again later.");
+					break;
+				default:
+					toast.error("An error occurred during the operation.", {
+						description: errorAxios.message,
+					});
+			}
+
 			options?.onError?.(error, variables, context, mutation);
 		},
 		onSuccess: (data, variables, context, mutation) => {

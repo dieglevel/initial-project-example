@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "./components/ui/sidebar.tsx";
+import { AuthProvider } from "./providers/AuthProvider.tsx";
 
 createRoot(document.getElementById("root")!).render(
 	<StrictMode>
@@ -14,7 +15,9 @@ createRoot(document.getElementById("root")!).render(
 			<SidebarProvider>
 				<ReactQueryDevtools initialIsOpen={false} />
 				<BrowserRouter>
-					<App />
+					<AuthProvider>
+						<App />
+					</AuthProvider>
 					<Toaster richColors theme="light" />
 				</BrowserRouter>
 			</SidebarProvider>

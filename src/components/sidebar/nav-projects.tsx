@@ -1,5 +1,3 @@
-"use client";
-
 import {
 	Folder,
 	Forward,
@@ -36,19 +34,23 @@ export function NavProjects({
 }) {
 	const { isMobile } = useSidebar();
 
+	const checkIsActive = (url: string): boolean => {
+		return window.location.pathname === url;
+	};
+
 	return (
 		<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 			<SidebarGroupLabel>Projects</SidebarGroupLabel>
 			<SidebarMenu>
 				{projects.map((item) => (
 					<SidebarMenuItem key={item.name}>
-						<SidebarMenuButton asChild>
+						<SidebarMenuButton isActive={checkIsActive(item.url)} asChild>
 							<a href={item.url}>
 								<item.icon />
 								<span>{item.name}</span>
 							</a>
 						</SidebarMenuButton>
-						<DropdownMenu>
+						{/* <DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuAction showOnHover>
 									<MoreHorizontal />
@@ -74,7 +76,7 @@ export function NavProjects({
 									<span>Delete Project</span>
 								</DropdownMenuItem>
 							</DropdownMenuContent>
-						</DropdownMenu>
+						</DropdownMenu> */}
 					</SidebarMenuItem>
 				))}
 				{/* <SidebarMenuItem>

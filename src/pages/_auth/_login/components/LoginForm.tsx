@@ -1,4 +1,3 @@
-import { useAuthControllerSignIn } from "@/api/auth/auth";
 import {
 	Form,
 	FormControl,
@@ -8,13 +7,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 
-import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
 import type { SignInDto } from "@/api/schemas";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { STORAGE_KEYS } from "@/lib/axios.config";
+import { useAuth } from "@/hooks/useAuth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 const registerSchema = z.object({
 	identifier: z.string().min(1, { message: "Identifier is required" }),
@@ -24,7 +23,7 @@ const registerSchema = z.object({
 });
 
 export default function LoginForm() {
-	const { mutate } = useAuthControllerSignIn();
+	const { login } = useAuth();
 
 	const form = useForm<SignInDto>({
 		resolver: zodResolver(registerSchema),
@@ -35,19 +34,7 @@ export default function LoginForm() {
 	});
 
 	const handleSubmit = (data: SignInDto) => {
-		mutate(
-			{
-				data,
-			},
-			{
-				onSuccess(data) {
-					localStorage.setItem(
-						STORAGE_KEYS.ACCESS_TOKEN,
-						data.data?.accessToken || "",
-					);
-				},
-			},
-		);
+		login(data);
 	};
 
 	return (

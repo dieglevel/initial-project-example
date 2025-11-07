@@ -3,6 +3,7 @@ import {
 	AudioWaveform,
 	Command,
 	GalleryVerticalEnd,
+	IdCard,
 	SquareTerminal,
 	type LucideProps,
 } from "lucide-react";
@@ -73,6 +74,16 @@ const projects: IProject[] = [
 		name: "Todo",
 		url: AppPaths.dashboard.todo,
 		icon: SquareTerminal,
+	},
+	{
+		name: "Todo with Antd",
+		url: AppPaths.dashboard.todoAntd,
+		icon: SquareTerminal,
+	},
+	{
+		name: "Payment",
+		url: AppPaths.dashboard.payment,
+		icon: IdCard,
 	},
 ];
 

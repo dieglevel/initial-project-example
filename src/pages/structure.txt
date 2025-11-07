@@ -9,3 +9,9 @@ src/page/_<Ten page>/
 ├── store/
 ├── path.ts   <== Có routes thì có path
 └── routes.ts <== Có routes thì có path
+
+api <= Generate
+common <= Các biến cục bộ tránh dùng magic string
+css
+global-page <= Các trang cục bộ
+hooks <= hook cục bộ
