@@ -22,6 +22,8 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { Link, useLocation, useNavigate, useRoutes } from "react-router-dom";
+import { useCallback, useEffect } from "react";
 
 export function NavProjects({
 	projects,
@@ -33,10 +35,23 @@ export function NavProjects({
 	}[];
 }) {
 	const { isMobile } = useSidebar();
+	const { pathname } = useLocation();
 
-	const checkIsActive = (url: string): boolean => {
-		return window.location.pathname === url;
-	};
+	const checkIsActive = useCallback(
+		(url: string) => {
+			const pathnames = pathname.split("/");
+			const projectSlug = url.split("/").pop();
+
+			console.log("checkIsActive", {
+				pathname,
+				url,
+				pathnames,
+				projectSlug,
+			});
+			return pathnames.includes(projectSlug || "");
+		},
+		[pathname],
+	);
 
 	return (
 		<SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -45,10 +60,10 @@ export function NavProjects({
 				{projects.map((item) => (
 					<SidebarMenuItem key={item.name}>
 						<SidebarMenuButton isActive={checkIsActive(item.url)} asChild>
-							<a href={item.url}>
+							<Link to={item.url}>
 								<item.icon />
 								<span>{item.name}</span>
-							</a>
+							</Link>
 						</SidebarMenuButton>
 						{/* <DropdownMenu>
 							<DropdownMenuTrigger asChild>
