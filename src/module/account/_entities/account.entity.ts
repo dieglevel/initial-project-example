@@ -4,6 +4,7 @@ import { BaseEntity } from "src/common/global-entity/base-entity.entity";
 import { Column, Entity, OneToMany, OneToOne } from "typeorm";
 import { Profile } from "../../profile/_entities/profile.entity";
 import { Todo } from "src/module/todo/_entities/todo.entity";
+import { Card } from "src/module/payment/_entities/card.entity";
 
 @Entity()
 @ApiEntity()
@@ -33,4 +34,10 @@ export class Account extends BaseEntity {
   @OneToMany(() => Todo, (todo) => todo.account)
   @ApiPropertyOptional({ type: () => Todo, isArray: true, default: "Todo" })
   todos: Todo[];
+
+  @OneToOne(() => Card, (card) => card.account, {
+    nullable: false,
+  })
+  @ApiPropertyOptional({ type: () => Card, default: "Card" })
+  card: Card;
 }

@@ -79,14 +79,11 @@ export class TodoService {
   async pagingTodo(
     pagination: PaginationQuery<Todo>,
   ): Promise<PagingTodoResponseDto> {
-    console.log("Pagination Params:", pagination);
-
     const searchQuery: string = pagination.searchFields
       .map((field) => {
         return `todo.${field} LIKE '%${pagination.search}%'`;
       })
       .join(" OR ");
-    console.log("Search Query:", searchQuery);
 
     const query = this.dataSource
       .createQueryBuilder(Todo, "todo")

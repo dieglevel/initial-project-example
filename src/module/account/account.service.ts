@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Not, Repository } from "typeorm";
+import { DataSource, Not, Repository } from "typeorm";
 import { Account } from "./_entities/account.entity";
 import { Profile } from "../profile/_entities/profile.entity";
 import { RegisterDtoRequest, RegisterDtoResponse } from "./dto/register.dto";
@@ -16,6 +16,7 @@ import {
   ChangePasswordDtoResponse,
 } from "./dto/change-password.dto";
 import { JwtPayload } from "../auth/payload.type";
+import { Card } from "../payment/_entities/card.entity";
 
 @Injectable()
 export class AccountService {
@@ -25,25 +26,33 @@ export class AccountService {
 
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
+
+    @InjectRepository(Card)
+    private readonly cardRepository: Repository<Card>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async register(data: RegisterDtoRequest): Promise<RegisterDtoResponse> {
-    const passwordHash = await hashPassword(data.password);
+    return this.dataSource.transaction(async (manager) => {
+      const passwordHash = await hashPassword(data.password);
 
-    const account = this.accountRepository.create({
-      ...data,
-      password: passwordHash,
+      const account = manager.create(Account, {
+        ...data,
+        password: passwordHash,
+      });
+
+      const savedAccount = await manager.save(Account, account);
+
+      const profile = manager.create(Profile, { account: savedAccount });
+      const card = manager.create(Card, { account: savedAccount });
+
+      await manager.save(Profile, profile);
+      await manager.save(Card, card);
+
+      const { password, ...withoutPassword } = savedAccount;
+      return plainToInstance(RegisterDtoResponse, withoutPassword);
     });
-
-    const profile = this.profileRepository.create();
-    account.profile = profile;
-
-    const result = await this.accountRepository.save(account);
-
-    // strip password before returning
-    const { password, ...withoutPassword } = result;
-
-    return plainToInstance(RegisterDtoResponse, withoutPassword, {});
   }
 
   async changePassword(

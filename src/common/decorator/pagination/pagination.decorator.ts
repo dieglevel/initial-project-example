@@ -2,6 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
+// Decorator để trích xuất và chuyển đổi các tham số phân trang từ query string
+// Sử dụng ở controller đóng vai trò là Search Query
+
 import {
   createParamDecorator,
   ExecutionContext,

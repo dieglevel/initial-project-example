@@ -17,10 +17,10 @@ import { CreateTodoDto, CreateTodoResponseDto } from "./dto/create.dto";
 import { UpdateTodoDto, UpdateTodoResponseDto } from "./dto/update.dto";
 import { DeleteTodoResponseDto } from "./dto/delete.dto";
 import { Todo } from "./_entities/todo.entity";
-import { ApiPagination } from "src/common/decorator/api-swagger/api-pagination.decorator";
+import { ApiPagination } from "src/common/decorator/pagination/api-pagination.decorator";
 import { PagingTodoResponseDto } from "./dto/paging.dto";
 import { PaginationQuery } from "src/common/dto/interface/pagination.dto";
-import { Pagination } from "src/common/decorator/pagination.decorator";
+import { Pagination } from "src/common/decorator/pagination/pagination.decorator";
 
 @Controller("todo")
 @ApiBearerAuth("access-token")

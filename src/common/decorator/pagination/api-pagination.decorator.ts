@@ -6,6 +6,8 @@ function getEntityFields<T extends object>(entity: new () => T): string[] {
   return Object.keys(new entity());
 }
 
+// Dùng để định  nghĩa cho Swagger về các tham số phân trang, sắp xếp, tìm kiếm
+// exclude: danh sách các trường không muốn cho phép sắp xếp / tìm kiếm
 export function ApiPagination<T extends object>(
   entity: new () => T,
   options?: {
