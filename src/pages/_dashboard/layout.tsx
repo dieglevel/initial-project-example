@@ -1,8 +1,8 @@
 import { Outlet } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import NavbarBreadcrum from "@/components/sidebar/breadcrumb";
+import { Separator } from "@/shared/components/ui/separator";
+import { SidebarInset, SidebarTrigger } from "@/shared/components/ui/sidebar";
+import { AppSidebar } from "@/shared/components/sidebar/app-sidebar";
+import NavbarBreadcrum from "@/shared/components/sidebar/breadcrumb";
 export default function DashboardLayout() {
 	return (
 		<>

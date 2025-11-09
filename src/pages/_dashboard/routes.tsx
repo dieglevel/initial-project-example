@@ -4,8 +4,8 @@ import DashboardLayout from "./layout";
 import ToDoPage from "./_toDo/page";
 import ToDoAntdPage from "./_toDoAntd/page";
 import PaymentPage from "./_payment/page";
-import NotFoundPage from "@/globalPage/NotFound";
-import { Card } from "@/components/ui/card";
+import NotFoundPage from "@/shared/global-page/401-not-found";
+import { Card } from "@/shared/components/ui/card";
 
 export default function DashboardRoutes() {
 	return (

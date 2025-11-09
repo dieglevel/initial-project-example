@@ -3,7 +3,7 @@ import {
 	CardContent,
 	CardFooter,
 	CardHeader,
-} from "@/components/ui/card";
+} from "@/shared/components/ui/card";
 import LoginForm from "./components/LoginForm";
 import { Link } from "react-router-dom";
 import { AppPaths } from "@/pages/appPaths";

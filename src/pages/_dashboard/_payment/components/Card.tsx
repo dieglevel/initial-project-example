@@ -1,5 +1,5 @@
 import { usePaymentControllerMyCard } from "@/api/payment/payment";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/shared/components/ui/card";
 
 export default function PaymentCard() {
 	const { data } = usePaymentControllerMyCard();

@@ -5,12 +5,12 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
+} from "@/shared/components/ui/form";
 
 import type { SignInDto } from "@/api/schemas";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { useAuth } from "@/shared/hooks/use-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
