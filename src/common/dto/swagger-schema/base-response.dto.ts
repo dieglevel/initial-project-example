@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class BaseResponseDto<T> {
   @ApiProperty()
@@ -10,6 +10,6 @@ export class BaseResponseDto<T> {
   @ApiProperty()
   statusCode: number;
 
-  @ApiProperty({ type: () => Object })
+  @ApiPropertyOptional({ type: () => Object })
   data: T;
 }

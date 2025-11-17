@@ -13,13 +13,15 @@ export abstract class BaseEntity {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @CreateDateColumn({})
+  @CreateDateColumn({ select: false })
+  @ApiProperty({ writeOnly: true })
   createdAt: Date;
 
-  @UpdateDateColumn({})
+  @UpdateDateColumn({ select: false })
+  @ApiProperty({ writeOnly: true })
   updatedAt: Date;
 
-  @DeleteDateColumn({ nullable: true })
-  @ApiPropertyOptional()
+  @DeleteDateColumn({ nullable: true, select: false })
+  @ApiPropertyOptional({ writeOnly: true })
   deletedAt?: Date;
 }

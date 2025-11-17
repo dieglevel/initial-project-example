@@ -1,3 +1,5 @@
+// This is a interface definition for pagination and sorting options in TypeScript.
+
 export enum SortOrder {
   ASC = "ASC",
   DESC = "DESC",

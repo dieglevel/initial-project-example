@@ -16,7 +16,7 @@ export function ApiBaseResponse<T extends Type<any>>(
   model: T,
   options: ApiBaseResponseOptions = {},
 ) {
-  const { isArray = false, isPaginated = false } = options;
+  const { isArray = false } = options;
 
   const decorators = [ApiExtraModels(model, BaseResponseDto)];
 
@@ -37,6 +37,7 @@ export function ApiBaseResponse<T extends Type<any>>(
               }
             : { $ref: getSchemaPath(model) },
         },
+        required: ["path", "timeStamp", "statusCode", "data"],
       },
     }),
   );

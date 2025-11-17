@@ -78,6 +78,8 @@ export const Pagination = createParamDecorator(
   },
 );
 
+// This is class to define pagination and sorting options in TypeScript.
+
 export enum SortOrder {
   ASC = "ASC",
   DESC = "DESC",

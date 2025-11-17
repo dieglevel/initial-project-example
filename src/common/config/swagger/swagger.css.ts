@@ -852,4 +852,10 @@ export const swaggerCss = `
     .swagger-ui .highlight-code>.microlight {
         max-height: 100%;
     }
+
+
+    /* HIDDEN SCHEMA */
+    #swagger-ui > section > div.swagger-ui > div:nth-child(2) > div:nth-child(5) > section {
+        display: none;
+    }
 }`;
