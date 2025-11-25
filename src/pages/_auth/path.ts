@@ -1,4 +1,4 @@
-const _prefix = "/auth";
+const _prefix = "";
 
 export const AuthPaths = {
 	_prefix,

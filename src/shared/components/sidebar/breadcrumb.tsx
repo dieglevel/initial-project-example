@@ -8,10 +8,11 @@ import {
 } from "@/shared/components/ui/breadcrumb";
 import { useBreadcrumStore } from "@/pages/_dashboard/store/breadcrumb.slice";
 import { Fragment, useEffect } from "react";
+import { useAuth } from "@/shared/hooks/use-auth";
 
 export default function NavbarBreadcrum() {
 	const { data: breadcrumb, set } = useBreadcrumStore();
-
+	const { payload } = useAuth();
 	useEffect(() => {
 		set([
 			{ name: "Home", path: "/dashboard" },
@@ -19,6 +20,7 @@ export default function NavbarBreadcrum() {
 			{ name: "Home", path: "/dashboard" },
 			{ name: "Home", path: "/dashboard" },
 			{ name: "Adu", path: null },
+			{ name: `${payload?.sub}`, path: null },
 		]);
 	}, [set]);
 

@@ -3,111 +3,68 @@ import {
 	useAuthControllerLogOut,
 	useAuthControllerSignIn,
 } from "@/api/auth/auth";
-import type { AuthControllerSignIn200, SignInDto } from "@/api/schemas";
-import { STORAGE_KEYS } from "@/shared/common/storage-keys.constant";
+import type {
+	AuthControllerSignIn200,
+	Profile,
+	SignInDto,
+	SignInDtoResponse,
+} from "@/api/schemas";
+import {
+	STORAGE_KEYS,
+	type StorageKeysType,
+} from "@/shared/common/storage-keys.constant";
 import { AppPaths } from "@/pages/appPaths";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, use } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-// Types
-export interface User {
-	id: string;
-	email?: string;
-	username?: string;
-	role: "admin" | "resident";
-	profile?: {
-		firstName?: string;
-		lastName?: string;
-		avatar?: string;
-	};
+export interface JwtPayload {
+	sub: string;
+	exp: number;
+	iat: number;
 }
-
 export interface AuthState {
 	accessToken: string | null;
 	refreshToken: string | null;
-	user: User | null;
 	isAuthenticated: boolean;
 	isLoading: boolean;
+}
+
+export interface AccountType {
+	ADMINISTRATOR: "admin";
+	RESIDENT: "resident";
 }
 
 export interface AuthContextType extends AuthState {
 	login: (credentials: SignInDto) => Promise<void>;
 	logout: () => Promise<void>;
-	refreshAccessToken: () => Promise<void>;
-	clearAuth: () => void;
-	updateUser: (user: Partial<User>) => void;
+	payload: JwtPayload | null;
 }
 
 // Token storage utilities
 const TokenStorage = {
-	setAccessToken: (token: string) => {
+	set: ({ type, data }: { type: StorageKeysType; data: string }) => {
 		try {
-			localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+			localStorage.setItem(type, data);
 		} catch (error) {
-			console.error("Failed to store access token:", error);
+			console.error(`Failed to store ${type}:`, error);
 		}
 	},
 
-	getAccessToken: (): string | null => {
+	get: (type: StorageKeysType): string | null => {
 		try {
-			return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+			return localStorage.getItem(type);
 		} catch (error) {
-			console.error("Failed to retrieve access token:", error);
+			console.error(`Failed to retrieve ${type}:`, error);
 			return null;
 		}
 	},
 
-	setRefreshToken: (token: string) => {
+	clear: (type: StorageKeysType) => {
 		try {
-			localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token);
+			localStorage.removeItem(type);
 		} catch (error) {
-			console.error("Failed to store refresh token:", error);
-		}
-	},
-
-	getRefreshToken: (): string | null => {
-		try {
-			return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-		} catch (error) {
-			console.error("Failed to retrieve refresh token:", error);
-			return null;
-		}
-	},
-
-	setUserData: (user: User) => {
-		try {
-			localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
-		} catch (error) {
-			console.error("Failed to store user data:", error);
-		}
-	},
-
-	getUserData: (): User | null => {
-		try {
-			const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-			return userData ? JSON.parse(userData) : null;
-		} catch (error) {
-			console.error("Failed to retrieve user data:", error);
-			return null;
-		}
-	},
-
-	setUserType: (type: "admin" | "resident") => {
-		try {
-			localStorage.setItem(STORAGE_KEYS.USER_TYPE, type);
-		} catch (error) {
-			console.error("Failed to store user type:", error);
-		}
-	},
-
-	getUserType: (): "admin" | "resident" | null => {
-		try {
-			const type = localStorage.getItem(STORAGE_KEYS.USER_TYPE);
-			return type as "admin" | "resident" | null;
-		} catch (error) {
-			console.error("Failed to retrieve user type:", error);
-			return null;
+			console.error(`Failed to clear ${type}:`, error);
 		}
 	},
 
@@ -135,7 +92,7 @@ const TokenUtils = {
 		}
 	},
 
-	getTokenPayload: (token: string) => {
+	getTokenPayload: (token: string): JwtPayload | null => {
 		try {
 			return JSON.parse(atob(token.split(".")[1]));
 		} catch (error) {
@@ -151,9 +108,8 @@ const TokenUtils = {
 // Custom hook
 export const useAuth = () => {
 	const [authState, setAuthState] = useState<AuthState>({
-		accessToken: null,
-		refreshToken: null,
-		user: null,
+		accessToken: TokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN),
+		refreshToken: TokenStorage.get(STORAGE_KEYS.REFRESH_TOKEN),
 		isAuthenticated: false,
 		isLoading: true,
 	});
@@ -163,10 +119,14 @@ export const useAuth = () => {
 	const loginMutation = useAuthControllerSignIn({
 		mutation: {
 			onSuccess: (data) => {
-				handleLoginSuccess(data);
+				loginSuccess(data.data);
+				toast.success("Đăng nhập thành công!");
 			},
 			onError: () => {
-				toast.error("Wrong username or password. Please try again.");
+				toast.error("Đăng nhập thất bại.", {
+					description:
+						"Tên tài khoản hoặc mật khẩu không đúng. Vui lòng kiểm tra lại thông tin.",
+				});
 			},
 		},
 	});
@@ -174,206 +134,91 @@ export const useAuth = () => {
 	const logoutMutation = useAuthControllerLogOut({
 		mutation: {
 			onSuccess: () => {
-				handleLogoutSuccess();
+				TokenStorage.clearAll();
+				setAuthState({
+					accessToken: null,
+					refreshToken: null,
+					isAuthenticated: false,
+					isLoading: false,
+				});
+				navigate(AppPaths.auth.login);
+				toast.success("Đăng xuất thành công!");
 			},
 			onError: (error) => {
 				console.error("Logout failed:", error);
-				// Even if logout fails on server, clear local state
-				handleLogoutSuccess();
 			},
 		},
 	});
 
-	// Handle login success
-	const handleLoginSuccess = useCallback((data: AuthControllerSignIn200) => {
-		const accessToken = data?.data?.accessToken;
-		const refreshToken = data?.data?.refreshToken;
+	const login = useCallback(async (credentials: SignInDto) => {
+		await loginMutation.mutateAsync({
+			data: credentials,
+		});
+	}, []);
 
-		if (!accessToken) {
-			throw new Error("No access token received");
-		}
+	const loginSuccess = useCallback(async (response: SignInDtoResponse) => {
+		const { accessToken, refreshToken } = response;
 
-		// Extract user data from token payload
-		const tokenPayload = TokenUtils.getTokenPayload(accessToken);
-		const user: User = {
-			id: tokenPayload?.sub || tokenPayload?.id || "unknown",
-			email: tokenPayload?.email,
-			username: tokenPayload?.username,
-			role: "admin", // Default to admin since we only have one login type now
-			profile: tokenPayload?.profile,
-		};
+		TokenStorage.set({ type: STORAGE_KEYS.ACCESS_TOKEN, data: accessToken });
+		TokenStorage.set({
+			type: STORAGE_KEYS.REFRESH_TOKEN,
+			data: refreshToken,
+		});
 
-		// Store tokens and user data
-		TokenStorage.setAccessToken(accessToken);
-		if (refreshToken) {
-			TokenStorage.setRefreshToken(refreshToken);
-		}
-		TokenStorage.setUserData(user);
-		TokenStorage.setUserType("admin");
-
-		// Update state
-		setAuthState({
+		setAuthState((prev) => ({
+			...prev,
 			accessToken,
-			refreshToken: refreshToken || null,
-			user,
+			refreshToken,
 			isAuthenticated: true,
 			isLoading: false,
-		});
+		}));
+
+		navigate(AppPaths.dashboard._prefix);
 	}, []);
 
-	// Handle logout success
-	const handleLogoutSuccess = useCallback(() => {
-		TokenStorage.clearAll();
-		setAuthState({
-			accessToken: null,
-			refreshToken: null,
-			user: null,
-			isAuthenticated: false,
-			isLoading: false,
-		});
-	}, []);
-
-	// Login function
-	const login = useCallback(
-		async (credentials: SignInDto) => {
-			try {
-				await loginMutation.mutateAsync({ data: credentials });
-				navigate(AppPaths.dashboard.todo);
-			} catch (error) {
-				console.log("Error in login function:", error);
-				throw error;
-			}
-		},
-		[loginMutation],
-	);
-
-	// Logout function
 	const logout = useCallback(async () => {
-		try {
-			await logoutMutation.mutateAsync();
-			window.location.href = AppPaths.auth.login;
-		} catch (error) {
-			console.error("Logout error:", error);
-			// Still clear local state even if server logout fails
-			handleLogoutSuccess();
-		}
-	}, [logoutMutation, handleLogoutSuccess]);
-
-	// Refresh token function (placeholder for future implementation)
-	const refreshAccessToken = useCallback(async () => {
-		const refreshToken = TokenStorage.getRefreshToken();
-
-		if (!refreshToken) {
-			throw new Error("No refresh token available");
-		}
-
-		// Check if refresh token is expired
-		if (TokenUtils.isTokenExpired(refreshToken)) {
-			await logout();
-			throw new Error("Refresh token expired");
-		}
-
-		try {
-			// TODO: Replace with actual refresh token API call when available
-			// For now, we'll simulate a refresh token request
-			console.log(
-				"Refresh token API not yet implemented - using placeholder",
-			);
-
-			// This is a placeholder - replace with actual API call
-			// const response = await customAxios({
-			//   url: '/api/auth/refresh',
-			//   method: 'POST',
-			//   data: { refreshToken }
-			// });
-
-			// For now, just throw an error to logout user
-			throw new Error("Refresh token functionality not implemented");
-		} catch (error) {
-			console.error("Token refresh failed:", error);
-			await logout();
-			throw error;
-		}
-	}, [logout]);
-
-	// Clear auth function
-	const clearAuth = useCallback(() => {
-		handleLogoutSuccess();
-	}, [handleLogoutSuccess]);
-
-	// Update user function
-	const updateUser = useCallback((userUpdate: Partial<User>) => {
-		setAuthState((prev) => {
-			if (!prev.user) return prev;
-
-			const updatedUser = { ...prev.user, ...userUpdate };
-			TokenStorage.setUserData(updatedUser);
-
-			return {
-				...prev,
-				user: updatedUser,
-			};
-		});
+		await logoutMutation.mutateAsync();
 	}, []);
 
-	// Initialize auth state from storage
 	useEffect(() => {
-		const initializeAuth = () => {
-			try {
-				const accessToken = TokenStorage.getAccessToken();
-				const refreshToken = TokenStorage.getRefreshToken();
-				const userData = TokenStorage.getUserData();
+		// On mount, check for tokens in storage
+		const accessToken = TokenStorage.get(STORAGE_KEYS.ACCESS_TOKEN);
+		const refreshToken = TokenStorage.get(STORAGE_KEYS.REFRESH_TOKEN);
 
-				if (accessToken && userData) {
-					// Check if token is expired
-					if (TokenUtils.isTokenExpired(accessToken)) {
-						// Try to refresh if we have a refresh token
-						if (
-							refreshToken &&
-							!TokenUtils.isTokenExpired(refreshToken)
-						) {
-							// TODO: Implement token refresh
-							console.log("Token expired, refresh needed");
-							handleLogoutSuccess();
-						} else {
-							// Both tokens expired, clear everything
-							handleLogoutSuccess();
-						}
-					} else {
-						// Token is valid, restore auth state
-						setAuthState({
-							accessToken,
-							refreshToken,
-							user: userData,
-							isAuthenticated: true,
-							isLoading: false,
-						});
-					}
-				} else {
-					// No valid auth data
-					setAuthState((prev) => ({
-						...prev,
-						isLoading: false,
-					}));
-				}
-			} catch (error) {
-				console.error("Failed to initialize auth:", error);
-				setAuthState((prev) => ({
-					...prev,
-					isLoading: false,
-				}));
-			}
-		};
+		if (
+			accessToken &&
+			refreshToken &&
+			!TokenUtils.isTokenExpired(accessToken)
+		) {
+			setAuthState({
+				accessToken,
+				refreshToken,
+				isAuthenticated: true,
+				isLoading: false,
+			});
+		} else {
+			TokenStorage.clearAll();
+			setAuthState({
+				accessToken: null,
+				refreshToken: null,
+				isAuthenticated: false,
+				isLoading: false,
+			});
+		}
+	}, []);
 
-		initializeAuth();
-	}, [handleLogoutSuccess]);
+	const payload = useMemo(() => {
+		console.log("authState.accessToken", authState.accessToken);
+		if (authState.accessToken) {
+			return TokenUtils.getTokenPayload(authState.accessToken);
+		}
+		return null;
+	}, [authState]);
 
 	return {
 		...authState,
 		login,
 		logout,
-		refreshAccessToken,
-		clearAuth,
-		updateUser,
+		payload,
 	};
 };
