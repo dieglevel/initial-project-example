@@ -10,6 +10,8 @@ export const ValidatePipeConfig = new ValidationPipe({
       messages: Object.values(err.constraints || {}),
     }));
 
+    console.log("Validation errors:", errors);
+
     return new BadRequestException({
       message: "Validation failed",
       errors: formattedErrors,
