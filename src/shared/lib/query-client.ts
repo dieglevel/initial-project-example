@@ -1,8 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
 
 import type { DefaultError, UseMutationOptions } from "@tanstack/react-query";
+import { message } from "antd";
 import type { AxiosError } from "axios";
-import { toast } from "sonner";
 
 export const queryClient = new QueryClient({
 	defaultOptions: {
@@ -28,30 +28,28 @@ export function withMutationOptions<
 
 			switch (errorAxios.response?.status) {
 				case 400:
-					toast.error(
+					message.error(
 						"Bad request. Please check your input and try again.",
 					);
 					break;
 				case 401:
-					toast.error("Unauthorized. Please log in to continue.");
+					message.error("Unauthorized. Please log in to continue.");
 					break;
 				case 403:
-					toast.error(
+					message.error(
 						"Forbidden. You do not have permission to perform this action.",
 					);
 					break;
 				case 404:
-					toast.error(
+					message.error(
 						"Not found. The requested resource could not be found.",
 					);
 					break;
 				case 500:
-					toast.error("Server error. Please try again later.");
+					message.error("Server error. Please try again later.");
 					break;
 				default:
-					toast.error("An error occurred during the operation.", {
-						description: errorAxios.message,
-					});
+					message.error("An error occurred during the operation.");
 			}
 
 			options?.onError?.(error, variables, context, mutation);

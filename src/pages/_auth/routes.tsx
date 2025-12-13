@@ -1,6 +1,6 @@
 import { Outlet, Route } from "react-router-dom";
-import LoginPage from "./_login/page";
 import { AuthPaths } from "./path";
+import LoginPage from "./_login/page";
 
 export default function AuthRoutes() {
 	return (

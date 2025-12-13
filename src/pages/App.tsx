@@ -18,10 +18,6 @@ function App() {
 
 			{/* Global Pages */}
 			<Route path="*" element={<NotFoundPage />} />
-			<Route
-				index
-				element={<Navigate to={AppPaths.dashboard.todo} replace />}
-			/>
 		</Routes>
 	);
 }

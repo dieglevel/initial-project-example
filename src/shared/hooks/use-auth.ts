@@ -16,7 +16,7 @@ import {
 import { AppPaths } from "@/pages/appPaths";
 import { useState, useEffect, useCallback, useMemo, use } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { message } from "antd";
 
 export interface JwtPayload {
 	sub: string;
@@ -120,13 +120,10 @@ export const useAuth = () => {
 		mutation: {
 			onSuccess: (data) => {
 				loginSuccess(data.data);
-				toast.success("Đăng nhập thành công!");
+				message.success("Đăng nhập thành công!");
 			},
 			onError: () => {
-				toast.error("Đăng nhập thất bại.", {
-					description:
-						"Tên tài khoản hoặc mật khẩu không đúng. Vui lòng kiểm tra lại thông tin.",
-				});
+				message.error("Đăng nhập thất bại.");
 			},
 		},
 	});
@@ -142,7 +139,7 @@ export const useAuth = () => {
 					isLoading: false,
 				});
 				navigate(AppPaths.auth.login);
-				toast.success("Đăng xuất thành công!");
+				message.success("Đăng xuất thành công!");
 			},
 			onError: (error) => {
 				console.error("Logout failed:", error);

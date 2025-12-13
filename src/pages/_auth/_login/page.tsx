@@ -1,41 +1,62 @@
-import {
-	Card,
-	CardContent,
-	CardFooter,
-	CardHeader,
-} from "@/shared/components/ui/card";
-import LoginForm from "./components/LoginForm";
-import { Link } from "react-router-dom";
-import { AppPaths } from "@/pages/appPaths";
+import type { SignInDto } from "@/api";
+import type { WriteItemProps } from "@/shared/components/WriteItem";
+import WriteItem from "@/shared/components/WriteItem";
+import { useAuth } from "@/shared/hooks/use-auth";
+import { Button, Flex, Form, Input, message } from "antd";
+import { useForm } from "antd/es/form/Form";
+
+type SignInField<T extends React.ElementType> = WriteItemProps<T, SignInDto>;
+
+type AnySignInField = WriteItemProps<React.ElementType, SignInDto>;
 
 export default function LoginPage() {
+	const [form] = useForm<SignInDto>();
+
+	const hanleTest = () => {
+		message.success("Test button clicked!");
+	};
+
+	const { login } = useAuth();
+
+	const field: AnySignInField[] = [
+		{
+			form: {
+				label: "Identifier",
+				name: "identifier",
+				rules: [{ required: true }],
+			},
+			component: Input,
+			componentProps: {},
+		} as WriteItemProps<typeof Input, SignInDto>,
+		{
+			form: {
+				label: "Password",
+				name: "password",
+				rules: [{ required: true }],
+			},
+			component: Input,
+			componentProps: {
+				visibilityToggle: true,
+			},
+		},
+	];
+
+	const handleLogin = async (values: SignInDto) => {
+		await login(values);
+	};
+
 	return (
-		<div className="flex h-screen w-full items-center justify-center">
-			<Card className="w-[400px]">
-				<CardHeader className="font-bold">Login</CardHeader>
-				<CardContent>
-					<LoginForm />
-				</CardContent>
-				<CardFooter>
-					{/* Register or Forgot Password link */}
-					<div className="w-full text-center">
-						<Link
-							to={AppPaths.auth.forgotPassword}
-							className="text-sm text-blue-500 hover:underline"
-						>
-							Quên mật khẩu?
-						</Link>
-					</div>
-					<div className="w-full text-center">
-						<Link
-							to={AppPaths.auth.register}
-							className="text-sm text-blue-500 hover:underline"
-						>
-							Đăng ký
-						</Link>
-					</div>
-				</CardFooter>
-			</Card>
-		</div>
+		<Flex justify="center" align="center" style={{ minHeight: "100vh" }}>
+			<Form layout="vertical" form={form} onFinish={handleLogin}>
+				{field.map((item, index) => (
+					<WriteItem key={index} {...item} />
+				))}
+				<Form.Item>
+					<Button htmlType="submit" type="primary">
+						Login
+					</Button>
+				</Form.Item>
+			</Form>
+		</Flex>
 	);
 }

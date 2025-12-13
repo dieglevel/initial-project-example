@@ -4,23 +4,26 @@ import React, { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuthContext } from "./auth.context";
 import { useAuth } from "../hooks/use-auth";
-import { Spinner } from "../components/ui/spinner";
+import { Flex, Spin } from "antd";
 
 export const ProtectedRoute: React.FC = () => {
 	const navigate = useNavigate();
 	const { isAuthenticated, isLoading } = useAuth();
 
 	useEffect(() => {
+		console.log("🚀 ~ ProtectedRoute ~ isAuthenticated:", isAuthenticated);
 		if (!isLoading && !isAuthenticated) {
 			navigate(AppPaths.auth.login);
+			return;
 		}
+		navigate(AppPaths.dashboard._prefix);
 	}, [isAuthenticated, isLoading]);
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center min-h-screen w-full">
-				<Spinner />
-			</div>
+			<Flex justify="center" align="center" style={{ minHeight: "100vh" }}>
+				<Spin />
+			</Flex>
 		);
 	}
 
@@ -34,14 +37,16 @@ export const PublicRoute: React.FC = () => {
 	useEffect(() => {
 		if (!isLoading && isAuthenticated) {
 			navigate(AppPaths.dashboard._prefix);
+			return;
 		}
+		navigate(AppPaths.auth.login);
 	}, [isAuthenticated, isLoading]);
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center min-h-screen w-full gap-3">
-				<Spinner />
-			</div>
+			<Flex justify="center" align="center" style={{ minHeight: "100vh" }}>
+				<Spin />
+			</Flex>
 		);
 	}
 
