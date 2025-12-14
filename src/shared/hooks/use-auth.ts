@@ -138,7 +138,7 @@ export const useAuth = () => {
 					isAuthenticated: false,
 					isLoading: false,
 				});
-				navigate(AppPaths.auth.login);
+				navigate(AppPaths.auth.page.login.path);
 				message.success("Đăng xuất thành công!");
 			},
 			onError: (error) => {
@@ -205,7 +205,6 @@ export const useAuth = () => {
 	}, []);
 
 	const payload = useMemo(() => {
-		console.log("authState.accessToken", authState.accessToken);
 		if (authState.accessToken) {
 			return TokenUtils.getTokenPayload(authState.accessToken);
 		}

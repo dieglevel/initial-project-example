@@ -11,12 +11,9 @@ export const ProtectedRoute: React.FC = () => {
 	const { isAuthenticated, isLoading } = useAuth();
 
 	useEffect(() => {
-		console.log("🚀 ~ ProtectedRoute ~ isAuthenticated:", isAuthenticated);
 		if (!isLoading && !isAuthenticated) {
 			navigate(AppPaths.auth.login);
-			return;
 		}
-		navigate(AppPaths.dashboard._prefix);
 	}, [isAuthenticated, isLoading]);
 
 	if (isLoading) {
@@ -36,10 +33,8 @@ export const PublicRoute: React.FC = () => {
 
 	useEffect(() => {
 		if (!isLoading && isAuthenticated) {
-			navigate(AppPaths.dashboard._prefix);
-			return;
+			navigate(AppPaths.dashboard.dashboard);
 		}
-		navigate(AppPaths.auth.login);
 	}, [isAuthenticated, isLoading]);
 
 	if (isLoading) {

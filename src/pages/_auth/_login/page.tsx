@@ -2,43 +2,39 @@ import type { SignInDto } from "@/api";
 import type { WriteItemProps } from "@/shared/components/WriteItem";
 import WriteItem from "@/shared/components/WriteItem";
 import { useAuth } from "@/shared/hooks/use-auth";
-import { Button, Flex, Form, Input, message } from "antd";
+import { Button, Card, Flex, Form, Input, message } from "antd";
 import { useForm } from "antd/es/form/Form";
 
-type SignInField<T extends React.ElementType> = WriteItemProps<T, SignInDto>;
-
-type AnySignInField = WriteItemProps<React.ElementType, SignInDto>;
+type SignInField = WriteItemProps<React.ElementType, SignInDto>;
 
 export default function LoginPage() {
 	const [form] = useForm<SignInDto>();
 
-	const hanleTest = () => {
-		message.success("Test button clicked!");
-	};
-
 	const { login } = useAuth();
 
-	const field: AnySignInField[] = [
+	const field: SignInField[] = [
 		{
 			form: {
 				label: "Identifier",
 				name: "identifier",
-				rules: [{ required: true }],
+				rules: [
+					{ required: true, message: "Please input your identifier!" },
+				],
 			},
 			component: Input,
-			componentProps: {},
+			componentProps: {
+				placeholder: "Username or Email",
+			},
 		} as WriteItemProps<typeof Input, SignInDto>,
 		{
 			form: {
 				label: "Password",
 				name: "password",
-				rules: [{ required: true }],
+				rules: [{ required: true, message: "Please input your password!" }],
 			},
-			component: Input,
-			componentProps: {
-				visibilityToggle: true,
-			},
-		},
+			component: Input.Password,
+			componentProps: {},
+		} as WriteItemProps<typeof Input.Password, SignInDto>,
 	];
 
 	const handleLogin = async (values: SignInDto) => {
@@ -46,17 +42,29 @@ export default function LoginPage() {
 	};
 
 	return (
-		<Flex justify="center" align="center" style={{ minHeight: "100vh" }}>
-			<Form layout="vertical" form={form} onFinish={handleLogin}>
-				{field.map((item, index) => (
-					<WriteItem key={index} {...item} />
-				))}
-				<Form.Item>
-					<Button htmlType="submit" type="primary">
-						Login
-					</Button>
-				</Form.Item>
-			</Form>
+		<Flex
+			justify="center"
+			align="center"
+			style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}
+		>
+			<Card title="Login" style={{ width: 400 }}>
+				<Form layout="vertical" form={form} onFinish={handleLogin}>
+					{field.map((item, index) => (
+						<WriteItem key={index} {...item} />
+					))}
+					<Form.Item>
+						<Button
+							htmlType="submit"
+							type="primary"
+							style={{
+								width: "100%",
+							}}
+						>
+							Login
+						</Button>
+					</Form.Item>
+				</Form>
+			</Card>
 		</Flex>
 	);
 }
