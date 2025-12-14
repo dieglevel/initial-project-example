@@ -138,7 +138,7 @@ export const useAuth = () => {
 					isAuthenticated: false,
 					isLoading: false,
 				});
-				navigate(AppPaths.auth.page.login.path);
+				navigate(AppPaths.auth.login);
 				message.success("Đăng xuất thành công!");
 			},
 			onError: (error) => {
@@ -170,7 +170,7 @@ export const useAuth = () => {
 			isLoading: false,
 		}));
 
-		navigate(AppPaths.dashboard._prefix);
+		navigate(AppPaths.dashboard.dashboard);
 	}, []);
 
 	const logout = useCallback(async () => {

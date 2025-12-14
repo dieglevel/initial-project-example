@@ -1,25 +1,19 @@
 import { Outlet, Route } from "react-router-dom";
 import LoginPage from "./_login/page";
 import type { BaseRoute } from "@/shared/types/base-path";
+import { _prefix, AuthPaths } from "./paths";
 
-const _prefix = "";
-
-export const AuthPath = {
-	login: `${_prefix}/login`,
-	forgotPassword: `${_prefix}/forgot-password`,
-};
-
-const RouteMapper: BaseRoute<typeof AuthPath> = {
-	_prefix,
+const RouteMapper: BaseRoute<typeof AuthPaths> = {
+	_prefix: _prefix,
 	page: {
 		login: {
-			path: AuthPath.login,
+			path: AuthPaths.login,
 			component: <LoginPage />,
 			index: true,
 		},
 		forgotPassword: {
 			component: <div>Forgot Password Page</div>,
-			path: AuthPath.forgotPassword,
+			path: AuthPaths.forgotPassword,
 		},
 	},
 };

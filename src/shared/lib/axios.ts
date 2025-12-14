@@ -16,7 +16,7 @@ const clearTokens = () => {
 	try {
 		localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
 		localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-		localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+		localStorage.removeItem(STORAGE_KEYS.PROFILE_DATA);
 		localStorage.removeItem(STORAGE_KEYS.USER_TYPE);
 	} catch (error) {
 		console.error("Failed to clear tokens:", error);

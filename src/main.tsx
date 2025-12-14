@@ -6,7 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./shared/lib/query-client.ts";
 import { BrowserRouter } from "react-router-dom";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { AuthProvider } from "./shared/providers/auth.tsx";
+import { AuthProvider } from "./shared/providers/auth/auth.tsx";
 import { ConfigProvider } from "antd";
 import { ConfigAntd } from "./shared/common/antd-config-provider.constant.ts";
 

@@ -3,16 +3,10 @@ import DashboardLayout from "./layout";
 import NotFoundPage from "@/shared/global-page/401-not-found";
 import DashboardHomePage from "./_home/page";
 import type { BaseRoute } from "@/shared/types/base-path";
-
-const _prefix = "dashboard";
-
-export const DashboardPaths = {
-	dashboard: `${_prefix}`,
-	home: `${_prefix}/home`,
-};
+import { _prefix, DashboardPaths } from "./paths";
 
 const RouteMapper: BaseRoute<typeof DashboardPaths> = {
-	_prefix,
+	_prefix: _prefix,
 	page: {
 		dashboard: {
 			path: DashboardPaths.dashboard,
@@ -20,7 +14,7 @@ const RouteMapper: BaseRoute<typeof DashboardPaths> = {
 			index: true,
 		},
 		home: {
-			component: <div>Forgot Password Page</div>,
+			component: <DashboardHomePage />,
 			path: DashboardPaths.home,
 		},
 	},

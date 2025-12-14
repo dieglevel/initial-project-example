@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import React, { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuthContext } from "./auth.context";
-import { useAuth } from "../hooks/use-auth";
+import { useAuth } from "../../hooks/use-auth";
 import { Flex, Spin } from "antd";
 
 export const ProtectedRoute: React.FC = () => {
