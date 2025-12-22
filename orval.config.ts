@@ -1,9 +1,12 @@
 // orval.config.ts
 import { defineConfig } from "orval";
 
+const API_URL =
+	process.env.ORVAL_API_URL || "http://localhost:3030/swagger/json";
+
 export default defineConfig({
 	api: {
-		input: "http://localhost:3030/swagger/json",
+		input: API_URL,
 		output: {
 			workspace: "src/api",
 			mode: "tags-split",

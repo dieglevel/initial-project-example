@@ -3,7 +3,11 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+	logLevel: "error",
+	esbuild: {
+		drop: mode === "production" ? ["console", "debugger"] : [],
+	},
 	plugins: [react()],
 	resolve: {
 		alias: {
@@ -11,4 +15,4 @@ export default defineConfig({
 			"@shared": path.resolve(__dirname, "./src/shared"),
 		},
 	},
-});
+}));
