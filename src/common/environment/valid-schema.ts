@@ -9,9 +9,6 @@ export const envValidationSchema = Joi.object({
   HOST: Joi.string().default("localhost"),
   API_PREFIX: Joi.string().default("api"),
 
-  // Public folder
-  PUBLIC_FOLDER: Joi.string().default("public"),
-
   // JWT
   JWT_SECRET: Joi.string().required(),
   JWT_EXPIRATION_TIME: Joi.string().default("1d"),
@@ -37,9 +34,12 @@ export const envValidationSchema = Joi.object({
   REDIS_CACHE_PREFIX: Joi.string().default("redis-cache"),
   REDIS_BULL_PREFIX: Joi.string().default("redis-bull"),
 
-  // Mail
-  SENDINBLUE_API_KEY: Joi.string().required(),
+  // // Mail
+  // SENDINBLUE_API_KEY: Joi.string().required(),
 
-  // Google API
-  GOOGLE_API_KEY: Joi.string().optional(),
+  // // Google API
+  // GOOGLE_API_KEY: Joi.string().optional(),
+
+  // // Public folder
+  // PUBLIC_FOLDER: Joi.string().default("public"),
 });

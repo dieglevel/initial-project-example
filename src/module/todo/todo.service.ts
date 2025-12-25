@@ -8,7 +8,8 @@ import { CreateTodoDto, CreateTodoResponseDto } from "./dto/create.dto";
 import { UpdateTodoDto, UpdateTodoResponseDto } from "./dto/update.dto";
 import { DeleteTodoResponseDto } from "./dto/delete.dto";
 import { PagingTodoResponseDto } from "./dto/paging.dto";
-import { PaginationQuery } from "src/common/dto/interface/pagination.dto";
+import { PaginationQuery } from "src/common/dto/interface/pagination.interface";
+import { alias, col } from "src/common/util/query-builder.util";
 
 @Injectable()
 export class TodoService {
@@ -79,24 +80,32 @@ export class TodoService {
   async pagingTodo(
     pagination: PaginationQuery<Todo>,
   ): Promise<PagingTodoResponseDto> {
-    const searchQuery: string = pagination.searchFields
-      .map((field) => {
+    const alias_account = alias<Account>("account");
+    const alias_todo = alias<Todo>("todo");
+
+    const searchQuery = pagination?.searchFields
+      ?.map((field) => {
         return `todo.${field} LIKE '%${pagination.search}%'`;
       })
       .join(" OR ");
 
-    const query = this.dataSource
-      .createQueryBuilder(Todo, "todo")
-      .where(searchQuery);
+    console.log("🚀 ~ TodoService ~ pagingTodo ~ searchQuery:", searchQuery);
+
+    const query = this.todoRepository
+      .createQueryBuilder("todo")
+      .leftJoin(alias_todo.account, "account");
+    if (pagination.search && searchQuery) {
+      query.andWhere(`(${searchQuery})`);
+    }
 
     const result = await query.getMany();
 
     return {
-      currentPage: pagination.page,
       items: result,
-      itemsPerPage: pagination.limit,
+      currentPage: pagination.page,
+      itemsPerPage: pagination.pageSize,
       totalItems: await query.getCount(),
-      totalPages: Math.ceil((await query.getCount()) / pagination.limit),
+      totalPages: Math.ceil((await query.getCount()) / pagination.pageSize),
     };
   }
 }

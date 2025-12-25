@@ -19,7 +19,7 @@ import { DeleteTodoResponseDto } from "./dto/delete.dto";
 import { Todo } from "./_entities/todo.entity";
 import { ApiPagination } from "src/common/decorator/pagination/api-pagination.decorator";
 import { PagingTodoResponseDto } from "./dto/paging.dto";
-import { PaginationQuery } from "src/common/dto/interface/pagination.dto";
+import { PaginationQuery } from "src/common/dto/interface/pagination.interface";
 import { Pagination } from "src/common/decorator/pagination/pagination.decorator";
 
 @Controller("todo")
@@ -44,7 +44,7 @@ export class TodoController {
   @Get("paging")
   @HttpCode(200)
   @ApiBaseResponse(PagingTodoResponseDto)
-  @ApiPagination(Todo, { exclude: ["isCompleted"] })
+  @ApiPagination(Todo, { excludeSearch: ["isCompleted"], excludeOrder: [] })
   async getPaging(@Pagination() pagination: PaginationQuery<Todo>) {
     return this.todoService.pagingTodo(pagination);
   }

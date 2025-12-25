@@ -7,13 +7,13 @@ export enum SortOrder {
 
 export interface SortOption<T> {
   field: keyof T & string;
-  order: SortOrder;
+  orderDirection: SortOrder;
 }
 
 export interface PaginationQuery<T> {
-  limit: number;
   page: number;
-  sort: SortOption<T>[];
-  search: string;
-  searchFields: (keyof T & string)[];
+  pageSize: number;
+  orderDirection?: SortOption<T>[];
+  search?: string;
+  searchFields?: (keyof T & string)[];
 }

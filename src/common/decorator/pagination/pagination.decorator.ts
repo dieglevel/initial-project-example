@@ -65,7 +65,7 @@ export const Pagination = createParamDecorator(
     // --- Gộp thành payload chuẩn ---
     const query: PaginationQueryDto<T> = {
       ...cleanQuery,
-      sort,
+      orderDirection: sort,
       searchFields,
     } as PaginationQueryDto<T>;
 
@@ -97,13 +97,13 @@ export class PaginationQueryDto<T> {
   @IsOptional()
   @Type(() => Number)
   @IsPositive()
-  @Max(100)
-  limit = 10;
+  page = 1;
 
   @IsOptional()
   @Type(() => Number)
   @IsPositive()
-  page = 1;
+  @Max(100)
+  pageSize = 10;
 
   @IsOptional()
   @IsArray()
@@ -116,7 +116,7 @@ export class PaginationQueryDto<T> {
         )
       : [],
   )
-  sort: SortOption<T>[] = [];
+  orderDirection: SortOption<T>[] = [];
 
   @IsOptional()
   @IsString()
@@ -132,6 +132,6 @@ export class PaginationQueryDto<T> {
   searchFields: (keyof T & string)[] = [];
 
   get offset(): number {
-    return (this.page - 1) * this.limit;
+    return (this.page - 1) * this.pageSize;
   }
 }

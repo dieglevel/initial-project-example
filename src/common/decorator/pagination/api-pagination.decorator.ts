@@ -11,15 +11,23 @@ function getEntityFields<T extends object>(entity: new () => T): string[] {
 export function ApiPagination<T extends object>(
   entity: new () => T,
   options?: {
-    exclude?: (keyof T)[];
+    excludeSearch?: (keyof T)[];
+    excludeOrder?: (keyof T)[];
   },
 ) {
   const allFields = getEntityFields(entity);
   const baseFields = getEntityFields(BaseEntityDto);
 
   // Chỉ lấy các field có thể sort / search
-  const allowedFields = allFields.filter(
-    (f) => !baseFields.includes(f) && !options?.exclude?.includes(f as keyof T),
+  const allowedSearchFields = allFields.filter(
+    (f) =>
+      !baseFields.includes(f) &&
+      !options?.excludeSearch?.includes(f as keyof T),
+  );
+
+  const allowedOrderFields = allFields.filter(
+    (f) =>
+      !baseFields.includes(f) && !options?.excludeOrder?.includes(f as keyof T),
   );
 
   const decorators = [
@@ -32,7 +40,7 @@ export function ApiPagination<T extends object>(
       description: "Trang hiện tại (mặc định = 1)",
     }),
     ApiQuery({
-      name: "limit",
+      name: "pageSize",
       required: false,
       type: Number,
       example: 10,
@@ -41,17 +49,17 @@ export function ApiPagination<T extends object>(
 
     // --- Sort ---
     ApiQuery({
-      name: "sort",
+      name: "orderDirection",
       required: false,
       type: "object",
       isArray: true,
-      description: `Sắp xếp theo 1 hoặc nhiều trường.`,
+      description: `Sắp xếp theo 1 hoặc nhiều trường. Các trường được phép sắp xếp: ${allowedOrderFields.join(", ")}`,
       schema: {
         type: "array",
         items: {
           type: "object",
           properties: {
-            field: { type: "string", enum: allowedFields },
+            field: { type: "string", enum: allowedOrderFields },
             order: { type: "string", enum: ["ASC", "DESC"] },
           },
         },
@@ -70,8 +78,8 @@ export function ApiPagination<T extends object>(
       required: false,
       isArray: true,
       type: String,
-      enum: allowedFields,
-      description: `Các trường được phép search: ${allowedFields.join(", ")}`,
+      enum: allowedSearchFields,
+      description: `Các trường được phép search: ${allowedSearchFields.join(", ")}`,
     }),
   ];
 
