@@ -16,6 +16,7 @@
     "@tanstack/react-query-devtools": "^5.90.2",
     "antd": "^6.1.0",
     "axios": "^1.12.2",
+    "prettier-plugin-organize-imports": "^4.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
