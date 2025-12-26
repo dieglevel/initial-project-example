@@ -1,14 +1,16 @@
 import type { SignInDto } from "@/api";
+import { useAuth } from "@/shared/auth/use-auth";
 import type { WriteItemProps } from "@/shared/components/WriteItem";
 import WriteItem from "@/shared/components/WriteItem";
-import { useAuth } from "@/shared/hooks/use-auth";
 import { Button, Card, Flex, Form, Input } from "antd";
 import { useForm } from "antd/es/form/Form";
+import { useState } from "react";
 
 type SignInField = WriteItemProps<React.ElementType, SignInDto>;
 
 export default function LoginPage() {
   const [form] = useForm<SignInDto>();
+  const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
 
@@ -36,7 +38,12 @@ export default function LoginPage() {
   ];
 
   const handleLogin = async (values: SignInDto) => {
-    await login(values);
+    setIsLoading(true);
+    try {
+      await login(values);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,6 +64,7 @@ export default function LoginPage() {
               style={{
                 width: "100%",
               }}
+              loading={isLoading}
             >
               Login
             </Button>

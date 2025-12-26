@@ -1,23 +1,13 @@
 import { AppPaths } from "@/pages/appPaths";
-import { STORAGE_KEYS } from "@/shared/common/storage-keys.constant";
 import type { AxiosRequestConfig } from "axios";
 import axios, { AxiosError } from "axios";
-
-const getAccessToken = (): string | null => {
-  try {
-    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-  } catch (error) {
-    console.error("Failed to retrieve access token:", error);
-    return null;
-  }
-};
+import { LocalStorageUtil } from "../utils/local-storage";
 
 const clearTokens = () => {
   try {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.PROFILE_DATA);
-    localStorage.removeItem(STORAGE_KEYS.USER_TYPE);
+    LocalStorageUtil.remove("accessToken");
+    LocalStorageUtil.remove("refreshToken");
+    LocalStorageUtil.remove("user");
   } catch (error) {
     console.error("Failed to clear tokens:", error);
   }
@@ -32,7 +22,7 @@ export const customAxios = <T = unknown>(
 
   // Request interceptor to add authorization header
   instance.interceptors.request.use(async (config) => {
-    const accessToken = getAccessToken();
+    const accessToken = LocalStorageUtil.get("accessToken");
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }

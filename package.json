@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build --mode production",
     "build:nolint": "vite build --mode production",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
     "preview": "vite preview",
     "orval": "orval"
   },

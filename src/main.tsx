@@ -5,23 +5,23 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import Main from "./pages/App.tsx";
+import { AuthProvider } from "./shared/auth/auth.provider.tsx";
 import { ConfigAntd } from "./shared/common/antd-config-provider.constant.ts";
 import { queryClient } from "./shared/lib/query-client.ts";
-import { AuthProvider } from "./shared/providers/auth/auth.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
+    <App>
       <ConfigProvider {...ConfigAntd}>
-        <App>
+        <BrowserRouter>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <ReactQueryDevtools initialIsOpen={false} />
               <Main />
             </AuthProvider>
           </QueryClientProvider>
-        </App>
+        </BrowserRouter>
       </ConfigProvider>
-    </BrowserRouter>
+    </App>
   </StrictMode>,
 );

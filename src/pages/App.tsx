@@ -1,8 +1,7 @@
 import NotFoundPage from "@/shared/global-page/401-not-found";
-import {
-  ProtectedRoute,
-  PublicRoute,
-} from "@/shared/providers/auth/auth.provider";
+
+import { ProtectedRoute } from "@/shared/routes/protected.route";
+import { PublicRoute } from "@/shared/routes/public.route";
 import "@shared/css/App.css";
 import { Route, Routes } from "react-router-dom";
 import AuthRoutes from "./_auth/routes";
