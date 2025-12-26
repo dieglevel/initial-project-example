@@ -1,21 +1,19 @@
 import NotFoundPage from "@/shared/global-page/401-not-found";
 
-import { ProtectedRoute } from "@/shared/routes/protected.route";
 import { PublicRoute } from "@/shared/routes/public.route";
 import "@shared/css/App.css";
 import { Route, Routes } from "react-router-dom";
-import AuthRoutes from "./_auth/routes";
-import DashboardRoutes from "./_dashboard/routes";
+import PublicRoutes from "./public/routes";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<PublicRoute />}>
-        {AuthRoutes()}
+        {PublicRoutes()}
       </Route>
-      <Route path="/" element={<ProtectedRoute />}>
-        {DashboardRoutes()}
-      </Route>
+      {/* <Route path="/" element={<ProtectedRoute />}>
+        {ProtectedRoutes()}
+      </Route> */}
 
       {/* Global Pages */}
       <Route path="*" element={<NotFoundPage />} />

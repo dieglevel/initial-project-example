@@ -5,12 +5,12 @@ export const ConfigAntd: ConfigProviderProps = {
     token: {
       colorPrimary: "#6366F1",
     },
-  },
-  button: {
-    styles: {
-      root: {
-        padding: "24px 32px",
-        fontWeight: "bold",
+    components: {
+      Button: {
+        paddingBlockLG: 17,
+        paddingInlineLG: 28,
+        paddingInline: 10,
+        borderRadius: 4,
       },
     },
   },

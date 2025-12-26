@@ -1,7 +1,5 @@
-import { AuthPaths } from "./_auth/paths";
-import { DashboardPaths } from "./_dashboard/paths";
+import { DashboardPaths } from "./protected/_dashboard/paths";
 
 export const AppPaths = {
-  auth: AuthPaths,
-  dashboard: DashboardPaths,
+  ...DashboardPaths,
 } as const;
