@@ -8,10 +8,10 @@ const _App = "";
 // }
 
 export const STORAGE_KEYS = {
-	ACCESS_TOKEN: `${_App}access_token`,
-	REFRESH_TOKEN: `${_App}refresh_token`,
-	PROFILE_DATA: `${_App}profile_data`,
-	USER_TYPE: `${_App}user_type`,
+  ACCESS_TOKEN: `${_App}access_token`,
+  REFRESH_TOKEN: `${_App}refresh_token`,
+  PROFILE_DATA: `${_App}profile_data`,
+  USER_TYPE: `${_App}user_type`,
 } as const;
 
-export type StorageKeysType = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
+export type StorageKeysType = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

@@ -21,7 +21,5 @@
   "useTabs": false,
   "embeddedLanguageFormatting": "auto",
   "endOfLine": "lf",
-  "plugins": [
-    "prettier-plugin-organize-imports"
-  ]
+  "plugins": ["prettier-plugin-organize-imports"]
 }

@@ -1,37 +1,37 @@
 import React, { useState } from "react";
 
-import { Breadcrumb, Layout, Menu, theme } from "antd";
+import { Layout, Menu, theme } from "antd";
 import { menuItems } from "./menu.constant";
 
 const { Header, Content, Footer, Sider } = Layout;
 
 const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({
-	children,
+  children,
 }) => {
-	const [collapsed, setCollapsed] = useState(false);
-	const {
-		token: { colorBgContainer, borderRadiusLG },
-	} = theme.useToken();
+  const [collapsed, setCollapsed] = useState(false);
+  const {
+    token: { colorBgContainer, borderRadiusLG },
+  } = theme.useToken();
 
-	return (
-		<Layout style={{ minHeight: "100vh" }}>
-			<Sider
-				collapsible
-				collapsed={collapsed}
-				onCollapse={(value) => setCollapsed(value)}
-				trigger={null}
-			>
-				<div className="demo-logo-vertical" />
-				<Menu
-					theme="dark"
-					defaultSelectedKeys={["1"]}
-					mode="inline"
-					items={menuItems}
-				/>
-			</Sider>
-			<Layout>{children}</Layout>
-		</Layout>
-	);
+  return (
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={(value) => setCollapsed(value)}
+        trigger={null}
+      >
+        <div className="demo-logo-vertical" />
+        <Menu
+          theme="dark"
+          defaultSelectedKeys={["1"]}
+          mode="inline"
+          items={menuItems}
+        />
+      </Sider>
+      <Layout>{children}</Layout>
+    </Layout>
+  );
 };
 
 export default SidebarLayout;

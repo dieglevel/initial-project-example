@@ -1,6 +1,7 @@
 @font-face {
   font-family: "Inter";
-  src: url("/src/shared/assets/fonts/Nunito-VariableFont_wght.ttf") format("truetype");
+  src: url("/src/shared/assets/fonts/Nunito-VariableFont_wght.ttf")
+    format("truetype");
   font-weight: 600;
   font-style: normal;
 }

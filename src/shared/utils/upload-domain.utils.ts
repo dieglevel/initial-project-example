@@ -1,5 +1,5 @@
 export const uploadFile = (file?: string) => {
-	if (!file) return "";
+  if (!file) return "";
 
-	return `${import.meta.env.VITE_API_URL}/uploads/${file}`;
+  return `${import.meta.env.VITE_API_URL}/uploads/${file}`;
 };
