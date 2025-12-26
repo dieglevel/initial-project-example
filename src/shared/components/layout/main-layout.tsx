@@ -1,18 +1,16 @@
 import React, { useState } from "react";
 
 import { useAuth } from "@/shared/auth/use-auth";
-import { Button, Layout, Menu, theme } from "antd";
+import { Button, Layout, Menu } from "antd";
 import { menuItems } from "./menu.constant";
 
-const { Header, Content, Footer, Sider } = Layout;
+const { Sider } = Layout;
 
 const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
+
   const { logout } = useAuth();
 
   return (

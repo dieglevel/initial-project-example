@@ -1,14 +1,77 @@
 @font-face {
-  font-family: "Inter";
-  src: url("/src/shared/assets/fonts/Nunito-VariableFont_wght.ttf")
-    format("truetype");
-  font-weight: 600;
+  font-family: 'Pretendard';
   font-style: normal;
+  font-weight: 300;
+  src: url('../assets/fonts/woff/Pretendard-Light.woff') format('woff');
 }
 
-:root {
-  font-family: "Inter", system-ui, sans-serif;
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../assets/fonts/woff/Pretendard-Regular.woff') format('woff');
 }
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 500;
+  src: url('../assets/fonts/woff/Pretendard-Medium.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 600;
+  src: url('../assets/fonts/woff/Pretendard-SemiBold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../assets/fonts/woff/Pretendard-Bold.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 300;
+  src: url('../assets/fonts/woff2/Pretendard-Light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../assets/fonts/woff2/Pretendard-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 500;
+  src: url('../assets/fonts/woff2/Pretendard-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 600;
+  src: url('../assets/fonts/woff2/Pretendard-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../assets/fonts/woff2/Pretendard-Bold.woff2') format('woff2');
+}
+
+* {
+  font-family: 'Pretendard', sans-serif;
+}
+
 
 body {
   margin: 0;

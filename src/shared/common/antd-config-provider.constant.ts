@@ -2,7 +2,9 @@ import type { ConfigProviderProps } from "antd";
 
 export const ConfigAntd: ConfigProviderProps = {
   theme: {
-    token: {},
+    token: {
+      colorPrimary: "#6366F1",
+    },
   },
   button: {
     styles: {
