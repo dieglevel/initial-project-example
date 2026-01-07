@@ -9,27 +9,181 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as R404RouteImport } from './routes/404'
+import { Route as R401RouteImport } from './routes/401'
+import { Route as publicRouteRouteImport } from './routes/(public)/route'
+import { Route as protectedRouteRouteImport } from './routes/(protected)/route'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as publicLoginRouteImport } from './routes/(public)/login'
+import { Route as protectedDashboardRouteImport } from './routes/(protected)/dashboard'
 
-export interface FileRoutesByFullPath {}
-export interface FileRoutesByTo {}
+const R404Route = R404RouteImport.update({
+  id: '/404',
+  path: '/404',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const R401Route = R401RouteImport.update({
+  id: '/401',
+  path: '/401',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const publicRouteRoute = publicRouteRouteImport.update({
+  id: '/(public)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const protectedRouteRoute = protectedRouteRouteImport.update({
+  id: '/(protected)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const publicLoginRoute = publicLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => publicRouteRoute,
+} as any)
+const protectedDashboardRoute = protectedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => protectedRouteRoute,
+} as any)
+
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
+  '/401': typeof R401Route
+  '/404': typeof R404Route
+  '/dashboard': typeof protectedDashboardRoute
+  '/login': typeof publicLoginRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/401': typeof R401Route
+  '/404': typeof R404Route
+  '/dashboard': typeof protectedDashboardRoute
+  '/login': typeof publicLoginRoute
+}
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/(protected)': typeof protectedRouteRouteWithChildren
+  '/(public)': typeof publicRouteRouteWithChildren
+  '/401': typeof R401Route
+  '/404': typeof R404Route
+  '/(protected)/dashboard': typeof protectedDashboardRoute
+  '/(public)/login': typeof publicLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: never
+  fullPaths: '/' | '/401' | '/404' | '/dashboard' | '/login'
   fileRoutesByTo: FileRoutesByTo
-  to: never
-  id: '__root__'
+  to: '/' | '/401' | '/404' | '/dashboard' | '/login'
+  id:
+    | '__root__'
+    | '/'
+    | '/(protected)'
+    | '/(public)'
+    | '/401'
+    | '/404'
+    | '/(protected)/dashboard'
+    | '/(public)/login'
   fileRoutesById: FileRoutesById
 }
-export interface RootRouteChildren {}
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  protectedRouteRoute: typeof protectedRouteRouteWithChildren
+  publicRouteRoute: typeof publicRouteRouteWithChildren
+  R401Route: typeof R401Route
+  R404Route: typeof R404Route
 }
 
-const rootRouteChildren: RootRouteChildren = {}
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/404': {
+      id: '/404'
+      path: '/404'
+      fullPath: '/404'
+      preLoaderRoute: typeof R404RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/401': {
+      id: '/401'
+      path: '/401'
+      fullPath: '/401'
+      preLoaderRoute: typeof R401RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(public)': {
+      id: '/(public)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof publicRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(protected)': {
+      id: '/(protected)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof protectedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(public)/login': {
+      id: '/(public)/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof publicLoginRouteImport
+      parentRoute: typeof publicRouteRoute
+    }
+    '/(protected)/dashboard': {
+      id: '/(protected)/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof protectedDashboardRouteImport
+      parentRoute: typeof protectedRouteRoute
+    }
+  }
+}
+
+interface protectedRouteRouteChildren {
+  protectedDashboardRoute: typeof protectedDashboardRoute
+}
+
+const protectedRouteRouteChildren: protectedRouteRouteChildren = {
+  protectedDashboardRoute: protectedDashboardRoute,
+}
+
+const protectedRouteRouteWithChildren = protectedRouteRoute._addFileChildren(
+  protectedRouteRouteChildren,
+)
+
+interface publicRouteRouteChildren {
+  publicLoginRoute: typeof publicLoginRoute
+}
+
+const publicRouteRouteChildren: publicRouteRouteChildren = {
+  publicLoginRoute: publicLoginRoute,
+}
+
+const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(
+  publicRouteRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  protectedRouteRoute: protectedRouteRouteWithChildren,
+  publicRouteRoute: publicRouteRouteWithChildren,
+  R401Route: R401Route,
+  R404Route: R404Route,
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()

@@ -1,38 +1,37 @@
-import axios from "axios";
-import { LocalStorageUtil } from "../utils/local-storage";
-import type { AxiosError , AxiosRequestConfig } from "axios";
-import { AppPaths } from "@/pages/appPaths";
+import axios from 'axios'
+import { LocalStorageUtil } from '../utils/local-storage'
+import type { AxiosError, AxiosRequestConfig } from 'axios'
 
 const clearTokens = () => {
   try {
-    LocalStorageUtil.remove("accessToken");
-    LocalStorageUtil.remove("refreshToken");
-    LocalStorageUtil.remove("user");
+    LocalStorageUtil.remove('accessToken')
+    LocalStorageUtil.remove('refreshToken')
+    LocalStorageUtil.remove('user')
   } catch (error) {
-    console.error("Failed to clear tokens:", error);
+    console.error('Failed to clear tokens:', error)
   }
-};
+}
 
 export const customAxios = <T = unknown>(
   config: AxiosRequestConfig,
 ): Promise<T> => {
   const instance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:3030",
-  });
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3030',
+  })
 
   // Request interceptor to add authorization header
   instance.interceptors.request.use(async (config) => {
-    const accessToken = LocalStorageUtil.get("accessToken");
+    const accessToken = LocalStorageUtil.get('accessToken')
     if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+      config.headers.Authorization = `Bearer ${accessToken}`
     }
-    return config;
-  });
+    return config
+  })
 
   // Response interceptor to handle token refresh and errors
   instance.interceptors.response.use(
     (response) => {
-      return response;
+      return response
     },
     async (error: AxiosError) => {
       // console.error("Axios Interceptor Error:", error);
@@ -45,31 +44,31 @@ export const customAxios = <T = unknown>(
       if (error.response?.status === 401) {
         // Don't interfere with login endpoints
         if (
-          error.config?.url?.includes("/api/auth/sign-in") ||
-          error.config?.url?.includes("/api/auth/resident-login")
+          error.config?.url?.includes('/api/auth/sign-in') ||
+          error.config?.url?.includes('/api/auth/resident-login')
         ) {
-          return Promise.reject(error);
+          return Promise.reject(error)
         }
 
         // Clear tokens from storage
-        clearTokens();
+        clearTokens()
 
         // Redirect to login page
-        if (typeof window !== "undefined") {
-          window.location.href = AppPaths.auth.login;
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
         }
 
-        return Promise.reject(error);
+        return Promise.reject(error)
       }
 
       // Handle other errors
       if (error.response?.status && error.response.status >= 500) {
-        console.error("CRITICAL SERVER ERROR:", error.response.status);
+        console.error('CRITICAL SERVER ERROR:', error.response.status)
       }
 
-      return Promise.reject(error);
+      return Promise.reject(error)
     },
-  );
+  )
 
-  return instance.request<T>(config).then((res) => res.data);
-};
+  return instance.request<T>(config).then((res) => res.data)
+}
