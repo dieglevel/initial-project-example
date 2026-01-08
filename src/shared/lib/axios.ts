@@ -1,6 +1,9 @@
+/* eslint-disable no-shadow */
 import axios from 'axios'
 import { LocalStorageUtil } from '../utils/local-storage'
+import { useAuthStore } from '../auth/auth.store'
 import type { AxiosError, AxiosRequestConfig } from 'axios'
+import { useProfileControllerMe } from '@/api'
 
 const clearTokens = () => {
   try {
@@ -16,15 +19,13 @@ export const customAxios = <T = unknown>(
   config: AxiosRequestConfig,
 ): Promise<T> => {
   const instance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3030',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
   })
 
   // Request interceptor to add authorization header
   instance.interceptors.request.use(async (config) => {
-    const accessToken = LocalStorageUtil.get('accessToken')
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`
-    }
+    const token = useAuthStore.getState().accessToken
+    if (token) config.headers.Authorization = `Bearer ${token}`
     return config
   })
 

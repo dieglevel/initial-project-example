@@ -17,12 +17,6 @@ const router = createRouter({
   routeTree,
   context: {
     queryClient: queryClient,
-    auth: {
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
-      isLoading: false,
-    },
   },
   defaultPreload: 'intent',
   scrollRestoration: true,

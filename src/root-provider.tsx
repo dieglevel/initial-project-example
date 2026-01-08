@@ -13,12 +13,10 @@ export function Provider({
   configAntd: ConfigProviderProps
 }) {
   return (
-    <App>
-      <ConfigProvider {...configAntd}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      </ConfigProvider>
-    </App>
+    <QueryClientProvider client={queryClient}>
+      <App>
+        <ConfigProvider {...configAntd}>{children}</ConfigProvider>
+      </App>
+    </QueryClientProvider>
   )
 }
