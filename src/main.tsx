@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { App, ConfigProvider } from "antd";
+import viVN from "antd/locale/vi_VN";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -11,8 +12,8 @@ import { queryClient } from "./shared/lib/query-client.ts";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App>
-      <ConfigProvider {...ConfigAntd}>
+    <ConfigProvider {...ConfigAntd} locale={viVN}>
+      <App>
         <BrowserRouter>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
@@ -21,7 +22,7 @@ createRoot(document.getElementById("root")!).render(
             </AuthProvider>
           </QueryClientProvider>
         </BrowserRouter>
-      </ConfigProvider>
-    </App>
+      </App>
+    </ConfigProvider>
   </StrictMode>,
 );

@@ -1,7 +1,7 @@
 import NotFoundPage from "@/shared/global-page/401-not-found";
 
+import "@/shared/css/App.css";
 import { PublicRoute } from "@/shared/routes/public.route";
-import "@shared/css/App.css";
 import { Route, Routes } from "react-router-dom";
 import PublicRoutes from "./public/routes";
 
