@@ -1,38 +1,30 @@
-import type { JwtPayload } from "../auth/auth.context";
+// utils/localStorage.ts
+export const LocalStorageService = {
+  set<T>(key: string, value: T): void {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(key, JSON.stringify(value))
+  },
 
-const _prefix = import.meta.env.VITE_API_URL || "app_";
+  get<T>(key: string, defaultValue?: T): T | null {
+    if (typeof window === 'undefined') return defaultValue ?? null
 
-export interface LocalStorageSchema {
-  accessToken: string;
-  refreshToken: string;
-  user: JwtPayload;
-  theme: "light" | "dark";
+    const item = localStorage.getItem(key)
+    if (!item) return defaultValue ?? null
+
+    try {
+      return JSON.parse(item) as T
+    } catch {
+      return defaultValue ?? null
+    }
+  },
+
+  remove(key: string): void {
+    if (typeof window === 'undefined') return
+    localStorage.removeItem(key)
+  },
+
+  clear(): void {
+    if (typeof window === 'undefined') return
+    localStorage.clear()
+  },
 }
-
-export const LocalStorageUtil = {
-  set<TKey extends keyof LocalStorageSchema>(
-    key: TKey,
-    value: LocalStorageSchema[TKey],
-  ) {
-    localStorage.setItem(_prefix + key, JSON.stringify(value));
-  },
-
-  get<TKey extends keyof LocalStorageSchema>(
-    key: TKey,
-  ): LocalStorageSchema[TKey] | null {
-    const item = localStorage.getItem(_prefix + key);
-    return item ? (JSON.parse(item) as LocalStorageSchema[TKey]) : null;
-  },
-
-  remove<TKey extends keyof LocalStorageSchema>(key: TKey) {
-    localStorage.removeItem(_prefix + key);
-  },
-
-  clear() {
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith(_prefix)) {
-        localStorage.removeItem(key);
-      }
-    });
-  },
-};

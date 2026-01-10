@@ -1,19 +1,9 @@
 /* eslint-disable no-shadow */
 import axios from 'axios'
-import { LocalStorageUtil } from '../utils/local-storage'
-import { useAuthStore } from '../auth/auth.store'
+import { useAuthStore } from '../store/auth.store'
+import { AuthTokenService } from '../auth/authToken.service'
 import type { AxiosError, AxiosRequestConfig } from 'axios'
 import { useProfileControllerMe } from '@/api'
-
-const clearTokens = () => {
-  try {
-    LocalStorageUtil.remove('accessToken')
-    LocalStorageUtil.remove('refreshToken')
-    LocalStorageUtil.remove('user')
-  } catch (error) {
-    console.error('Failed to clear tokens:', error)
-  }
-}
 
 export const customAxios = <T = unknown>(
   config: AxiosRequestConfig,
@@ -24,7 +14,7 @@ export const customAxios = <T = unknown>(
 
   // Request interceptor to add authorization header
   instance.interceptors.request.use(async (config) => {
-    const token = useAuthStore.getState().accessToken
+    const token = AuthTokenService.getAccessToken()
     if (token) config.headers.Authorization = `Bearer ${token}`
     return config
   })
@@ -50,9 +40,6 @@ export const customAxios = <T = unknown>(
         ) {
           return Promise.reject(error)
         }
-
-        // Clear tokens from storage
-        clearTokens()
 
         // Redirect to login page
         if (typeof window !== 'undefined') {

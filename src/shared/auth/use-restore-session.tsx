@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { customAxios } from '../lib/axios'
-import { useAuthStore } from './auth.store'
+import { useAuthStore } from '../store/auth.store'
 import { useProfileControllerMe } from '@/api'
 
 export function useRestoreSession() {

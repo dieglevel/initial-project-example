@@ -1,13 +1,15 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { Button, Card, Flex, Form, Input } from 'antd'
+import useApp from 'antd/es/app/useApp'
 import { useForm } from 'antd/es/form/Form'
 import { useState } from 'react'
-import useApp from 'antd/es/app/useApp'
 import type { WriteItemProps } from '@/shared/components/WriteItem'
 import type { SignInDto } from '@/api'
-import { useAuthControllerSignIn, useProfileControllerMe } from '@/api'
+import type { IUser } from '@/shared/auth/auth.type'
 import WriteItem from '@/shared/components/WriteItem'
-import { useAuthStore } from '@/shared/auth/auth.store'
+import { useAuthStore } from '@/shared/store/auth.store'
+import { useAuthControllerSignIn } from '@/api'
+import { AuthTokenService } from '@/shared/auth/authToken.service'
 
 type SignInField = WriteItemProps<React.ElementType, SignInDto>
 export const Route = createFileRoute('/(public)/login')({
@@ -18,20 +20,17 @@ export const Route = createFileRoute('/(public)/login')({
     if (isAuthenticated) {
       throw redirect({
         to: '/dashboard',
-        search: {
-          redirect: location.href,
-        },
       })
     }
   },
 })
 
 function RouteComponent() {
+  const router = useRouter()
   const [form] = useForm<SignInDto>()
   const [isLoading, setIsLoading] = useState(false)
   const { mutate } = useAuthControllerSignIn()
   const { message } = useApp()
-  // const { data: userData, refetch } = useProfileControllerMe()
 
   const field: Array<SignInField> = [
     {
@@ -64,23 +63,20 @@ function RouteComponent() {
           data: values,
         },
         {
-          onSuccess(data, variables, onMutateResult, context) {
+          onSuccess(data) {
             const response = data.data
-            redirect({
+
+            message.success('Login successful')
+
+            AuthTokenService.setTokens(
+              response.accessToken,
+              response.refreshToken,
+              response.user as IUser,
+            )
+
+            router.navigate({
               to: '/dashboard',
-              search: {
-                redirect: location.href,
-              },
             })
-            console.log('Login successful', response)
-
-            // message.success('Login successful')
-
-            // const user = userData!.data
-
-            // useAuthStore
-            //   .getState()
-            //   .setAuth(user, response.accessToken, response.refreshToken)
           },
         },
       )

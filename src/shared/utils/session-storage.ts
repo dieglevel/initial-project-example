@@ -1,52 +1,30 @@
-type SessionData = {
-  user: string
-}
+// utils/sessionStorage.ts
+export const SessionStorageService = {
+  set<T>(key: string, value: T): void {
+    if (typeof window === 'undefined') return
+    sessionStorage.setItem(key, JSON.stringify(value))
+  },
 
-class SessionService {
-  private storage: Storage
+  get<T>(key: string, defaultValue?: T): T | null {
+    if (typeof window === 'undefined') return defaultValue ?? null
 
-  constructor(useSessionStorage = true) {
-    this.storage = useSessionStorage
-      ? window.sessionStorage
-      : window.localStorage
-  }
+    const item = sessionStorage.getItem(key)
+    if (!item) return defaultValue ?? null
 
-  // Lưu một key vào session
-  set(key: string, value: any) {
     try {
-      const val = JSON.stringify(value)
-      this.storage.setItem(key, val)
-    } catch (error) {
-      console.error('Failed to set session item', error)
+      return JSON.parse(item) as T
+    } catch {
+      return defaultValue ?? null
     }
-  }
+  },
 
-  // Lấy một key từ session
-  get<T = any>(key: string): T | null {
-    try {
-      const item = this.storage.getItem(key)
-      return item ? (JSON.parse(item) as T) : null
-    } catch (error) {
-      console.error('Failed to parse session item', error)
-      return null
-    }
-  }
+  remove(key: string): void {
+    if (typeof window === 'undefined') return
+    sessionStorage.removeItem(key)
+  },
 
-  // Xoá một key
-  remove(key: string) {
-    this.storage.removeItem(key)
-  }
-
-  // Xoá toàn bộ session
-  clear() {
-    this.storage.clear()
-  }
-
-  // Kiểm tra key có tồn tại không
-  has(key: string) {
-    return this.storage.getItem(key) !== null
-  }
+  clear(): void {
+    if (typeof window === 'undefined') return
+    sessionStorage.clear()
+  },
 }
-
-// Singleton
-export const sessionService = new SessionService()

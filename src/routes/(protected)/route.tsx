@@ -1,12 +1,15 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
-import { useAuthStore } from '@/shared/auth/auth.store'
+import { AuthTokenService } from '@/shared/auth/authToken.service'
+import { useAuthStore } from '@/shared/store/auth.store'
 
 export const Route = createFileRoute('/(protected)')({
   component: () => <Outlet />,
   beforeLoad: () => {
-    const { isAuthenticated } = useAuthStore.getState()
+    const accessToken = AuthTokenService.getAccessToken()
+    const refreshToken = AuthTokenService.getRefreshToken()
+    const user = useAuthStore.getState().user
 
-    if (!isAuthenticated) {
+    if (accessToken && refreshToken && user) {
       throw redirect({
         to: '/login',
         search: {
@@ -14,5 +17,12 @@ export const Route = createFileRoute('/(protected)')({
         },
       })
     }
+
+    useAuthStore.setState({
+      isAuthenticated: true,
+      accessToken,
+      refreshToken,
+      user,
+    })
   },
 })
