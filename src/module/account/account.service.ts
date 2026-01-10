@@ -76,11 +76,15 @@ export class AccountService {
   async findOne(identifier: string): Promise<Account> {
     const account = await this.accountRepository.findOne({
       where: [{ username: identifier }, { email: identifier }],
+      relations: {
+        profile: true,
+      },
       select: {
         password: true,
         id: true,
         username: true,
         email: true,
+        profile: true,
       },
     });
 
