@@ -28,11 +28,11 @@ export const envValidationSchema = Joi.object({
     .falsy("false", "0")
     .default(false),
 
-  // Redis
-  REDIS_HOST: Joi.string().required(),
-  REDIS_PORT: Joi.number().default(6379),
-  REDIS_CACHE_PREFIX: Joi.string().default("redis-cache"),
-  REDIS_BULL_PREFIX: Joi.string().default("redis-bull"),
+  // // Redis
+  // REDIS_HOST: Joi.string().required(),
+  // REDIS_PORT: Joi.number().default(6379),
+  // REDIS_CACHE_PREFIX: Joi.string().default("redis-cache"),
+  // REDIS_BULL_PREFIX: Joi.string().default("redis-bull"),
 
   // // Mail
   // SENDINBLUE_API_KEY: Joi.string().required(),
