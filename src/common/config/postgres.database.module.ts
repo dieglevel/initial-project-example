@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from "@nestjs/common";
+import { Module, OnApplicationBootstrap, OnModuleInit } from "@nestjs/common";
 import { ConfigService, ConfigType } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { databaseConfig } from "../environment/types/database.type";
