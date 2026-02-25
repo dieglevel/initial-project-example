@@ -7,7 +7,8 @@ type AppConfigType = {
   HOST: string;
   API_PREFIX: string;
 
-  PUBLIC_FOLDER: string;
+  ROUTE_FOLDER: string;
+  ROOT_UPLOAD_FOLDER: string;
 
   MAIL: {
     SENDINBLUE_KEY: string;
@@ -26,7 +27,8 @@ export const appConfig = registerAs(
     HOST: process.env.HOST ?? "localhost",
     API_PREFIX: process.env.API_PREFIX ?? "api",
 
-    PUBLIC_FOLDER: process.env.PUBLIC_FOLDER ?? "public",
+    ROUTE_FOLDER: process.env.ROUTE_FOLDER ?? "file",
+    ROOT_UPLOAD_FOLDER: process.env.ROOT_UPLOAD_FOLDER ?? "./",
 
     MAIL: {
       SENDINBLUE_KEY: process.env.SENDINBLUE_API_KEY!,

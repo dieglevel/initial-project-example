@@ -40,6 +40,7 @@ export const envValidationSchema = Joi.object({
   // // Google API
   // GOOGLE_API_KEY: Joi.string().optional(),
 
-  // // Public folder
-  // PUBLIC_FOLDER: Joi.string().default("public"),
+  // # File Upload
+  ROUTE_FOLDER: Joi.string().default("file"),
+  ROOT_UPLOAD_FOLDER: Joi.string().default("./"),
 });

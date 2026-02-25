@@ -4,6 +4,7 @@ import { AppModule } from "./app.module";
 import { ConfigService, ConfigType } from "@nestjs/config";
 import { SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
+import { Request, Response, NextFunction } from "express";
 import { SwaggerBuilder } from "./common/config/swagger/swagger.config";
 import {
   BadRequestResponseDto,
@@ -20,18 +21,26 @@ async function bootstrap() {
 
   const config = app.get<ConfigType<typeof appConfig>>(appConfig.KEY);
 
-  app.use(
-    helmet({
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+    return helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          frameAncestors: ["'self'", "http://localhost:5173"],
+          frameAncestors: [
+            "'self'",
+            "http://localhost:5173",
+            "http://localhost:3002",
+          ],
         },
       },
-    }),
-  );
+    });
+  });
 
-  app.enableCors();
+  app.enableCors({
+    credentials: true,
+  });
 
   app.setGlobalPrefix(config.API_PREFIX);
   app.useGlobalInterceptors(new ResponseInterceptor());

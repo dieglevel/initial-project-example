@@ -1,22 +1,22 @@
 import { Module, OnModuleInit } from "@nestjs/common";
-import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ConfigModule, ConfigService, ConfigType } from "@nestjs/config";
 import { ServeStaticModule as ServeStaticModuleNest } from "@nestjs/serve-static";
 import { join } from "path";
+import { appConfig } from "../environment/types/app.config";
 
 @Module({
   imports: [
     ServeStaticModuleNest.forRootAsync({
       imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const publicFolder = configService.get<string>("PUBLIC_FOLDER");
-        if (!publicFolder) {
-          throw new Error("PUBLIC_FOLDER is not defined in .env");
-        }
+      inject: [appConfig.KEY],
+      useFactory: (configService: ConfigType<typeof appConfig>) => {
+        const routeFolder = configService.ROUTE_FOLDER;
+        const folderUpload = configService.ROOT_UPLOAD_FOLDER;
+        const path = join(folderUpload, routeFolder);
         return [
           {
-            rootPath: join(__dirname, "..", "..", "..", publicFolder),
-            serveRoot: `/${publicFolder}`,
+            rootPath: path,
+            serveRoot: `/${routeFolder}`,
           },
         ];
       },

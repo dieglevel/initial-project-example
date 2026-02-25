@@ -10,6 +10,7 @@ import {
   Res,
   Req,
   Body,
+  HttpCode,
 } from "@nestjs/common";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { StaticFileService } from "./static-file.service";
@@ -24,22 +25,27 @@ export class StaticFileController {
   constructor(private readonly fileService: StaticFileService) {}
 
   @Post("upload")
+  @HttpCode(200)
   @UseInterceptors(FileInterceptor("file"))
   @ApiConsumes("multipart/form-data")
   @ApiBody({ type: UploadFileDto })
-  upload1(
+  uploadSingle(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: UploadFileDto,
   ) {
-    return this.fileService.uploadSingle(file);
+    return this.fileService.uploadSingle(file, body);
   }
 
   @Post("upload-multiple")
+  @HttpCode(200)
   @UseInterceptors(FilesInterceptor("files", 20))
   @ApiConsumes("multipart/form-data")
   @ApiBody({ type: [UploadFileDto] })
-  uploadMany(@UploadedFiles() files: Express.Multer.File[]) {
-    return this.fileService.uploadMultiple(files);
+  uploadMany(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: UploadFileDto,
+  ) {
+    return this.fileService.uploadMultiple(files, body);
   }
 
   @Get("stream/:storedName")

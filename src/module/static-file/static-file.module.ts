@@ -2,16 +2,17 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { StaticFileService } from "./static-file.service";
 import { StaticFileController } from "./static-file.controller";
-import { LocalStorageAdapter } from "./storage/local-storage.adapter";
+import { LocalDiskAdapter } from "./storage/service/local-disk.adapter";
+import { FileEntity } from "./_entities/file.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([])],
+  imports: [TypeOrmModule.forFeature([FileEntity])],
   controllers: [StaticFileController],
   providers: [
     StaticFileService,
     {
-      provide: "FileStorageAdapter",
-      useClass: LocalStorageAdapter,
+      provide: "LocalDiskAdapter",
+      useClass: LocalDiskAdapter,
     },
   ],
 })

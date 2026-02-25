@@ -19,6 +19,7 @@ import { InitialCacheManagerModule } from "./common/config/cache-manager.module"
 import { TodoModule } from "./module/todo/todo.module";
 import { PaymentModule } from "./module/payment/payment.module";
 import { StaticFileModule } from "./module/static-file/static-file.module";
+import { InitialServeStaticModule } from "./common/config/serve-static.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { StaticFileModule } from "./module/static-file/static-file.module";
     InitialPostgresModule,
     InitialJwtModule,
     InitialCacheManagerModule,
+    InitialServeStaticModule,
 
     StaticFileModule,
 
