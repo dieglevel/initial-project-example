@@ -8,6 +8,7 @@ export const envValidationSchema = Joi.object({
   PORT: Joi.number().default(3000),
   HOST: Joi.string().default("localhost"),
   API_PREFIX: Joi.string().default("api"),
+  APP_URL: Joi.string().default("http://localhost:3000"),
 
   // JWT
   JWT_SECRET: Joi.string().required(),

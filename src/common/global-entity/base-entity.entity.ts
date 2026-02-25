@@ -10,7 +10,7 @@ import { ApiEntity } from "../decorator/api-swagger/api-entity-property.decorato
 
 @ApiEntity()
 export abstract class BaseEntity {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn("identity")
   id: string;
 
   @CreateDateColumn({ select: false })

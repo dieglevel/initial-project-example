@@ -3,6 +3,7 @@ import { BaseEntity } from "src/common/global-entity/base-entity.entity";
 import { Column, Entity, JoinColumn, OneToOne } from "typeorm";
 import { Account } from "../../account/_entities/account.entity";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { File } from "src/module/static-file/_entities/file.entity";
 
 @Entity()
 @ApiEntity()
@@ -19,9 +20,10 @@ export class Profile extends BaseEntity {
   @ApiPropertyOptional()
   dateOfBirth: Date;
 
-  @Column({ nullable: true })
-  @ApiPropertyOptional()
-  avatar: string;
+  @ApiProperty({ type: () => File, default: "File" })
+  @OneToOne(() => File, { nullable: true, cascade: true })
+  @JoinColumn({ name: "avatar" })
+  avatar: File;
 
   @OneToOne(() => Account, (account) => account.profile, {
     onDelete: "CASCADE",

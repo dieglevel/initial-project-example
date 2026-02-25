@@ -26,3 +26,21 @@ export class UploadFileDto {
   @IsOptional()
   fileProvider?: FileProvider;
 }
+
+export class UploadMultipleDto {
+  @ApiProperty({
+    type: "string",
+    format: "binary",
+    isArray: true,
+  })
+  @IsOptional()
+  files: any;
+
+  @ApiProperty({ enum: FileType, required: false })
+  @IsOptional()
+  fileType?: FileType;
+
+  @ApiProperty({ enum: FileProvider, required: false })
+  @IsOptional()
+  fileProvider?: FileProvider;
+}

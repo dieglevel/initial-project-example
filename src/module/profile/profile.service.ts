@@ -16,6 +16,9 @@ export class ProfileService {
   async me({ userId }: MeDto): Promise<MeDtoResponse> {
     const profile = await this.profileRepository.findOne({
       where: { account: { id: userId } },
+      relations: {
+        avatar: true,
+      },
     });
 
     if (!profile) {

@@ -11,13 +11,16 @@ import {
   Req,
   Body,
   HttpCode,
+  SerializeOptions,
 } from "@nestjs/common";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { StaticFileService } from "./static-file.service";
 import { Response, Request } from "express";
-import { ApiBody, ApiConsumes } from "@nestjs/swagger";
-import { UploadFileDto } from "./dto/upload.dto";
+import { ApiBody, ApiConsumes, ApiResponse } from "@nestjs/swagger";
+import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
 import { Public } from "../auth/decorator/public.decorator";
+import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
+import { File } from "./_entities/file.entity";
 
 @Controller("static")
 @Public()
@@ -28,7 +31,9 @@ export class StaticFileController {
   @HttpCode(200)
   @UseInterceptors(FileInterceptor("file"))
   @ApiConsumes("multipart/form-data")
+  @SerializeOptions({ groups: ["fileProvider"] })
   @ApiBody({ type: UploadFileDto })
+  @ApiBaseResponse(File)
   uploadSingle(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: UploadFileDto,
@@ -39,11 +44,13 @@ export class StaticFileController {
   @Post("upload-multiple")
   @HttpCode(200)
   @UseInterceptors(FilesInterceptor("files", 20))
+  @SerializeOptions({ groups: ["fileProvider"] })
   @ApiConsumes("multipart/form-data")
-  @ApiBody({ type: [UploadFileDto] })
+  @ApiBody({ type: UploadMultipleDto })
+  @ApiBaseResponse(File, { isArray: true })
   uploadMany(
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: UploadFileDto,
+    @Body() body: UploadMultipleDto,
   ) {
     return this.fileService.uploadMultiple(files, body);
   }

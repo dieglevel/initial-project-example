@@ -1,6 +1,6 @@
 // Type for entity's type column
 export enum FileType {
-  AVATAR_USER = "avatarUser",
+  PROFILE_AvATAR = "profile_avatar",
   OTHER = "other",
 }
 

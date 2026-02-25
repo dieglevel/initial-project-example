@@ -6,6 +6,7 @@ type AppConfigType = {
   PORT: number;
   HOST: string;
   API_PREFIX: string;
+  APP_URL: string;
 
   ROUTE_FOLDER: string;
   ROOT_UPLOAD_FOLDER: string;
@@ -26,6 +27,9 @@ export const appConfig = registerAs(
     PORT: parseInt(process.env.PORT ?? "3000", 10),
     HOST: process.env.HOST ?? "localhost",
     API_PREFIX: process.env.API_PREFIX ?? "api",
+    APP_URL:
+      process.env.APP_URL ??
+      `http://${process.env.HOST ?? "localhost"}:${process.env.PORT ?? 3000}`,
 
     ROUTE_FOLDER: process.env.ROUTE_FOLDER ?? "file",
     ROOT_UPLOAD_FOLDER: process.env.ROOT_UPLOAD_FOLDER ?? "./",

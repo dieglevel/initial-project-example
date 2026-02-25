@@ -1,4 +1,4 @@
-import { NestFactory } from "@nestjs/core";
+import { NestFactory, Reflector } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
 import { ConfigService, ConfigType } from "@nestjs/config";
@@ -15,6 +15,7 @@ import { ResponseInterceptor } from "./common/interceptor/response.interceptor";
 import { ValidatePipeConfig } from "./common/pipe/validation.pipe";
 import { swaggerCss } from "./common/config/swagger/swagger.css";
 import { appConfig } from "./common/environment/types/app.config";
+import { ClassSerializerInterceptor } from "@nestjs/common";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -44,6 +45,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix(config.API_PREFIX);
   app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(ValidatePipeConfig);
 

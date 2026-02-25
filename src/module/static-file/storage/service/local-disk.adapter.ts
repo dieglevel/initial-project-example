@@ -37,7 +37,7 @@ export class LocalDiskAdapter implements FileStorageAdapter {
     return `${Date.now()}-${randomUUID()}${extname(originalName)}`;
   }
 
-  async createFolder(folder: string) {
+  private async createFolder(folder: string) {
     await fs.mkdir(this.resolvePath(folder), { recursive: true });
     return true;
   }
@@ -46,25 +46,30 @@ export class LocalDiskAdapter implements FileStorageAdapter {
     file: Express.Multer.File,
     fileType: FileType = FileType.OTHER,
   ): Promise<UploadedFileInfo> {
-    const storedName = this.generateUniqueName(file.originalname);
-    const folderPath = this.resolvePath(fileType);
-    const fullPath = this.resolvePath(fileType, storedName);
+    try {
+      const storedName = this.generateUniqueName(file.originalname);
+      const folderPath = this.resolvePath(fileType);
+      const fullPath = this.resolvePath(fileType, storedName);
 
-    await fs.mkdir(folderPath, { recursive: true });
-    await fs.writeFile(fullPath, file.buffer);
-    console.log(`File saved to ${fullPath}`);
+      await fs.mkdir(folderPath, { recursive: true });
+      await fs.writeFile(fullPath, file.buffer);
+      console.log(`File saved to ${fullPath}`);
 
-    return {
-      storedName,
-      originalName: file.originalname,
-      path: join(fileType, storedName),
-      size: file.size,
-      mimeType: file.mimetype,
-    };
+      return {
+        fileKey: storedName,
+        storagePath: join(fileType, storedName),
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype,
+      };
+    } catch (error) {
+      console.error("Error uploading file to local disk:", error);
+      throw error;
+    }
   }
 
-  async delete(storedName: string) {
-    const filePath = this.resolvePath(storedName);
+  async delete(storagePath: string): Promise<boolean> {
+    const filePath = this.resolvePath(storagePath);
 
     try {
       await fs.unlink(filePath);

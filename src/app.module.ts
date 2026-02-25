@@ -20,6 +20,7 @@ import { TodoModule } from "./module/todo/todo.module";
 import { PaymentModule } from "./module/payment/payment.module";
 import { StaticFileModule } from "./module/static-file/static-file.module";
 import { InitialServeStaticModule } from "./common/config/serve-static.module";
+import { InitialScheduleModule } from "./common/config/schedule.module";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { InitialServeStaticModule } from "./common/config/serve-static.module";
     InitialJwtModule,
     InitialCacheManagerModule,
     InitialServeStaticModule,
+    InitialScheduleModule,
 
     StaticFileModule,
 
