@@ -63,6 +63,11 @@ export class File extends BaseEntity {
   isTemporary: boolean;
 
   @Expose()
+  @ApiProperty({
+    description: "URL to access the file",
+    type: "string",
+    example: "https://yourapp.com/file/abc123.jpg",
+  })
   get url(): string {
     return `${process.env.APP_URL}/file/${this.storagePath}`;
   }

@@ -1,10 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { FileStorageAdapter } from "./storage/file-storage.adapter";
-import { FileProvider, FileType } from "./enum";
 import { InjectRepository } from "@nestjs/typeorm";
-import { File } from "./_entities/file.entity";
 import { Repository } from "typeorm";
+import { File } from "./_entities/file.entity";
 import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
+import { FileProvider, FileType } from "./enum";
+import {
+  FileStorageAdapter,
+  StreamFileInfo,
+} from "./storage/file-storage.adapter";
 
 @Injectable()
 export class StaticFileService {
@@ -27,83 +30,107 @@ export class StaticFileService {
   }
 
   async uploadSingle(file: Express.Multer.File, body: UploadFileDto) {
+    const adapter = this.getAdapter(body.fileProvider);
+
+    const uploadResult = await adapter.upload(
+      file,
+      body.fileType ?? FileType.OTHER,
+    );
+
+    const entity = this.fileRepo.create({
+      fileType: body.fileType ?? FileType.OTHER,
+      provider: body.fileProvider ?? FileProvider.LOCAL_DISK,
+      storagePath: uploadResult.storagePath,
+      size: uploadResult.size,
+      mimeType: uploadResult.mimeType,
+      fileKey: uploadResult.fileKey,
+      originalName: uploadResult.originalName,
+    });
+
     try {
-      const adapter = this.getAdapter(body.fileProvider);
-
-      const uploadResult = await adapter.upload(file, body.fileType);
-
-      const entity = this.fileRepo.create({
-        fileType: body?.fileType || FileType.OTHER,
-        provider: body?.fileProvider || FileProvider.LOCAL_DISK,
-        storagePath: uploadResult.storagePath,
-        size: uploadResult.size,
-        mimeType: uploadResult.mimeType,
-        fileKey: uploadResult.fileKey,
-        originalName: uploadResult.originalName,
+      return await this.fileRepo.manager.transaction(async (manager) => {
+        return await manager.save(entity);
       });
-
-      await this.fileRepo.manager.transaction(
-        async (transactionalEntityManager) => {
-          try {
-            await transactionalEntityManager.save(entity);
-          } catch (error) {
-            console.error("Error during file upload transaction:", error);
-            await adapter.delete(uploadResult.storagePath);
-            throw error;
-          }
-        },
-      );
-
-      return entity;
     } catch (error) {
-      console.error("Error in uploadSingle:", error);
+      await adapter.delete(uploadResult.storagePath);
       throw error;
     }
   }
 
   async uploadMultiple(files: Express.Multer.File[], body: UploadMultipleDto) {
     const adapter = this.getAdapter(body.fileProvider);
-
-    const uploadResults = await Promise.all(
-      files.map((file) => adapter.upload(file, body.fileType)),
-    );
-
-    const entities = uploadResults.map((result, index) =>
-      this.fileRepo.create({
-        fileType: body?.fileType || FileType.OTHER,
-        provider: body?.fileProvider || FileProvider.LOCAL_DISK,
-        storagePath: result.storagePath,
-        size: result.size,
-        mimeType: result.mimeType,
-        fileKey: result.fileKey,
-        originalName: result.originalName,
-        order: index + 1,
-      }),
-    );
+    const uploadedPaths: string[] = [];
 
     try {
-      await this.fileRepo.manager.transaction(
-        async (transactionalEntityManager) => {
-          await transactionalEntityManager.save(entities);
-        },
-      );
+      const entities: File[] = [];
 
-      return entities;
+      for (let i = 0; i < files.length; i++) {
+        const result = await adapter.upload(
+          files[i],
+          body.fileType ?? FileType.OTHER,
+        );
+
+        uploadedPaths.push(result.storagePath);
+
+        entities.push(
+          this.fileRepo.create({
+            fileType: body.fileType ?? FileType.OTHER,
+            provider: body.fileProvider ?? FileProvider.LOCAL_DISK,
+            storagePath: result.storagePath,
+            size: result.size,
+            mimeType: result.mimeType,
+            fileKey: result.fileKey,
+            originalName: result.originalName,
+            order: i + 1,
+          }),
+        );
+      }
+
+      return await this.fileRepo.manager.transaction(async (manager) => {
+        return await manager.save(entities);
+      });
     } catch (error) {
-      await Promise.all(
-        uploadResults.map((result) => adapter.delete(result.storagePath)),
-      );
-
-      console.error("Error during uploadMultiple transaction:", error);
+      // rollback storage nếu DB fail hoặc upload giữa chừng fail
+      await Promise.all(uploadedPaths.map((path) => adapter.delete(path)));
       throw error;
     }
   }
 
-  getStream(storedName: string, range?: string) {
-    return this.localDiskService.getStreamAndHeaders(storedName, range);
+  async getStream(id: string, range?: string): Promise<StreamFileInfo> {
+    const file = await this.fileRepo.findOneBy({ id });
+    if (!file) throw new Error("File not found");
+
+    const adapter = this.getAdapter(file.provider);
+    return adapter.getStreamAndHeaders(file.storagePath, range);
   }
 
   delete(storedName: string) {
     return this.localDiskService.delete(storedName);
+  }
+
+  async softDelete(id: string): Promise<boolean> {
+    const result = await this.fileRepo.softDelete({ id });
+    return true;
+  }
+
+  async restore(id: string): Promise<File> {
+    await this.fileRepo.restore({ id });
+
+    const file = await this.fileRepo.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+
+    if (!file) throw new Error("File not found");
+
+    return file;
+  }
+
+  async changeTemporaryStatus(id: string, isTemporary: boolean): Promise<File> {
+    const file = await this.fileRepo.findOneBy({ id });
+    if (!file) throw new Error("File not found");
+
+    file.isTemporary = isTemporary;
+    return this.fileRepo.save(file);
   }
 }

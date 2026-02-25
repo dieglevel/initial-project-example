@@ -1,26 +1,26 @@
 import {
+  Body,
   Controller,
-  Post,
-  Get,
   Delete,
+  Get,
+  HttpCode,
   Param,
-  UseInterceptors,
+  Post,
+  Req,
+  Res,
+  SerializeOptions,
   UploadedFile,
   UploadedFiles,
-  Res,
-  Req,
-  Body,
-  HttpCode,
-  SerializeOptions,
+  UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
-import { StaticFileService } from "./static-file.service";
-import { Response, Request } from "express";
-import { ApiBody, ApiConsumes, ApiResponse } from "@nestjs/swagger";
-import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
-import { Public } from "../auth/decorator/public.decorator";
+import { ApiBody, ApiConsumes } from "@nestjs/swagger";
+import { Request, Response } from "express";
 import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
+import { Public } from "../auth/decorator/public.decorator";
 import { File } from "./_entities/file.entity";
+import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
+import { StaticFileService } from "./static-file.service";
 
 @Controller("static")
 @Public()
@@ -62,7 +62,7 @@ export class StaticFileController {
     @Res() res: Response,
   ) {
     const range = req.headers.range;
-    const { stream, headers, statusCode } = this.fileService.getStream(
+    const { stream, headers, statusCode } = await this.fileService.getStream(
       storedName,
       range,
     );
@@ -73,8 +73,18 @@ export class StaticFileController {
     stream.pipe(res);
   }
 
-  @Delete(":storedName")
-  delete(@Param("storedName") storedName: string) {
-    return this.fileService.delete(storedName);
+  @Delete(":id")
+  @HttpCode(200)
+  @ApiBaseResponse(File)
+  delete(@Param("id") id: string) {
+    return this.fileService.softDelete(id);
+  }
+
+  @Post("restore/:id")
+  @HttpCode(200)
+  @SerializeOptions({ groups: ["fileProvider"] })
+  @ApiBaseResponse(File)
+  restore(@Param("id") id: string) {
+    return this.fileService.restore(id);
   }
 }
