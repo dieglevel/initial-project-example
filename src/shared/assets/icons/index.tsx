@@ -1,0 +1,6 @@
+export { IconChevronDownDouble } from './iconComponent/ChevronDownDouble'
+export { IconChevronDown } from './iconComponent/ChevronDown'
+export { IconChevronLeftDouble } from './iconComponent/ChevronLeftDouble'
+export { IconChevronLeft } from './iconComponent/ChevronLeft'
+export { IconChevronRightDouble } from './iconComponent/ChevronRightDouble'
+export { IconChevronRight } from './iconComponent/ChevronRight'

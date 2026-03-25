@@ -1,0 +1,59 @@
+.app-breadcrumb {
+  min-height: 48px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  width: fit-content;
+  gap: 0;
+}
+
+.app-breadcrumb-home {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-inverse);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.app-breadcrumb-home:hover {
+  color: var(--text-inverse);
+  opacity: 0.92;
+}
+
+.app-breadcrumb-item-wrap {
+  gap: 10px;
+  margin-left: 10px;
+}
+
+.app-breadcrumb-separator {
+  font-size: 11px;
+  color: var(--secondary-400);
+}
+
+.app-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.app-breadcrumb-item a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.app-breadcrumb-item a:hover {
+  color: var(--text-primary);
+}
+
+.app-breadcrumb-item-active {
+  color: var(--primary-base);
+  font-weight: 600;
+}

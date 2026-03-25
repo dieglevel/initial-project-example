@@ -1,0 +1,24 @@
+.ant-menu-submenu .ant-menu-submenu-popup .ant-menu-item {
+  color: var(--primary-base) !important;
+}
+
+.ant-menu-submenu .ant-menu-submenu-popup .ant-menu-item:hover {
+  color: var(--primary-light) !important;
+}
+
+.ant-menu-submenu-selected {
+  color: var(--primary-active) !important;
+}
+
+.ant-menu-submenu .ant-menu-vertical .ant-menu-item {
+  color: var(--primary-active) !important;
+}
+
+.ant-menu-submenu .ant-menu-vertical .ant-menu-item-selected {
+  color: var(--primary-light) !important;
+}
+
+.ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}

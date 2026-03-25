@@ -1,0 +1,14 @@
+.form-upload-thumbnail {
+  position: relative;
+}
+
+.form-upload-actions {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.form-upload-thumbnail:hover .form-upload-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
