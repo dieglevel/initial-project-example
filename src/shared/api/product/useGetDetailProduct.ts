@@ -5,7 +5,7 @@ import type {
   ProductTagEnum,
   Product_TypeEnum,
 } from './product.type'
-import type { ApiBaseResponse } from '../base-response'
+import type { ApiBaseResponse } from '../baseResponse'
 import type { Configs } from '@/shared/pages/product/write/form.type'
 import { useQueryGet } from '@/shared/lib/mutation/useQueryGet'
 

@@ -14,6 +14,7 @@ import { Route as R401RouteImport } from './../../routes/401'
 import { Route as publicRouteRouteImport } from './../../routes/(public)/route'
 import { Route as protectedRouteRouteImport } from './../../routes/(protected)/route'
 import { Route as IndexRouteImport } from './../../routes/index'
+import { Route as publicTaskRouteImport } from './../../routes/(public)/task'
 import { Route as publicLoginRouteImport } from './../../routes/(public)/login'
 import { Route as publicIconRouteImport } from './../../routes/(public)/icon'
 import { Route as publicDemoComponentRouteImport } from './../../routes/(public)/demoComponent'
@@ -52,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const publicTaskRoute = publicTaskRouteImport.update({
+  id: '/task',
+  path: '/task',
+  getParentRoute: () => publicRouteRoute,
 } as any)
 const publicLoginRoute = publicLoginRouteImport.update({
   id: '/login',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/demoComponent': typeof publicDemoComponentRoute
   '/icon': typeof publicIconRoute
   '/login': typeof publicLoginRoute
+  '/task': typeof publicTaskRoute
   '/order/list': typeof protectedOrderListRouteRouteWithChildren
   '/product/list': typeof protectedProductListRouteRouteWithChildren
   '/photobooth/': typeof protectedPhotoboothIndexRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/demoComponent': typeof publicDemoComponentRoute
   '/icon': typeof publicIconRoute
   '/login': typeof publicLoginRoute
+  '/task': typeof publicTaskRoute
   '/product/list': typeof protectedProductListRouteRouteWithChildren
   '/photobooth': typeof protectedPhotoboothIndexRoute
   '/order/list': typeof protectedOrderListIndexRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/(public)/demoComponent': typeof publicDemoComponentRoute
   '/(public)/icon': typeof publicIconRoute
   '/(public)/login': typeof publicLoginRoute
+  '/(public)/task': typeof publicTaskRoute
   '/(protected)/order/list': typeof protectedOrderListRouteRouteWithChildren
   '/(protected)/product/list': typeof protectedProductListRouteRouteWithChildren
   '/(protected)/photobooth/': typeof protectedPhotoboothIndexRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/demoComponent'
     | '/icon'
     | '/login'
+    | '/task'
     | '/order/list'
     | '/product/list'
     | '/photobooth/'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/demoComponent'
     | '/icon'
     | '/login'
+    | '/task'
     | '/product/list'
     | '/photobooth'
     | '/order/list'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/(public)/demoComponent'
     | '/(public)/icon'
     | '/(public)/login'
+    | '/(public)/task'
     | '/(protected)/order/list'
     | '/(protected)/product/list'
     | '/(protected)/photobooth/'
@@ -302,6 +314,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(public)/task': {
+      id: '/(public)/task'
+      path: '/task'
+      fullPath: '/task'
+      preLoaderRoute: typeof publicTaskRouteImport
+      parentRoute: typeof publicRouteRoute
     }
     '/(public)/login': {
       id: '/(public)/login'
@@ -509,12 +528,14 @@ interface publicRouteRouteChildren {
   publicDemoComponentRoute: typeof publicDemoComponentRoute
   publicIconRoute: typeof publicIconRoute
   publicLoginRoute: typeof publicLoginRoute
+  publicTaskRoute: typeof publicTaskRoute
 }
 
 const publicRouteRouteChildren: publicRouteRouteChildren = {
   publicDemoComponentRoute: publicDemoComponentRoute,
   publicIconRoute: publicIconRoute,
   publicLoginRoute: publicLoginRoute,
+  publicTaskRoute: publicTaskRoute,
 }
 
 const publicRouteRouteWithChildren = publicRouteRoute._addFileChildren(

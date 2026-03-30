@@ -1,5 +1,5 @@
 import type { PresetStatusColorType } from 'antd/es/_util/colors'
-import type { ApiBasePage } from '../base-response'
+import type { ApiBasePage } from '../baseResponse'
 import type { PresetColorType } from 'antd/es/theme/internal'
 import type { LiteralUnion } from 'antd/es/_util/type'
 

@@ -1,4 +1,4 @@
-import type { ApiBasePage } from '../base-response'
+import type { ApiBasePage } from '../baseResponse'
 
 export interface GetProductsResponse {
   content: Array<Product>

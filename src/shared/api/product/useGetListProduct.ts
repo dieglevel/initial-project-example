@@ -4,7 +4,7 @@ import type {
   ProductStatusEnum,
   Product_TypeEnum,
 } from './product.type'
-import type { ApiBaseResponse } from '../base-response'
+import type { ApiBaseResponse } from '../baseResponse'
 import { useQueryGet } from '@/shared/lib/mutation/useQueryGet'
 
 export interface GetListProductParams {

@@ -1,6 +1,6 @@
 import type { UseQueryOptions } from '@tanstack/react-query'
 
-import type { ApiBaseResponse } from '../base-response'
+import type { ApiBaseResponse } from '../baseResponse'
 import type { GetOrderDetailResponse } from './order.type'
 import { useQueryGet } from '@/shared/lib/mutation/useQueryGet'
 

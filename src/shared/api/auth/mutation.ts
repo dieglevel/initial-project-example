@@ -1,4 +1,4 @@
-import type { ApiBaseResponse } from '../base-response'
+import type { ApiBaseResponse } from '../baseResponse'
 import type {
   LoginRequest,
   LoginResponse,

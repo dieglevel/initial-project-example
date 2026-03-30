@@ -4,7 +4,6 @@ import { RouterProvider, createRouter } from '@tanstack/react-router'
 import * as TanStackQueryProvider from './root-provider.tsx'
 
 // Import the generated route tree
-import { routeTree } from './routeTree.gen'
 
 import './styles.css'
 import '@/shared/css/App.css'
@@ -12,6 +11,7 @@ import '@/shared/css/App.css'
 import reportWebVitals from './reportWebVitals.ts'
 import { queryClient } from './shared/lib/query-client.ts'
 import { ConfigAntd } from './shared/common/antd-config-provider.constant.ts'
+import { routeTree } from './shared/router/routeTree.gen.ts'
 
 // Create a new router instance
 

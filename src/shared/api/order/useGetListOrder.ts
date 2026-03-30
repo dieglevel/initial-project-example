@@ -1,6 +1,6 @@
 import type { UseQueryOptions } from '@tanstack/react-query'
 
-import type { ApiBaseResponse } from '../base-response'
+import type { ApiBaseResponse } from '../baseResponse'
 import type { GetOrdersResponse } from './order.type'
 import { useQueryGet } from '@/shared/lib/mutation/useQueryGet'
 
@@ -22,3 +22,5 @@ export const useGetListOrder = <TSearch extends Record<string, unknown> = {}>({
     queryParams,
     options,
   })
+
+  

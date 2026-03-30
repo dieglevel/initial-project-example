@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { AxiosResponse } from 'axios'
-import type { ApiBaseResponse } from '../base-response'
+import type { ApiBaseResponse } from '../baseResponse'
 import type { IUser } from '@/shared/auth/auth.type'
 
 export type RefreshTokenResponse = ApiBaseResponse<{

@@ -26,7 +26,7 @@ export default function BagSection({ field }: ConfigSectionProps) {
       <Divider />
 
       <SectionHeader title="Tuỳ chọn" />
-      <Form.List name={[field.name, 'configData', 'options']}>
+      <Form.List name={[field.name, 'configData', 'options'] as const}>
         {(optionFields, { add: addOption, remove: removeOption }) => (
           <Space vertical size={12} style={{ width: '100%' }}>
             {optionFields.map((opt) => (
