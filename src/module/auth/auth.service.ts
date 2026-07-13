@@ -3,7 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { AccountService } from "../account/account.service";
 import { SignInDto, SignInDtoResponse } from "./dto/sign-in.dto";
 import { JwtPayload } from "./payload.type";
-import { comparePassword } from "src/common/util/bcrypt.util";
+import { comparePassword } from "@/common/util/bcrypt.util";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 import {
   authAccessTokenCacheExpiresIn,

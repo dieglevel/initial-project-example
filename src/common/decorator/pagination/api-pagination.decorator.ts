@@ -1,6 +1,6 @@
+import { BaseEntityDto } from "@/common/dto/swagger-schema/base-entity.dto";
 import { applyDecorators } from "@nestjs/common";
 import { ApiQuery } from "@nestjs/swagger";
-import { BaseEntityDto } from "src/common/dto/swagger-schema/base-entity.dto";
 
 function getEntityFields<T extends object>(entity: new () => T): string[] {
   return Object.keys(new entity());

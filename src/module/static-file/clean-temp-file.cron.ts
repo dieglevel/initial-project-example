@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectRepository } from "@nestjs/typeorm";
 import { LessThan, Repository } from "typeorm";
-import { File } from "./_entities/file.entity";
+import { FileEntity } from "./_entities/file.entity";
 import { LocalDiskAdapter } from "./storage/service/local-disk.adapter";
 
 @Injectable()
@@ -10,8 +10,8 @@ export class FileCleanupCron {
   private readonly logger = new Logger(FileCleanupCron.name);
 
   constructor(
-    @InjectRepository(File)
-    private readonly fileRepo: Repository<File>,
+    @InjectRepository(FileEntity)
+    private readonly fileRepo: Repository<FileEntity>,
     @Inject("LocalDiskAdapter")
     private readonly localDiskAdapter: LocalDiskAdapter,
   ) {}

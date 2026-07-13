@@ -5,30 +5,26 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Not, Repository } from "typeorm";
-import { Account } from "./_entities/account.entity";
-import { Profile } from "../profile/_entities/profile.entity";
+import { AccountEntity } from "./_entities/account.entity";
+import { ProfileEntity } from "../profile/_entities/profile.entity";
 import { RegisterDtoRequest, RegisterDtoResponse } from "./dto/register.dto";
 
-import { hashPassword } from "src/common/util/bcrypt.util";
+import { hashPassword } from "@/common/util/bcrypt.util";
 import { plainToInstance } from "class-transformer";
 import {
   ChangePasswordDto,
   ChangePasswordDtoResponse,
 } from "./dto/change-password.dto";
 import { JwtPayload } from "../auth/payload.type";
-import { Card } from "../payment/_entities/card.entity";
 
 @Injectable()
 export class AccountService {
   constructor(
-    @InjectRepository(Account)
-    private readonly accountRepository: Repository<Account>,
+    @InjectRepository(AccountEntity)
+    private readonly accountRepository: Repository<AccountEntity>,
 
-    @InjectRepository(Profile)
-    private readonly profileRepository: Repository<Profile>,
-
-    @InjectRepository(Card)
-    private readonly cardRepository: Repository<Card>,
+    @InjectRepository(ProfileEntity)
+    private readonly profileRepository: Repository<ProfileEntity>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -37,18 +33,16 @@ export class AccountService {
     return this.dataSource.transaction(async (manager) => {
       const passwordHash = await hashPassword(data.password);
 
-      const account = manager.create(Account, {
+      const account = manager.create(AccountEntity, {
         ...data,
         password: passwordHash,
       });
 
-      const savedAccount = await manager.save(Account, account);
+      const savedAccount = await manager.save(AccountEntity, account);
 
-      const profile = manager.create(Profile, { account: savedAccount });
-      const card = manager.create(Card, { account: savedAccount });
+      const profile = manager.create(ProfileEntity, { account: savedAccount });
 
-      await manager.save(Profile, profile);
-      await manager.save(Card, card);
+      await manager.save(ProfileEntity, profile);
 
       const { password, ...withoutPassword } = savedAccount;
       return plainToInstance(RegisterDtoResponse, withoutPassword);
@@ -73,7 +67,7 @@ export class AccountService {
   }
 
   // Other methods
-  async findOne(identifier: string): Promise<Account> {
+  async findOne(identifier: string): Promise<AccountEntity> {
     const account = await this.accountRepository.findOne({
       where: [{ username: identifier }, { email: identifier }],
       relations: {

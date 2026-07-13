@@ -16,9 +16,9 @@ import {
 import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { ApiBody, ApiConsumes } from "@nestjs/swagger";
 import { Request, Response } from "express";
-import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
+import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { Public } from "../auth/decorator/public.decorator";
-import { File } from "./_entities/file.entity";
+import { FileEntity } from "./_entities/file.entity";
 import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
 import { StaticFileService } from "./static-file.service";
 
@@ -33,7 +33,7 @@ export class StaticFileController {
   @ApiConsumes("multipart/form-data")
   @SerializeOptions({ groups: ["fileProvider"] })
   @ApiBody({ type: UploadFileDto })
-  @ApiBaseResponse(File)
+  @ApiBaseResponse(FileEntity)
   uploadSingle(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: UploadFileDto,
@@ -47,7 +47,7 @@ export class StaticFileController {
   @SerializeOptions({ groups: ["fileProvider"] })
   @ApiConsumes("multipart/form-data")
   @ApiBody({ type: UploadMultipleDto })
-  @ApiBaseResponse(File, { isArray: true })
+  @ApiBaseResponse(FileEntity, { isArray: true })
   uploadMany(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() body: UploadMultipleDto,
@@ -75,7 +75,7 @@ export class StaticFileController {
 
   @Delete(":id")
   @HttpCode(200)
-  @ApiBaseResponse(File)
+  @ApiBaseResponse(FileEntity)
   delete(@Param("id") id: string) {
     return this.fileService.softDelete(id);
   }
@@ -83,7 +83,7 @@ export class StaticFileController {
   @Post("restore/:id")
   @HttpCode(200)
   @SerializeOptions({ groups: ["fileProvider"] })
-  @ApiBaseResponse(File)
+  @ApiBaseResponse(FileEntity)
   restore(@Param("id") id: string) {
     return this.fileService.restore(id);
   }

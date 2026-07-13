@@ -1,7 +1,7 @@
 import { Inject, Injectable, OnApplicationBootstrap } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
-import { appConfig } from "src/common/environment/types/app.config";
-import { databaseConfig } from "src/common/environment/types/database.type";
+import { appConfig } from "@/common/environment/types/app.config";
+import { databaseConfig } from "@/common/environment/types/database.type";
 
 @Injectable()
 export class InformationServerLogService implements OnApplicationBootstrap {

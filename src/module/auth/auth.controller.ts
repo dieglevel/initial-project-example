@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Post } from "@nestjs/common";
-import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
+import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorator/current-user.decorator";
 import { Public } from "./decorator/public.decorator";

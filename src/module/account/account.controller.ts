@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, Post } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
-import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
+import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { AccountService } from "./account.service";
 import { RegisterDtoRequest, RegisterDtoResponse } from "./dto/register.dto";
 import {

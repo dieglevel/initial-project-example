@@ -3,14 +3,14 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 
 import { plainToInstance } from "class-transformer";
-import { Profile } from "./_entities/profile.entity";
+import { ProfileEntity } from "./_entities/profile.entity";
 import { MeDto, MeDtoResponse } from "./dto/me.dto";
 
 @Injectable()
 export class ProfileService {
   constructor(
-    @InjectRepository(Profile)
-    private readonly profileRepository: Repository<Profile>,
+    @InjectRepository(ProfileEntity)
+    private readonly profileRepository: Repository<ProfileEntity>,
   ) {}
 
   async me({ userId }: MeDto): Promise<MeDtoResponse> {

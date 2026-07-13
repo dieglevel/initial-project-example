@@ -16,11 +16,10 @@ import { AuthGuard } from "./module/auth/jwt.guard";
 import { AccountModule } from "./module/account/account.module";
 import { ProfileModule } from "./module/profile/profile.module";
 import { InitialCacheManagerModule } from "./common/config/cache-manager.module";
-import { TodoModule } from "./module/todo/todo.module";
-import { PaymentModule } from "./module/payment/payment.module";
 import { StaticFileModule } from "./module/static-file/static-file.module";
 import { InitialServeStaticModule } from "./common/config/serve-static.module";
 import { InitialScheduleModule } from "./common/config/schedule.module";
+import { FinancialModule } from "./module/financial/financial.module";
 
 @Module({
   imports: [
@@ -36,8 +35,8 @@ import { InitialScheduleModule } from "./common/config/schedule.module";
     AuthModule,
     AccountModule,
     ProfileModule,
-    TodoModule,
-    PaymentModule,
+
+    FinancialModule,
   ],
   controllers: [],
   providers: [

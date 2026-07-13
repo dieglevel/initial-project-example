@@ -12,7 +12,7 @@ type AppConfigType = {
   ROOT_UPLOAD_FOLDER: string;
 
   MAIL: {
-    SENDINBLUE_KEY: string;
+    SENDINBLUE_KEY?: string;
   };
 
   GOOGLE: {
@@ -35,7 +35,7 @@ export const appConfig = registerAs(
     ROOT_UPLOAD_FOLDER: process.env.ROOT_UPLOAD_FOLDER ?? "./",
 
     MAIL: {
-      SENDINBLUE_KEY: process.env.SENDINBLUE_API_KEY!,
+      SENDINBLUE_KEY: process.env.SENDINBLUE_API_KEY,
     },
 
     GOOGLE: {

@@ -1,6 +1,6 @@
+import { BaseResponseDto } from "@/common/dto/swagger-schema/base-response.dto";
 import { applyDecorators, Type } from "@nestjs/common";
 import { ApiExtraModels, ApiOkResponse, getSchemaPath } from "@nestjs/swagger";
-import { BaseResponseDto } from "src/common/dto/swagger-schema/base-response.dto";
 
 interface ApiBaseResponseOptions {
   isArray?: boolean;

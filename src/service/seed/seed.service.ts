@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
 import { ConfigService, ConfigType } from "@nestjs/config";
-import { databaseConfig } from "src/common/environment/types/database.type";
+import { databaseConfig } from "@/common/environment/types/database.type";
 import { DataSource } from "typeorm";
 
 @Injectable()

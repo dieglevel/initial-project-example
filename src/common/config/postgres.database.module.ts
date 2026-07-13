@@ -24,9 +24,9 @@ import { databaseConfig } from "../environment/types/database.type";
           // synchronize: database.POSTGRES_SYNC,
           // dropSchema: database.DATABASE_DROP_SCHEMA,
           // dropSchema: true,
-          // synchronize: true,
+          synchronize: true,
 
-          // migrations: ["src/migrations/*.ts"],
+          // migrations: ["@/migrations/*.ts"],
           // logging: true,
           // logger: "advanced-console",
         };

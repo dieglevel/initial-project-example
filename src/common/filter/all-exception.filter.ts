@@ -84,7 +84,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // 🟨 Fallback
     else {
-      message = String(exception);
+      message = JSON.stringify(exception) || "Unknown error";
     }
 
     const errorResponse: ErrorResponse = {

@@ -1,14 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ApiEntity } from "src/common/decorator/api-swagger/api-entity-property.decorator";
-import { BaseEntity } from "src/common/global-entity/base-entity.entity";
+import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { Column, Entity, OneToMany, OneToOne } from "typeorm";
-import { Profile } from "../../profile/_entities/profile.entity";
-import { Todo } from "src/module/todo/_entities/todo.entity";
-import { Card } from "src/module/payment/_entities/card.entity";
+import { ProfileEntity } from "../../profile/_entities/profile.entity";
+import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 
 @Entity()
 @ApiEntity()
-export class Account extends BaseEntity {
+export class AccountEntity extends BaseEntity {
   @Column({ unique: true })
   email: string;
 
@@ -23,21 +21,11 @@ export class Account extends BaseEntity {
   @ApiPropertyOptional()
   isVerified: boolean;
 
-  @OneToOne(() => Profile, (profile) => profile.account, {
+  @OneToOne(() => ProfileEntity, (profile) => profile.account, {
     cascade: true,
     onDelete: "CASCADE",
     eager: true,
   })
-  @ApiPropertyOptional({ type: () => Profile, default: "Profile" })
-  profile?: Profile;
-
-  @OneToMany(() => Todo, (todo) => todo.account)
-  @ApiPropertyOptional({ type: () => Todo, isArray: true, default: "Todo" })
-  todos: Todo[];
-
-  @OneToOne(() => Card, (card) => card.account, {
-    nullable: false,
-  })
-  @ApiPropertyOptional({ type: () => Card, default: "Card" })
-  card: Card;
+  @ApiPropertyOptional({ type: () => ProfileEntity, default: "Profile" })
+  profile?: ProfileEntity;
 }

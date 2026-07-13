@@ -1,5 +1,5 @@
 import { IsEmail, IsNotEmpty, IsString } from "class-validator";
-import { Account } from "../_entities/account.entity";
+import { AccountEntity } from "../_entities/account.entity";
 import { OmitType } from "@nestjs/swagger";
 
 export class RegisterDtoRequest {
@@ -17,4 +17,4 @@ export class RegisterDtoRequest {
   email: string;
 }
 
-export class RegisterDtoResponse extends OmitType(Account, ["todos", "card"]) {}
+export class RegisterDtoResponse extends OmitType(AccountEntity, []) {}

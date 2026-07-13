@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { File } from "./_entities/file.entity";
+import { FileEntity } from "./_entities/file.entity";
 import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
 import { FileProvider, FileType } from "./enum";
 import {
@@ -15,8 +15,8 @@ export class StaticFileService {
     @Inject("LocalDiskAdapter")
     private readonly localDiskService: FileStorageAdapter,
 
-    @InjectRepository(File)
-    private readonly fileRepo: Repository<File>,
+    @InjectRepository(FileEntity)
+    private readonly fileRepo: Repository<FileEntity>,
   ) {}
 
   private getAdapter(
@@ -62,7 +62,7 @@ export class StaticFileService {
     const uploadedPaths: string[] = [];
 
     try {
-      const entities: File[] = [];
+      const entities: FileEntity[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const result = await adapter.upload(
@@ -113,7 +113,7 @@ export class StaticFileService {
     return true;
   }
 
-  async restore(id: string): Promise<File> {
+  async restore(id: string): Promise<FileEntity> {
     await this.fileRepo.restore({ id });
 
     const file = await this.fileRepo.findOne({
@@ -126,7 +126,10 @@ export class StaticFileService {
     return file;
   }
 
-  async changeTemporaryStatus(id: string, isTemporary: boolean): Promise<File> {
+  async changeTemporaryStatus(
+    id: string,
+    isTemporary: boolean,
+  ): Promise<FileEntity> {
     const file = await this.fileRepo.findOneBy({ id });
     if (!file) throw new Error("File not found");
 

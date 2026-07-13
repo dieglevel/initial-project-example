@@ -1,13 +1,13 @@
-import { ApiEntity } from "src/common/decorator/api-swagger/api-entity-property.decorator";
-import { BaseEntity } from "src/common/global-entity/base-entity.entity";
+import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
+import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { Column, Entity, JoinColumn, OneToOne } from "typeorm";
-import { Account } from "../../account/_entities/account.entity";
+import { AccountEntity } from "../../account/_entities/account.entity";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { File } from "src/module/static-file/_entities/file.entity";
+import { FileEntity } from "@/module/static-file/_entities/file.entity";
 
 @Entity()
 @ApiEntity()
-export class Profile extends BaseEntity {
+export class ProfileEntity extends BaseEntity {
   @Column({ nullable: true })
   @ApiPropertyOptional()
   firstName: string;
@@ -20,15 +20,15 @@ export class Profile extends BaseEntity {
   @ApiPropertyOptional()
   dateOfBirth: Date;
 
-  @ApiProperty({ type: () => File, default: "File" })
-  @OneToOne(() => File, { nullable: true, cascade: true })
+  @ApiProperty({ type: () => FileEntity, default: "File" })
+  @OneToOne(() => FileEntity, { nullable: true, cascade: true })
   @JoinColumn({ name: "avatar" })
-  avatar: File;
+  avatar: FileEntity;
 
-  @OneToOne(() => Account, (account) => account.profile, {
+  @OneToOne(() => AccountEntity, (account) => account.profile, {
     onDelete: "CASCADE",
   })
   @JoinColumn({ name: "accountId" })
-  @ApiProperty({ type: () => Account, default: "Account" })
-  account: Account;
+  @ApiProperty({ type: () => AccountEntity, default: "Account" })
+  account: AccountEntity;
 }

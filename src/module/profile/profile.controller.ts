@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
-import { ApiBaseResponse } from "src/common/decorator/api-swagger/api-base-response.decorator";
+import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { ProfileService } from "./profile.service";
 import { MeDtoResponse } from "./dto/me.dto";
 import { CurrentUser } from "../auth/decorator/current-user.decorator";

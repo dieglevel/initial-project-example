@@ -1,6 +1,6 @@
-import { ApiEntity } from "src/common/decorator/api-swagger/api-entity-property.decorator";
-import { BaseEntity } from "src/common/global-entity/base-entity.entity";
-import { Profile } from "src/module/profile/_entities/profile.entity";
+import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
+import { BaseEntity } from "@/common/global-entity/base-entity.entity";
+import { ProfileEntity } from "@/module/profile/_entities/profile.entity";
 import { Column, Entity, Index, JoinColumn, OneToOne } from "typeorm";
 import { FileProvider, FileType } from "../enum";
 import { ApiProperty } from "@nestjs/swagger";
@@ -11,7 +11,7 @@ import { Exclude, Expose } from "class-transformer";
 @Index(["createdAt"])
 @Index(["fileType"])
 @Index(["provider"])
-export class File extends BaseEntity {
+export class FileEntity extends BaseEntity {
   @ApiProperty({ enum: FileType, default: FileType.OTHER })
   @Exclude()
   @Column({ type: "enum", enum: FileType, default: FileType.OTHER })
