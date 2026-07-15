@@ -12,7 +12,6 @@ import { redisConfig } from "../environment/types/redis.type";
       isGlobal: true,
       useFactory: async (redis: ConfigType<typeof redisConfig>) => {
         // Không log ở đây nữa
-        console.log("Redis Config:", redis);
         if (!redis?.REDIS_HOST || !redis?.REDIS_PORT) {
           InitialCacheManagerModule.redisStatus = "memory";
           return {};

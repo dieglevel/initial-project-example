@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { AccountService } from "../account/account.service";
@@ -7,7 +10,6 @@ import { comparePassword } from "@/common/util/bcrypt.util";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 import {
   authAccessTokenCacheExpiresIn,
-  authAccessTokenCacheKey,
   authRefreshTokenCacheExpiresIn,
   authRefreshTokenCacheKey,
 } from "./auth.cache";
@@ -16,6 +18,8 @@ import {
   RefreshTokenDto,
   RefreshTokenDtoResponse,
 } from "./dto/refresh-token.dto";
+import { jwtConfig } from "@/common/environment/types/jwt.type";
+import type { ConfigType } from "@nestjs/config";
 
 @Injectable()
 export class AuthService {
@@ -24,7 +28,19 @@ export class AuthService {
 
     private jwtService: JwtService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+
+    @Inject(jwtConfig.KEY)
+    private readonly config: ConfigType<typeof jwtConfig>,
   ) {}
+
+  private getAccessTokenCacheKey(userId: string) {
+    const accessTokenCacheMode =
+      this.config.AUTH_ACCESS_TOKEN_CACHE_MODE === "blacklist"
+        ? "blacklist"
+        : "whitelist";
+
+    return `auth:${userId}:${accessTokenCacheMode}:accessToken`;
+  }
 
   async signIn(data: SignInDto): Promise<SignInDtoResponse> {
     const user = await this.accountService.findOne(data.identifier);
@@ -41,11 +57,18 @@ export class AuthService {
       expiresIn: authRefreshTokenCacheExpiresIn,
     });
 
-    await this.cacheManager.set(
-      authAccessTokenCacheKey(user.id),
-      accessToken,
-      authAccessTokenCacheExpiresIn,
-    );
+    const isBlacklistMode =
+      this.config.AUTH_ACCESS_TOKEN_CACHE_MODE === "blacklist";
+
+    if (isBlacklistMode === false) {
+      await this.cacheManager.set(
+        this.getAccessTokenCacheKey(user.id),
+        accessToken,
+        authAccessTokenCacheExpiresIn,
+      );
+    } else {
+      await this.cacheManager.del(this.getAccessTokenCacheKey(user.id));
+    }
 
     await this.cacheManager.set(
       authRefreshTokenCacheKey(user.id),
@@ -61,7 +84,18 @@ export class AuthService {
   }
 
   async logOut(data: LogOutDto): Promise<LogOutDtoResponse> {
-    await this.cacheManager.del(authAccessTokenCacheKey(data.userId));
+    const isBlacklistMode =
+      this.config.AUTH_ACCESS_TOKEN_CACHE_MODE === "blacklist";
+
+    if (isBlacklistMode === false) {
+      await this.cacheManager.del(this.getAccessTokenCacheKey(data.userId));
+    } else {
+      await this.cacheManager.set(
+        this.getAccessTokenCacheKey(data.userId),
+        true,
+        authAccessTokenCacheExpiresIn,
+      );
+    }
     await this.cacheManager.del(authRefreshTokenCacheKey(data.userId));
 
     return {
@@ -90,11 +124,18 @@ export class AuthService {
       expiresIn: authRefreshTokenCacheExpiresIn,
     });
 
-    await this.cacheManager.set(
-      authAccessTokenCacheKey(payload.sub),
-      newAccessToken,
-      authAccessTokenCacheExpiresIn,
-    );
+    const isBlacklistMode =
+      this.config.AUTH_ACCESS_TOKEN_CACHE_MODE === "blacklist";
+
+    if (isBlacklistMode === false) {
+      await this.cacheManager.set(
+        this.getAccessTokenCacheKey(payload.sub),
+        newAccessToken,
+        authAccessTokenCacheExpiresIn,
+      );
+    } else {
+      await this.cacheManager.del(this.getAccessTokenCacheKey(payload.sub));
+    }
 
     await this.cacheManager.set(
       authRefreshTokenCacheKey(payload.sub),
@@ -110,12 +151,25 @@ export class AuthService {
 
   async validateUser(token: string): Promise<JwtPayload> {
     const payload: JwtPayload = await this.jwtService.verifyAsync(token);
-    const cachedToken = await this.cacheManager.get<string>(
-      authAccessTokenCacheKey(payload.sub),
-    );
+    const isBlacklistMode =
+      this.config.AUTH_ACCESS_TOKEN_CACHE_MODE === "blacklist";
 
-    if (cachedToken !== token) {
-      throw new UnauthorizedException("Invalid token");
+    if (isBlacklistMode === false) {
+      const cachedToken = await this.cacheManager.get<string>(
+        this.getAccessTokenCacheKey(payload.sub),
+      );
+
+      if (cachedToken !== token) {
+        throw new UnauthorizedException("Invalid token");
+      }
+    } else {
+      const blacklistedToken = await this.cacheManager.get<boolean>(
+        this.getAccessTokenCacheKey(payload.sub),
+      );
+
+      if (blacklistedToken === true) {
+        throw new UnauthorizedException("Invalid token");
+      }
     }
 
     return payload;

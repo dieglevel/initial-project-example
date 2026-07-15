@@ -1,13 +1,16 @@
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
+import { AccountEntity } from "@/module/account/_entities/account.entity";
 import {
   IsBoolean,
   IsDecimal,
   IsHexColor,
   IsNotEmpty,
+  IsNumber,
   IsString,
 } from "class-validator";
-import { Column, Entity } from "typeorm";
+import { Column, Entity, ManyToOne } from "typeorm";
+import { FinancialTransactionEntity } from "../../financial-transaction/_entities/financial-transaction.entity";
 
 @Entity("financial-category")
 @ApiEntity()
@@ -22,11 +25,41 @@ export class FinancialCategoryEntity extends BaseEntity {
   @IsNotEmpty()
   color: string;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, nullable: false })
-  @IsDecimal()
+  @Column({ name: "icon", type: "varchar", nullable: true })
+  @IsString()
+  @IsNotEmpty()
+  icon: string | null;
+
+  @Column({
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
+  @IsNumber()
   monthlyBudget: number;
 
   @Column({ type: "boolean", nullable: false, default: false })
   @IsBoolean()
   archived: boolean;
+
+  @ManyToOne(
+    () => FinancialTransactionEntity,
+    (transaction) => transaction.category,
+    {
+      nullable: true,
+      onDelete: "SET NULL",
+    },
+  )
+  transactions?: FinancialTransactionEntity[];
+
+  @ManyToOne(() => AccountEntity, (account) => account.financialCategories, {
+    nullable: false,
+    onDelete: "CASCADE",
+  })
+  account: AccountEntity;
 }

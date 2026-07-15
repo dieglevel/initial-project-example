@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { FinancialCategoryService } from "./financial-category.service";
@@ -16,10 +16,15 @@ import {
   FinancialCategory_Update_Response,
 } from "./dto/update.dto";
 import { FinancialCategory_Delete_Response } from "./dto/delete.dto";
+import { FinancialCategory_GetWithTransactionCount_Response } from "./dto/get-with-transaction-count.dto";
 
 @Controller("financial-category")
 @ApiBearerAuth("access-token")
-export class FinancialCategoryController extends CreateGenericController({
+export class FinancialCategoryController extends CreateGenericController<
+  FinancialCategoryEntity,
+  FinancialCategory_Create_Request,
+  FinancialCategory_Update_Request
+>({
   entity: FinancialCategoryEntity,
   dto: {
     create: FinancialCategory_Create_Request,
@@ -37,7 +42,15 @@ export class FinancialCategoryController extends CreateGenericController({
   constructor(
     private readonly financialCategoryService: FinancialCategoryService,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super(financialCategoryService);
+  }
+
+  @Get("/with-transaction-count")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialCategory_GetWithTransactionCount_Response, {
+    isArray: true,
+  })
+  async getsFinancialCategoryWithTransactionCount() {
+    return this.financialCategoryService.getCategoriesWithTotals();
   }
 }

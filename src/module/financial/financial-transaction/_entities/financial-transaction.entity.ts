@@ -1,7 +1,80 @@
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
-import { Entity } from "typeorm";
+import { Column, Entity, IsNull, ManyToOne } from "typeorm";
+import {
+  FINANCIAL_TRANSACTION_STATUS,
+  FINANCIAL_TRANSACTION_TYPE,
+} from "../financial-transaction.enum";
+import { FinancialWalletEntity } from "../../financial-wallet/_entities/financial-wallet.entity";
+import { FinancialCategoryEntity } from "../../financial-category/_entities/financial-category.entity";
+import { AccountEntity } from "@/module/account/_entities/account.entity";
+import { IsDecimal, IsEnum, IsNumber, IsString } from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 @Entity("financial-transaction")
 @ApiEntity()
-export class FinancialTransactionEntity extends BaseEntity {}
+export class FinancialTransactionEntity extends BaseEntity {
+  @Column({ type: "varchar", length: 255, nullable: false })
+  @IsString()
+  description: string;
+
+  @Column({
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
+  @IsNumber()
+  amount: number;
+
+  @Column({ type: "enum", enum: FINANCIAL_TRANSACTION_TYPE, nullable: false })
+  @IsEnum(FINANCIAL_TRANSACTION_TYPE)
+  type: FINANCIAL_TRANSACTION_TYPE;
+
+  @Column({
+    type: "enum",
+    enum: FINANCIAL_TRANSACTION_STATUS,
+    nullable: true,
+    default: FINANCIAL_TRANSACTION_STATUS.PENDING,
+  })
+  @IsEnum(FINANCIAL_TRANSACTION_STATUS)
+  status: FINANCIAL_TRANSACTION_STATUS;
+
+  @ManyToOne(() => FinancialWalletEntity, (wallet) => wallet.transactions, {
+    nullable: false,
+    onDelete: "CASCADE",
+  })
+  @ApiPropertyOptional({
+    type: () => FinancialWalletEntity,
+    default: "FinancialWallet",
+  })
+  wallet: FinancialWalletEntity;
+
+  @ManyToOne(
+    () => FinancialCategoryEntity,
+    (category) => category.transactions,
+    {
+      nullable: true,
+      onDelete: "SET NULL",
+    },
+  )
+  @ApiPropertyOptional({
+    type: () => FinancialCategoryEntity,
+    default: "FinancialCategory",
+  })
+  category?: FinancialCategoryEntity;
+
+  @ManyToOne(() => AccountEntity, (account) => account.financialTransactions, {
+    nullable: false,
+    onDelete: "CASCADE",
+  })
+  @ApiPropertyOptional({
+    type: () => AccountEntity,
+    default: "Account",
+  })
+  account: AccountEntity;
+}

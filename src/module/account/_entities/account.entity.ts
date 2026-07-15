@@ -3,6 +3,8 @@ import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { Column, Entity, OneToMany, OneToOne } from "typeorm";
 import { ProfileEntity } from "../../profile/_entities/profile.entity";
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
+import { FinancialCategoryEntity } from "@/module/financial/financial-category/_entities/financial-category.entity";
+import { FinancialTransactionEntity } from "@/module/financial/financial-transaction/_entities/financial-transaction.entity";
 
 @Entity()
 @ApiEntity()
@@ -28,4 +30,21 @@ export class AccountEntity extends BaseEntity {
   })
   @ApiPropertyOptional({ type: () => ProfileEntity, default: "Profile" })
   profile?: ProfileEntity;
+
+  @OneToMany(
+    () => FinancialCategoryEntity,
+    (financialCategory) => financialCategory.account,
+  )
+  @ApiPropertyOptional({ type: () => [FinancialCategoryEntity], default: [] })
+  financialCategories: FinancialCategoryEntity[];
+
+  @OneToMany(
+    () => FinancialTransactionEntity,
+    (financialTransaction) => financialTransaction.account,
+  )
+  @ApiPropertyOptional({
+    type: () => [FinancialTransactionEntity],
+    default: [],
+  })
+  financialTransactions: FinancialTransactionEntity[];
 }
