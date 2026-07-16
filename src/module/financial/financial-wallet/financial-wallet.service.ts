@@ -13,6 +13,7 @@ import type {
   FinancialWallet_Transfer_Response,
 } from "./dto/transfer.dto";
 import { FINANCIAL_WALLET_TYPE } from "./financial-wallet.enum";
+import { FinancialWalletTransferService } from "../financial-wallet-transfer/financial-wallet-transfer.service";
 
 @Injectable()
 export class FinancialWalletService extends BaseCrudService<FinancialWalletEntity> {
@@ -21,6 +22,8 @@ export class FinancialWalletService extends BaseCrudService<FinancialWalletEntit
 
     @InjectRepository(FinancialWalletEntity)
     private readonly FinancialWalletRepository: Repository<FinancialWalletEntity>,
+
+    private readonly financialWalletTransferService: FinancialWalletTransferService,
   ) {
     super(FinancialWalletRepository);
   }
@@ -93,8 +96,13 @@ export class FinancialWalletService extends BaseCrudService<FinancialWalletEntit
       // 7. Lưu lại thông qua entityManager của transaction
       await entityManager.save(FinancialWalletEntity, [fromWallet, toWallet]);
 
-      // TODO: Tạo thêm bản ghi vào bảng `TransactionHistory` tại đây
-      // để lưu lại lịch sử biến động số dư.
+      await this.financialWalletTransferService.createTransfer(
+        fromWallet,
+        toWallet,
+        amount,
+        transferFee,
+        entityManager,
+      );
 
       return { message: "Transfer completed successfully" };
     });

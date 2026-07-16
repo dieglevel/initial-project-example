@@ -3,9 +3,13 @@ import { FinancialWalletService } from "./financial-wallet.service";
 import { FinancialWalletController } from "./financial-wallet.controller";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { FinancialWalletEntity } from "./_entities/financial-wallet.entity";
+import { FinancialWalletTransferModule } from "../financial-wallet-transfer/financial-wallet-transfer.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FinancialWalletEntity])],
+  imports: [
+    TypeOrmModule.forFeature([FinancialWalletEntity]),
+    FinancialWalletTransferModule,
+  ],
   controllers: [FinancialWalletController],
   providers: [FinancialWalletService],
   exports: [FinancialWalletService],
