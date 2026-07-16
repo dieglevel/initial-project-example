@@ -10,14 +10,14 @@ import {
   type SelectQueryBuilder,
 } from "typeorm";
 
-export abstract class BaseCrudService<T extends { id: string }> {
+export abstract class BaseCrudService<T extends { id: number }> {
   constructor(protected readonly repository: Repository<T>) {}
 
   async findAll(options?: any): Promise<T[]> {
     return this.repository.find(options);
   }
 
-  async findOne(id: string, options?: any): Promise<T> {
+  async findOne(id: number, options?: any): Promise<T> {
     const entity = await this.repository.findOne({
       where: {
         id,
@@ -38,7 +38,7 @@ export abstract class BaseCrudService<T extends { id: string }> {
     return this.repository.save(entity);
   }
 
-  async update(id: string, data: DeepPartial<T>): Promise<T> {
+  async update(id: number, data: DeepPartial<T>): Promise<T> {
     const entity = await this.findOne(id);
 
     Object.assign(entity, data);
@@ -46,7 +46,7 @@ export abstract class BaseCrudService<T extends { id: string }> {
     return this.repository.save(entity);
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(id: number): Promise<boolean> {
     const result = await this.repository.delete(id);
 
     if (!result.affected) {

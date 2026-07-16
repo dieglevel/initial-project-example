@@ -4,6 +4,7 @@ import { Column, Entity, OneToMany } from "typeorm";
 import { FinancialTransactionEntity } from "../../financial-transaction/_entities/financial-transaction.entity";
 import { IsDecimal, IsNumber, IsString } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { FINANCIAL_WALLET_TYPE } from "../financial-wallet.enum";
 
 @Entity("financial-wallet")
 @ApiEntity()
@@ -12,9 +13,9 @@ export class FinancialWalletEntity extends BaseEntity {
   @IsString()
   name: string;
 
-  @Column({ type: "varchar", length: 255, nullable: false })
+  @Column({ type: "enum", enum: FINANCIAL_WALLET_TYPE, nullable: false })
   @IsString()
-  type: string;
+  type: FINANCIAL_WALLET_TYPE;
 
   @Column({
     type: "decimal",
@@ -27,11 +28,15 @@ export class FinancialWalletEntity extends BaseEntity {
     },
   })
   @IsNumber()
-  currency: number;
+  balance: number;
 
   @Column({ type: "varchar", length: 255, nullable: false })
   @IsString()
   icon: string;
+
+  @Column({ type: "varchar", length: 7, nullable: false })
+  @IsString()
+  color: string;
 
   @OneToMany(
     () => FinancialTransactionEntity,

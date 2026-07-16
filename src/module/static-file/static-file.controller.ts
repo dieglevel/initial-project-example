@@ -57,7 +57,7 @@ export class StaticFileController {
 
   @Get("stream/:storedName")
   async stream(
-    @Param("storedName") storedName: string,
+    @Param("storedName") storedName: number,
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -76,7 +76,7 @@ export class StaticFileController {
   @Delete(":id")
   @HttpCode(200)
   @ApiBaseResponse(FileEntity)
-  delete(@Param("id") id: string) {
+  delete(@Param("id") id: number) {
     return this.fileService.softDelete(id);
   }
 
@@ -84,7 +84,7 @@ export class StaticFileController {
   @HttpCode(200)
   @SerializeOptions({ groups: ["fileProvider"] })
   @ApiBaseResponse(FileEntity)
-  restore(@Param("id") id: string) {
+  restore(@Param("id") id: number) {
     return this.fileService.restore(id);
   }
 }

@@ -36,10 +36,10 @@ export interface IBaseCrudService<
   TUpdateDto,
 > {
   findAll(options: { where: Record<string, any> }): Promise<TEntity[]>;
-  create(dto: TCreateDto & { account: { id: string } }): Promise<TEntity>;
+  create(dto: TCreateDto & { account: { id: number } }): Promise<TEntity>;
   paging(pagination: PaginationQuery<TEntity>): Promise<any>;
-  update(id: string, dto: TUpdateDto): Promise<TEntity>;
-  delete(id: string): Promise<any>;
+  update(id: number, dto: TUpdateDto): Promise<TEntity>;
+  delete(id: number): Promise<any>;
 }
 
 export function CreateGenericController<
@@ -85,14 +85,14 @@ export function CreateGenericController<
     @Post("/update/:id")
     @HttpCode(200)
     @ApiBaseResponse(responses.update)
-    async update(@Param("id") id: string, @Body() body: TUpdateDto) {
+    async update(@Param("id") id: number, @Body() body: TUpdateDto) {
       return this.service.update(id, body);
     }
 
     @Delete("/delete/:id")
     @HttpCode(200)
     @ApiBaseResponse(responses.delete)
-    async delete(@Param("id") id: string) {
+    async delete(@Param("id") id: number) {
       return this.service.delete(id);
     }
   }

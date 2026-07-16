@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { AccountService } from "../account/account.service";
@@ -33,7 +30,7 @@ export class AuthService {
     private readonly config: ConfigType<typeof jwtConfig>,
   ) {}
 
-  private getAccessTokenCacheKey(userId: string) {
+  private getAccessTokenCacheKey(userId: number) {
     const accessTokenCacheMode =
       this.config.AUTH_ACCESS_TOKEN_CACHE_MODE === "blacklist"
         ? "blacklist"

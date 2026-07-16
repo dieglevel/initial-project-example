@@ -15,6 +15,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "strictPropertyInitialization": false,
+    "esModuleInterop": true,
     "paths": {
       "@/*": ["./src/*"]
     }

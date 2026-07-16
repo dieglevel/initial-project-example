@@ -96,7 +96,7 @@ export class StaticFileService {
     }
   }
 
-  async getStream(id: string, range?: string): Promise<StreamFileInfo> {
+  async getStream(id: number, range?: string): Promise<StreamFileInfo> {
     const file = await this.fileRepo.findOneBy({ id });
     if (!file) throw new Error("File not found");
 
@@ -108,12 +108,12 @@ export class StaticFileService {
     return this.localDiskService.delete(storedName);
   }
 
-  async softDelete(id: string): Promise<boolean> {
+  async softDelete(id: number): Promise<boolean> {
     const result = await this.fileRepo.softDelete({ id });
     return true;
   }
 
-  async restore(id: string): Promise<FileEntity> {
+  async restore(id: number): Promise<FileEntity> {
     await this.fileRepo.restore({ id });
 
     const file = await this.fileRepo.findOne({
@@ -127,7 +127,7 @@ export class StaticFileService {
   }
 
   async changeTemporaryStatus(
-    id: string,
+    id: number,
     isTemporary: boolean,
   ): Promise<FileEntity> {
     const file = await this.fileRepo.findOneBy({ id });

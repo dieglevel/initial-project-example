@@ -1,5 +1,5 @@
 export class LogOutDto {
-  userId: string;
+  userId: number;
 }
 
 export class LogOutDtoResponse {

@@ -11,7 +11,7 @@ import { ApiEntity } from "../decorator/api-swagger/api-entity-property.decorato
 @ApiEntity()
 export abstract class BaseEntity {
   @PrimaryGeneratedColumn("identity")
-  id: string;
+  id: number;
 
   @CreateDateColumn({ select: false })
   @ApiProperty({ writeOnly: true })

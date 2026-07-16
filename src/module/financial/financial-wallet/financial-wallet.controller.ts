@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { FinancialWalletService } from "./financial-wallet.service";
@@ -15,6 +15,11 @@ import {
 import { FinancialWallet_GetAll_Response } from "./dto/get-all.dto";
 import { FinancialWallet_Paging_Response } from "./dto/paging.dto";
 import { FinancialWallet_Delete_Response } from "./dto/delete.dto";
+import { FinancialWallet_GetWithTransactionCount_Response } from "./dto/get-with-transaction-count.dto";
+import {
+  FinancialWallet_Transfer_Response,
+  FinancialWallet_Transfer_Request,
+} from "./dto/transfer.dto";
 
 @Controller("financial-wallet")
 @ApiBearerAuth("access-token")
@@ -34,7 +39,24 @@ export class FinancialWalletController extends CreateGenericController({
   excludeSearch: [],
 }) {
   constructor(private readonly financialWalletService: FinancialWalletService) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super(financialWalletService);
+  }
+
+  @Get("/with-transaction-count")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialWallet_GetWithTransactionCount_Response, {
+    isArray: true,
+  })
+  async getsFinancialWalletWithTransactionCount() {
+    return this.financialWalletService.getWalletsWithTotals();
+  }
+
+  @Post("/transfer")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialWallet_Transfer_Response)
+  async transferBetweenWallets(
+    @Body() transferData: FinancialWallet_Transfer_Request,
+  ) {
+    return this.financialWalletService.transferBetweenWallets(transferData);
   }
 }
