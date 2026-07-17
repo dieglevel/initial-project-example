@@ -13,11 +13,11 @@ export abstract class BaseEntity {
   @PrimaryGeneratedColumn("identity")
   id: number;
 
-  @CreateDateColumn({ select: false })
+  @CreateDateColumn({ select: true })
   @ApiProperty({ writeOnly: true })
   createdAt: Date;
 
-  @UpdateDateColumn({ select: false })
+  @UpdateDateColumn({ select: true })
   @ApiProperty({ writeOnly: true })
   updatedAt: Date;
 

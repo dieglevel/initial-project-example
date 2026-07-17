@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, Repository } from "typeorm"; // Import thêm EntityManager
 import { FinancialWalletTransferEntity } from "./_entities/financial-wallet-transfer.entity";
 import type { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
+import type { FinancialWalletTransfer_Get_Response } from "./dto/get";
 
 @Injectable()
 export class FinancialWalletTransferService {
@@ -10,6 +11,20 @@ export class FinancialWalletTransferService {
     @InjectRepository(FinancialWalletTransferEntity)
     private readonly FinancialWalletTransferRepository: Repository<FinancialWalletTransferEntity>,
   ) {}
+
+  async getWalletTransferHistory(): Promise<
+    FinancialWalletTransfer_Get_Response[]
+  > {
+    return await this.FinancialWalletTransferRepository.find({
+      relations: {
+        fromWallet: true,
+        toWallet: true,
+      },
+      order: {
+        createdAt: "DESC",
+      },
+    });
+  }
 
   async createTransfer(
     fromWallet: FinancialWalletEntity,
