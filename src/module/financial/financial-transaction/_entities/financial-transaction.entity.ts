@@ -47,6 +47,7 @@ export class FinancialTransactionEntity extends BaseEntity {
   @ManyToOne(() => FinancialWalletEntity, (wallet) => wallet.transactions, {
     nullable: false,
     onDelete: "CASCADE",
+    eager: true,
   })
   @ApiPropertyOptional({
     type: () => FinancialWalletEntity,
@@ -60,6 +61,7 @@ export class FinancialTransactionEntity extends BaseEntity {
     {
       nullable: true,
       onDelete: "SET NULL",
+      eager: true,
     },
   )
   @ApiPropertyOptional({

@@ -12,7 +12,6 @@ import type {
   FinancialWallet_Transfer_Request,
   FinancialWallet_Transfer_Response,
 } from "./dto/transfer.dto";
-import { FINANCIAL_WALLET_TYPE } from "./financial-wallet.enum";
 import { FinancialWalletTransferService } from "../financial-wallet-transfer/financial-wallet-transfer.service";
 
 @Injectable()
@@ -57,28 +56,23 @@ export class FinancialWalletService extends BaseCrudService<FinancialWalletEntit
     amount,
     fromWalletId,
     toWalletId,
-    transferFee = 0, // Đảm bảo luôn có giá trị mặc định nếu FE không gửi
+    transferFee = 0,
   }: FinancialWallet_Transfer_Request): Promise<FinancialWallet_Transfer_Response> {
-    // Sử dụng transaction để bao bọc toàn bộ chu trình chuyển tiền
     return await this.dataSource.transaction(async (entityManager) => {
-      // 1. Tìm và KHÓA (Lock) bản ghi ví gửi để ngăn các request khác sửa đổi cùng lúc
       const fromWallet = await entityManager.findOne(FinancialWalletEntity, {
         where: { id: fromWalletId },
         lock: { mode: "pessimistic_write" }, // Chống Race Condition
       });
 
-      // 2. Tìm và KHÓA bản ghi ví nhận
       const toWallet = await entityManager.findOne(FinancialWalletEntity, {
         where: { id: toWalletId },
         lock: { mode: "pessimistic_write" },
       });
 
-      // 3. Kiểm tra sự tồn tại (Sử dụng NestJS Built-in Exception thay vì Error thuần)
       if (!fromWallet || !toWallet) {
         throw new NotFoundException("One or both wallets not found");
       }
 
-      // 4. Kiểm tra số dư (Nhớ tính cả phí chuyển tiền nếu có)
       const totalDeduction = amount + transferFee;
       if (fromWallet.balance < totalDeduction) {
         throw new BadRequestException(
@@ -86,21 +80,18 @@ export class FinancialWalletService extends BaseCrudService<FinancialWalletEntit
         );
       }
 
-      // 6. Thực hiện trừ/cộng tiền
       fromWallet.balance -= totalDeduction;
       toWallet.balance += amount;
 
-      // TODO: Nếu transferFee > 0 và phí này chạy vào ví của hệ thống,
-      // bạn cần cộng tiền phí đó vào ví hệ thống (System Wallet) ở đây.
-
-      // 7. Lưu lại thông qua entityManager của transaction
       await entityManager.save(FinancialWalletEntity, [fromWallet, toWallet]);
 
       await this.financialWalletTransferService.createTransfer(
-        fromWallet,
-        toWallet,
-        amount,
-        transferFee,
+        {
+          fromWallet,
+          toWallet,
+          amount,
+          transferFee,
+        },
         entityManager,
       );
 
