@@ -24,5 +24,5 @@ export const authRefreshTokenCacheKey = (userId: number) =>
 export const authRefreshTokenBlacklistCacheKey = (userId: number) =>
   authTokenCacheKey(userId, AuthTokenCacheMode.Blacklist, "refreshToken");
 
-export const authAccessTokenCacheExpiresIn = 1 * 60 * 60 * 1000; // 1 hour
-export const authRefreshTokenCacheExpiresIn = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const authAccessTokenCacheExpiresIn = 1 * 60 * 60; // 1 hour
+export const authRefreshTokenCacheExpiresIn = 60 * 60 * 24 * 7; // 7 days

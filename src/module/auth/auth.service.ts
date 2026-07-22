@@ -48,10 +48,10 @@ export class AuthService {
     const payload: JwtPayload = { sub: user.id };
 
     const accessToken = await this.jwtService.signAsync(payload, {
-      expiresIn: authAccessTokenCacheExpiresIn,
+      expiresIn: `${authAccessTokenCacheExpiresIn}s`,
     });
     const refreshToken = await this.jwtService.signAsync(payload, {
-      expiresIn: authRefreshTokenCacheExpiresIn,
+      expiresIn: `${authRefreshTokenCacheExpiresIn}s`,
     });
 
     const isBlacklistMode =
@@ -115,10 +115,10 @@ export class AuthService {
     const newPayload: JwtPayload = { sub: payload.sub };
 
     const newAccessToken = await this.jwtService.signAsync(newPayload, {
-      expiresIn: authAccessTokenCacheExpiresIn,
+      expiresIn: `${authAccessTokenCacheExpiresIn}s`,
     });
     const newRefreshToken = await this.jwtService.signAsync(newPayload, {
-      expiresIn: authRefreshTokenCacheExpiresIn,
+      expiresIn: `${authRefreshTokenCacheExpiresIn}s`,
     });
 
     const isBlacklistMode =
