@@ -42,6 +42,8 @@ async function bootstrap() {
 
   app.enableCors({
     credentials: true,
+    origin: "https://dieglevel.github.io",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   });
 
   app.setGlobalPrefix(config.API_PREFIX);
