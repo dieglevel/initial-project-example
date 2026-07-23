@@ -42,7 +42,7 @@ async function bootstrap() {
 
   app.enableCors({
     credentials: true,
-    origin: "https://dieglevel.github.io",
+    origin: ["https://dieglevel.github.io", "http://localhost:5173"],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   });
 
