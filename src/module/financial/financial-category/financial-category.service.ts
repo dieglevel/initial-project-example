@@ -44,9 +44,11 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
 
     const { entities, raw } = await queryBuilder.getRawAndEntities();
 
-    return entities.map((entity) => {
-      const rawRow = raw.find((r) => r.financialCategory_id === entity.id);
+    return entities.map((entity: FinancialCategoryEntity) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      const rawRow = raw.find((r: any) => r.financialCategory_id === entity.id);
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const totalAmount = rawRow ? Number(rawRow.totalAmount) : 0;
 
       return {
