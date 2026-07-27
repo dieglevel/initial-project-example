@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { FinancialTransactionService } from "./financial-transaction.service";
@@ -16,6 +15,7 @@ import { FinancialTransaction_Paging_Response } from "./dto/paging.dto";
 import { FinancialTransaction_Delete_Response } from "./dto/delete.dto";
 import { FinancialTransactionEntity } from "./_entities/financial-transaction.entity";
 import { CreateGenericController } from "@/common/controller/base-crud.controller";
+import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
 
 @Controller("financial-transaction")
 @ApiBearerAuth("access-token")
@@ -38,5 +38,14 @@ export class FinancialTransactionController extends CreateGenericController({
     private readonly financialTransactionService: FinancialTransactionService,
   ) {
     super(financialTransactionService);
+  }
+
+  @Get("/get-with-date")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialTransaction_GetAll_Response, { isArray: true })
+  async getWithDate(@Query("date") date: Date) {
+    return this.financialTransactionService.getByDate({
+      date: date,
+    });
   }
 }

@@ -1,6 +1,13 @@
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
-import { Column, Entity, IsNull, ManyToOne } from "typeorm";
+import {
+  Column,
+  Entity,
+  IsNull,
+  JoinColumn,
+  ManyToOne,
+  RelationId,
+} from "typeorm";
 import {
   FINANCIAL_TRANSACTION_STATUS,
   FINANCIAL_TRANSACTION_TYPE,
@@ -14,7 +21,7 @@ import { ApiPropertyOptional } from "@nestjs/swagger";
 @Entity("financial-transaction")
 @ApiEntity()
 export class FinancialTransactionEntity extends BaseEntity {
-  @Column({ type: "varchar", length: 255, nullable: false })
+  @Column({ type: "varchar", length: 255, nullable: true })
   @IsString()
   description: string;
 
@@ -49,11 +56,15 @@ export class FinancialTransactionEntity extends BaseEntity {
     onDelete: "CASCADE",
     eager: true,
   })
+  @JoinColumn({ name: "walletId" })
   @ApiPropertyOptional({
     type: () => FinancialWalletEntity,
     default: "FinancialWallet",
   })
   wallet: FinancialWalletEntity;
+
+  @RelationId((transaction: FinancialTransactionEntity) => transaction.wallet)
+  walletId: number;
 
   @ManyToOne(
     () => FinancialCategoryEntity,
@@ -64,11 +75,15 @@ export class FinancialTransactionEntity extends BaseEntity {
       eager: true,
     },
   )
+  @JoinColumn({ name: "categoryId" })
   @ApiPropertyOptional({
     type: () => FinancialCategoryEntity,
     default: "FinancialCategory",
   })
   category?: FinancialCategoryEntity;
+
+  @RelationId((transaction: FinancialTransactionEntity) => transaction.category)
+  categoryId?: number;
 
   @ManyToOne(() => AccountEntity, (account) => account.financialTransactions, {
     nullable: false,

@@ -32,8 +32,22 @@ export abstract class BaseCrudService<T extends { id: number }> {
     return entity;
   }
 
-  async create(data: DeepPartial<T>): Promise<T> {
-    const entity = this.repository.create(data);
+  async create(
+    data: DeepPartial<T>,
+    relations?: Record<string, number>,
+  ): Promise<T> {
+    const relationData = Object.entries(relations ?? {}).reduce(
+      (acc, [key, id]) => {
+        acc[key] = { id };
+        return acc;
+      },
+      {},
+    );
+
+    const entity = this.repository.create({
+      ...data,
+      ...relationData,
+    });
 
     return this.repository.save(entity);
   }
