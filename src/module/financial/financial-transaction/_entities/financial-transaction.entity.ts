@@ -15,7 +15,13 @@ import {
 import { FinancialWalletEntity } from "../../financial-wallet/_entities/financial-wallet.entity";
 import { FinancialCategoryEntity } from "../../financial-category/_entities/financial-category.entity";
 import { AccountEntity } from "@/module/account/_entities/account.entity";
-import { IsDecimal, IsEnum, IsNumber, IsString } from "class-validator";
+import {
+  IsDecimal,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
 @Entity("financial-transaction")
@@ -63,8 +69,10 @@ export class FinancialTransactionEntity extends BaseEntity {
   })
   wallet: FinancialWalletEntity;
 
-  @RelationId((transaction: FinancialTransactionEntity) => transaction.wallet)
-  walletId: number;
+  @Column({ nullable: true })
+  @IsNumber()
+  @IsOptional()
+  walletId?: number;
 
   @ManyToOne(
     () => FinancialCategoryEntity,
@@ -82,7 +90,9 @@ export class FinancialTransactionEntity extends BaseEntity {
   })
   category?: FinancialCategoryEntity;
 
-  @RelationId((transaction: FinancialTransactionEntity) => transaction.category)
+  @Column({ nullable: true })
+  @IsNumber()
+  @IsOptional()
   categoryId?: number;
 
   @ManyToOne(() => AccountEntity, (account) => account.financialTransactions, {

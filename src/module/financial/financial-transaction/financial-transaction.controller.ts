@@ -16,6 +16,7 @@ import { FinancialTransaction_Delete_Response } from "./dto/delete.dto";
 import { FinancialTransactionEntity } from "./_entities/financial-transaction.entity";
 import { CreateGenericController } from "@/common/controller/base-crud.controller";
 import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
+import type { JwtPayload } from "@/module/auth/payload.type";
 
 @Controller("financial-transaction")
 @ApiBearerAuth("access-token")
@@ -47,5 +48,15 @@ export class FinancialTransactionController extends CreateGenericController({
     return this.financialTransactionService.getByDate({
       date: date,
     });
+  }
+
+  @Post("/create")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialTransaction_Create_Response)
+  async createOverride(
+    @Body() dto: FinancialTransaction_Create_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialTransactionService.createOverride(dto, user);
   }
 }

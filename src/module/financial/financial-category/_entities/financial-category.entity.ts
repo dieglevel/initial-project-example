@@ -9,7 +9,7 @@ import {
   IsNumber,
   IsString,
 } from "class-validator";
-import { Column, Entity, ManyToOne } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
 import { FinancialTransactionEntity } from "../../financial-transaction/_entities/financial-transaction.entity";
 
 @Entity("financial-category")
@@ -47,7 +47,7 @@ export class FinancialCategoryEntity extends BaseEntity {
   @IsBoolean()
   archived: boolean;
 
-  @ManyToOne(
+  @OneToMany(
     () => FinancialTransactionEntity,
     (transaction) => transaction.category,
     {

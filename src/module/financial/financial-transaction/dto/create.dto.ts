@@ -1,10 +1,20 @@
-import { IsBoolean, IsNotEmpty, IsString } from "class-validator";
+import {
+  IsBoolean,
+  IsDate,
+  IsDateString,
+  IsNotEmpty,
+  IsString,
+} from "class-validator";
 import { FinancialTransactionEntity } from "../_entities/financial-transaction.entity";
 import { OmitType, PartialType } from "@nestjs/swagger";
 
 export class FinancialTransaction_Create_Request extends OmitType(
   FinancialTransactionEntity,
   ["id", "createdAt", "updatedAt", "category", "wallet"],
-) {}
+) {
+  @IsNotEmpty()
+  @IsDateString()
+  date: Date;
+}
 
 export class FinancialTransaction_Create_Response extends FinancialTransactionEntity {}
