@@ -4,6 +4,7 @@ import { FinancialCategoryModule } from "./financial-category/financial-category
 import { FinancialWalletModule } from "./financial-wallet/financial-wallet.module";
 import { FinancialTransactionModule } from "./financial-transaction/financial-transaction.module";
 import { FinancialWalletTransferModule } from "./financial-wallet-transfer/financial-wallet-transfer.module";
+import { FinancialAdvanceTransactionModule } from "./financial-transaction/financial-advance-transaction/financial-advance-transaction.module";
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { FinancialWalletTransferModule } from "./financial-wallet-transfer/finan
     FinancialWalletModule,
     FinancialWalletTransferModule,
     FinancialTransactionModule,
+    FinancialAdvanceTransactionModule,
   ],
   providers: [],
 })
