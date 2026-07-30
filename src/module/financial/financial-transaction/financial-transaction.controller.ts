@@ -44,9 +44,13 @@ export class FinancialTransactionController extends CreateGenericController({
   @Get("/get-with-date")
   @HttpCode(200)
   @ApiBaseResponse(FinancialTransaction_GetAll_Response, { isArray: true })
-  async getWithDate(@Query("date") date: Date) {
+  async getWithDate(
+    @Query("date") date: Date,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.financialTransactionService.getByDate({
       date: date,
+      user: user,
     });
   }
 

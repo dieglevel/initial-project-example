@@ -89,9 +89,11 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
 
   async getByDate({
     date,
-  }: FinancialTransaction_GetWithDate_Request): Promise<
-    FinancialTransaction_GetAll_Response[]
-  > {
+    user,
+  }: {
+    date: FinancialTransaction_GetWithDate_Request["date"];
+    user: JwtPayload;
+  }): Promise<FinancialTransaction_GetAll_Response[]> {
     const targetDate = dayjs(date);
 
     const startDate = targetDate.startOf("month").toDate();
@@ -108,6 +110,9 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
+      })
+      .andWhere("transaction.accountId = :accountId", {
+        accountId: user.sub,
       })
       .orderBy("transaction.createdAt", "DESC")
       .getMany();

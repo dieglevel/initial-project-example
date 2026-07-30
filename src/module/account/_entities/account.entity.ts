@@ -5,6 +5,7 @@ import { ProfileEntity } from "../../profile/_entities/profile.entity";
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { FinancialCategoryEntity } from "@/module/financial/financial-category/_entities/financial-category.entity";
 import { FinancialTransactionEntity } from "@/module/financial/financial-transaction/_entities/financial-transaction.entity";
+import { FinancialWalletEntity } from "@/module/financial/financial-wallet/_entities/financial-wallet.entity";
 
 @Entity()
 @ApiEntity()
@@ -47,4 +48,11 @@ export class AccountEntity extends BaseEntity {
     default: [],
   })
   financialTransactions: FinancialTransactionEntity[];
+
+  @OneToMany(
+    () => FinancialWalletEntity,
+    (financialWallet) => financialWallet.account,
+  )
+  @ApiPropertyOptional({ type: () => [FinancialWalletEntity], default: [] })
+  wallets: FinancialWalletEntity[];
 }

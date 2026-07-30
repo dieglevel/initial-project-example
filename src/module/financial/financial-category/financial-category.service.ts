@@ -9,6 +9,7 @@ import type {
 } from "./dto/get-with-transaction-count.dto";
 import dayjs from "dayjs";
 import { FINANCIAL_TRANSACTION_TYPE } from "../financial-transaction/financial-transaction.enum";
+import type { JwtPayload } from "@/module/auth/payload.type";
 
 @Injectable()
 export class FinancialCategoryService extends BaseCrudService<FinancialCategoryEntity> {
@@ -21,9 +22,11 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
 
   async getCategoriesWithTotals({
     date,
-  }: FinancialCategory_GetWithTransactionCount_Request): Promise<
-    FinancialCategory_GetWithTransactionCount_Response[]
-  > {
+    user,
+  }: {
+    date: FinancialCategory_GetWithTransactionCount_Request["date"];
+    user: JwtPayload;
+  }): Promise<FinancialCategory_GetWithTransactionCount_Response[]> {
     const selectedDate = dayjs(date).isValid() ? dayjs(date) : dayjs();
 
     const startDate = selectedDate.startOf("month").toDate();
@@ -47,6 +50,9 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
           type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
         },
       )
+      .where("financialCategory.accountId = :accountId", {
+        accountId: user.sub,
+      })
       .addSelect("COALESCE(SUM(transaction.amount), 0)", "totalAmount")
       .groupBy("financialCategory.id");
 
@@ -54,6 +60,7 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
 
     return entities.map((entity, index) => ({
       ...entity,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       totalAmount: Number(raw[index]?.totalAmount ?? 0),
     }));
   }

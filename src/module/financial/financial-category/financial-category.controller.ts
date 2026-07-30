@@ -20,6 +20,8 @@ import {
   FinancialCategory_GetWithTransactionCount_Response,
   type FinancialCategory_GetWithTransactionCount_Request,
 } from "./dto/get-with-transaction-count.dto";
+import type { JwtPayload } from "@/module/auth/payload.type";
+import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
 
 @Controller("financial-category")
 @ApiBearerAuth("access-token")
@@ -53,9 +55,13 @@ export class FinancialCategoryController extends CreateGenericController<
   @ApiBaseResponse(FinancialCategory_GetWithTransactionCount_Response, {
     isArray: true,
   })
-  async getsFinancialCategoryWithTransactionCount(@Query("date") date: Date) {
+  async getsFinancialCategoryWithTransactionCount(
+    @Query("date") date: Date,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.financialCategoryService.getCategoriesWithTotals({
       date: date,
+      user: user,
     });
   }
 }
