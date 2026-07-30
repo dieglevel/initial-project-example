@@ -52,10 +52,6 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       // Update wallet balance
       switch (transactionData.type) {
         case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
-          if (currentBalance < amount) {
-            throw new Error("Insufficient balance in the wallet");
-          }
-
           wallet.balance = currentBalance - amount;
           break;
 
@@ -105,6 +101,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     return this.FinancialTransactionRepository.createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.wallet", "wallet")
       .leftJoinAndSelect("transaction.category", "category")
+      .leftJoinAndSelect("transaction.", "category")
       .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,

@@ -10,11 +10,9 @@ export class FinancialWallet_Transfer_Request {
   toWalletId: number;
 
   @IsNumber()
-  @IsPositive()
   amount: number;
 
   @IsNumber()
-  @IsPositive()
   transferFee: number;
 }
 
