@@ -6,6 +6,7 @@ import {
   IsNull,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   RelationId,
 } from "typeorm";
 import {
@@ -23,6 +24,7 @@ import {
   IsString,
 } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { FinancialAdvanceTransactionEntity } from "../financial-advance-transaction/_entities/financial-advance-transaction.entity";
 
 @Entity("financial-transaction")
 @ApiEntity()
@@ -104,4 +106,14 @@ export class FinancialTransactionEntity extends BaseEntity {
     default: "Account",
   })
   account: AccountEntity;
+
+  @OneToMany(
+    () => FinancialAdvanceTransactionEntity,
+    (advanceTransaction) => advanceTransaction.transaction,
+  )
+  @ApiPropertyOptional({
+    type: () => FinancialAdvanceTransactionEntity,
+    default: "FinancialAdvanceTransaction",
+  })
+  financialAdvanceTransactions?: FinancialAdvanceTransactionEntity[];
 }

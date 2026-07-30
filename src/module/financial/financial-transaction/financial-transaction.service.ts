@@ -101,7 +101,10 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     return this.FinancialTransactionRepository.createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.wallet", "wallet")
       .leftJoinAndSelect("transaction.category", "category")
-      .leftJoinAndSelect("transaction.", "category")
+      .leftJoinAndSelect(
+        "transaction.financialAdvanceTransactions",
+        "advanceTransaction",
+      )
       .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
