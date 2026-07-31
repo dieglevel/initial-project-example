@@ -22,6 +22,7 @@ import {
 } from "./dto/get-with-transaction-count.dto";
 import type { JwtPayload } from "@/module/auth/payload.type";
 import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
+import { FinancialCategory_GetBudgetStatus_Response } from "./dto/get-budget-status.dto";
 
 @Controller("financial-category")
 @ApiBearerAuth("access-token")
@@ -62,6 +63,21 @@ export class FinancialCategoryController extends CreateGenericController<
     return this.financialCategoryService.getCategoriesWithTotals({
       date: date,
       user: user,
+    });
+  }
+
+  @Get("/budget-status")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialCategory_GetBudgetStatus_Response, {
+    isArray: true,
+  })
+  async getCategoryBudgetStatus(
+    @Query("date") date: Date,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialCategoryService.getBudgetStatus({
+      date,
+      user,
     });
   }
 }

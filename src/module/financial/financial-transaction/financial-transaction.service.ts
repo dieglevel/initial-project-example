@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
 import { FinancialTransactionEntity } from "./_entities/financial-transaction.entity";
@@ -10,6 +10,7 @@ import dayjs from "dayjs";
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
 import { FINANCIAL_TRANSACTION_TYPE } from "./financial-transaction.enum";
 import type { JwtPayload } from "@/module/auth/payload.type";
+import { FINANCIAL_TRANSACTION_STATUS } from "./financial-transaction.enum";
 
 @Injectable()
 export class FinancialTransactionService extends BaseCrudService<FinancialTransactionEntity> {
@@ -56,11 +57,21 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
           break;
 
         case FINANCIAL_TRANSACTION_TYPE.INCOME:
+        case FINANCIAL_TRANSACTION_TYPE.REFUND:
           wallet.balance = currentBalance + amount;
           break;
 
+        case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
+          wallet.balance = currentBalance + amount;
+          break;
+
+        case FINANCIAL_TRANSACTION_TYPE.TRANSFER:
+          throw new BadRequestException(
+            "Use financial-wallet transfer endpoint for internal transfers",
+          );
+
         default:
-          throw new Error("Invalid transaction type");
+          throw new BadRequestException("Invalid transaction type");
       }
 
       // Tạo transaction
@@ -116,5 +127,110 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       })
       .orderBy("transaction.createdAt", "DESC")
       .getMany();
+  }
+
+  async createAutomatedTransaction({
+    accountId,
+    walletId,
+    categoryId,
+    amount,
+    type,
+    description,
+    merchant,
+    location,
+    tags,
+    receiptImageUrl,
+    originalTransactionId,
+    date,
+    status,
+  }: {
+    accountId: number;
+    walletId: number;
+    categoryId?: number;
+    amount: number;
+    type: FINANCIAL_TRANSACTION_TYPE;
+    description?: string;
+    merchant?: string;
+    location?: string;
+    tags?: string[];
+    receiptImageUrl?: string;
+    originalTransactionId?: number;
+    date?: Date;
+    status?: FINANCIAL_TRANSACTION_STATUS;
+  }): Promise<FinancialTransactionEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const wallet = await manager.findOne(FinancialWalletEntity, {
+        where: {
+          id: walletId,
+        },
+        lock: {
+          mode: "pessimistic_write",
+        },
+      });
+
+      if (!wallet) {
+        throw new Error("Wallet not found");
+      }
+
+      const numericAmount = Number(amount);
+      const currentBalance = Number(wallet.balance);
+
+      switch (type) {
+        case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
+          wallet.balance = currentBalance - numericAmount;
+          break;
+
+        case FINANCIAL_TRANSACTION_TYPE.INCOME:
+        case FINANCIAL_TRANSACTION_TYPE.REFUND:
+          wallet.balance = currentBalance + numericAmount;
+          break;
+
+        case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
+          wallet.balance = currentBalance + numericAmount;
+          break;
+
+        case FINANCIAL_TRANSACTION_TYPE.TRANSFER:
+          throw new BadRequestException(
+            "Use financial-wallet transfer endpoint for internal transfers",
+          );
+
+        default:
+          throw new BadRequestException("Invalid transaction type");
+      }
+
+      const transaction = manager.create(FinancialTransactionEntity, {
+        amount: numericAmount,
+        description,
+        merchant,
+        location,
+        tags,
+        receiptImageUrl,
+        type,
+        status: status ?? FINANCIAL_TRANSACTION_STATUS.COMPLETED,
+        wallet,
+        ...(categoryId
+          ? {
+              category: {
+                id: categoryId,
+              },
+            }
+          : {}),
+        ...(originalTransactionId
+          ? {
+              originalTransaction: {
+                id: originalTransactionId,
+              },
+            }
+          : {}),
+        createdAt: date ?? new Date(),
+        account: {
+          id: accountId,
+        },
+      });
+
+      await manager.save(wallet);
+
+      return manager.save(transaction);
+    });
   }
 }

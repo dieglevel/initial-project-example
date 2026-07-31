@@ -6,6 +6,9 @@ import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.de
 import { FinancialCategoryEntity } from "@/module/financial/financial-category/_entities/financial-category.entity";
 import { FinancialTransactionEntity } from "@/module/financial/financial-transaction/_entities/financial-transaction.entity";
 import { FinancialWalletEntity } from "@/module/financial/financial-wallet/_entities/financial-wallet.entity";
+import { FinancialGoalEntity } from "@/module/financial/financial-goal/_entities/financial-goal.entity";
+import { FinancialRecurringEntity } from "@/module/financial/financial-recurring/_entities/financial-recurring.entity";
+import { FinancialNotificationEntity } from "@/module/financial/financial-notification/_entities/financial-notification.entity";
 
 @Entity()
 @ApiEntity()
@@ -55,4 +58,28 @@ export class AccountEntity extends BaseEntity {
   )
   @ApiPropertyOptional({ type: () => [FinancialWalletEntity], default: [] })
   wallets: FinancialWalletEntity[];
+
+  @OneToMany(
+    () => FinancialGoalEntity,
+    (financialGoal) => financialGoal.account,
+  )
+  @ApiPropertyOptional({ type: () => [FinancialGoalEntity], default: [] })
+  financialGoals: FinancialGoalEntity[];
+
+  @OneToMany(
+    () => FinancialRecurringEntity,
+    (financialRecurring) => financialRecurring.account,
+  )
+  @ApiPropertyOptional({ type: () => [FinancialRecurringEntity], default: [] })
+  financialRecurringRules: FinancialRecurringEntity[];
+
+  @OneToMany(
+    () => FinancialNotificationEntity,
+    (financialNotification) => financialNotification.account,
+  )
+  @ApiPropertyOptional({
+    type: () => [FinancialNotificationEntity],
+    default: [],
+  })
+  financialNotifications: FinancialNotificationEntity[];
 }

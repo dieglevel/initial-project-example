@@ -10,6 +10,12 @@ import type {
 import dayjs from "dayjs";
 import { FINANCIAL_TRANSACTION_TYPE } from "../financial-transaction/financial-transaction.enum";
 import type { JwtPayload } from "@/module/auth/payload.type";
+import { FINANCIAL_CATEGORY_TYPE } from "./financial-category.enum";
+import {
+  FINANCIAL_BUDGET_ALERT_LEVEL,
+  type FinancialCategory_GetBudgetStatus_Request,
+  type FinancialCategory_GetBudgetStatus_Response,
+} from "./dto/get-budget-status.dto";
 
 @Injectable()
 export class FinancialCategoryService extends BaseCrudService<FinancialCategoryEntity> {
@@ -53,6 +59,12 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       .where("financialCategory.accountId = :accountId", {
         accountId: user.sub,
       })
+      .andWhere(
+        "(financialCategory.type = :categoryType OR financialCategory.type IS NULL)",
+        {
+          categoryType: FINANCIAL_CATEGORY_TYPE.EXPENSE,
+        },
+      )
       .addSelect("COALESCE(SUM(transaction.amount), 0)", "totalAmount")
       .groupBy("financialCategory.id");
 
@@ -63,5 +75,42 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       totalAmount: Number(raw[index]?.totalAmount ?? 0),
     }));
+  }
+
+  async getBudgetStatus({
+    date,
+    user,
+  }: {
+    date?: FinancialCategory_GetBudgetStatus_Request["date"];
+    user: JwtPayload;
+  }): Promise<FinancialCategory_GetBudgetStatus_Response[]> {
+    const categories = await this.getCategoriesWithTotals({
+      date: date ?? new Date(),
+      user,
+    });
+
+    return categories.map((category) => {
+      const budget = Number(category.monthlyBudget ?? 0);
+      const spentAmount = Number(category.totalAmount ?? 0);
+      const remainingBudget = budget - spentAmount;
+      const spentPercentage =
+        budget > 0 ? Number(((spentAmount / budget) * 100).toFixed(2)) : 0;
+
+      let alertLevel = FINANCIAL_BUDGET_ALERT_LEVEL.NORMAL;
+
+      if (budget > 0 && spentPercentage >= 100) {
+        alertLevel = FINANCIAL_BUDGET_ALERT_LEVEL.EXCEEDED;
+      } else if (budget > 0 && spentPercentage >= 80) {
+        alertLevel = FINANCIAL_BUDGET_ALERT_LEVEL.WARNING_80;
+      }
+
+      return {
+        ...category,
+        spentAmount,
+        remainingBudget,
+        spentPercentage,
+        alertLevel,
+      };
+    });
   }
 }

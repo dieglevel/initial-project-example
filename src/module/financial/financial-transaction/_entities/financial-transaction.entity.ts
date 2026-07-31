@@ -17,6 +17,7 @@ import { FinancialWalletEntity } from "../../financial-wallet/_entities/financia
 import { FinancialCategoryEntity } from "../../financial-category/_entities/financial-category.entity";
 import { AccountEntity } from "@/module/account/_entities/account.entity";
 import {
+  IsArray,
   IsDecimal,
   IsEnum,
   IsNumber,
@@ -32,6 +33,26 @@ export class FinancialTransactionEntity extends BaseEntity {
   @Column({ type: "varchar", length: 255, nullable: true })
   @IsString()
   description: string;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  @IsString()
+  @IsOptional()
+  merchant?: string | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  @IsString()
+  @IsOptional()
+  location?: string | null;
+
+  @Column({ type: "simple-array", nullable: true })
+  @IsArray()
+  @IsOptional()
+  tags?: string[] | null;
+
+  @Column({ type: "varchar", length: 500, nullable: true })
+  @IsString()
+  @IsOptional()
+  receiptImageUrl?: string | null;
 
   @Column({
     type: "decimal",
@@ -96,6 +117,29 @@ export class FinancialTransactionEntity extends BaseEntity {
   @IsNumber()
   @IsOptional()
   categoryId?: number;
+
+  @ManyToOne(
+    () => FinancialTransactionEntity,
+    (transaction) => transaction.refundTransactions,
+    {
+      nullable: true,
+      onDelete: "SET NULL",
+    },
+  )
+  @JoinColumn({ name: "originalTransactionId" })
+  @IsOptional()
+  originalTransaction?: FinancialTransactionEntity;
+
+  @Column({ nullable: true })
+  @IsNumber()
+  @IsOptional()
+  originalTransactionId?: number | null;
+
+  @OneToMany(
+    () => FinancialTransactionEntity,
+    (transaction) => transaction.originalTransaction,
+  )
+  refundTransactions?: FinancialTransactionEntity[];
 
   @ManyToOne(() => AccountEntity, (account) => account.financialTransactions, {
     nullable: false,

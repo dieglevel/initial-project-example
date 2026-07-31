@@ -3,14 +3,19 @@ import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { AccountEntity } from "@/module/account/_entities/account.entity";
 import {
   IsBoolean,
-  IsDecimal,
+  IsEnum,
   IsHexColor,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
 } from "class-validator";
-import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
 import { FinancialTransactionEntity } from "../../financial-transaction/_entities/financial-transaction.entity";
+import {
+  FINANCIAL_CATEGORY_SPENDING_NATURE,
+  FINANCIAL_CATEGORY_TYPE,
+} from "../financial-category.enum";
 
 @Entity("financial-category")
 @ApiEntity()
@@ -27,8 +32,26 @@ export class FinancialCategoryEntity extends BaseEntity {
 
   @Column({ name: "icon", type: "varchar", nullable: true })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   icon: string | null;
+
+  @Column({
+    type: "enum",
+    enum: FINANCIAL_CATEGORY_TYPE,
+    nullable: false,
+    default: FINANCIAL_CATEGORY_TYPE.EXPENSE,
+  })
+  @IsEnum(FINANCIAL_CATEGORY_TYPE)
+  type: FINANCIAL_CATEGORY_TYPE;
+
+  @Column({
+    type: "enum",
+    enum: FINANCIAL_CATEGORY_SPENDING_NATURE,
+    nullable: true,
+  })
+  @IsEnum(FINANCIAL_CATEGORY_SPENDING_NATURE)
+  @IsOptional()
+  spendingNature?: FINANCIAL_CATEGORY_SPENDING_NATURE | null;
 
   @Column({
     type: "decimal",
@@ -46,6 +69,22 @@ export class FinancialCategoryEntity extends BaseEntity {
   @Column({ type: "boolean", nullable: false, default: false })
   @IsBoolean()
   archived: boolean;
+
+  @ManyToOne(() => FinancialCategoryEntity, (category) => category.children, {
+    nullable: true,
+    onDelete: "SET NULL",
+  })
+  @JoinColumn({ name: "parentId" })
+  @IsOptional()
+  parent?: FinancialCategoryEntity | null;
+
+  @Column({ nullable: true })
+  @IsNumber()
+  @IsOptional()
+  parentId?: number | null;
+
+  @OneToMany(() => FinancialCategoryEntity, (category) => category.parent)
+  children?: FinancialCategoryEntity[];
 
   @OneToMany(
     () => FinancialTransactionEntity,
