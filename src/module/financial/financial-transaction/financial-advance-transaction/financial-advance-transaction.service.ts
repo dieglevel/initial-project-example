@@ -69,10 +69,18 @@ export class FinancialAdvanceTransactionService {
         throw new BadRequestException("Ví tài chính không tồn tại");
       }
 
-      if (dto.type === FINANCIAL_TRANSACTION_TYPE.INCOME) {
+      if (
+        dto.type === FINANCIAL_TRANSACTION_TYPE.INCOME ||
+        dto.type === FINANCIAL_TRANSACTION_TYPE.REFUND ||
+        dto.type === FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT
+      ) {
         wallet.balance += totalAmount;
       } else if (dto.type === FINANCIAL_TRANSACTION_TYPE.EXPENSE) {
         wallet.balance -= totalAmount;
+      } else if (dto.type === FINANCIAL_TRANSACTION_TYPE.TRANSFER) {
+        throw new BadRequestException(
+          "Use financial-wallet transfer endpoint for internal transfers",
+        );
       }
 
       await manager.save(wallet);

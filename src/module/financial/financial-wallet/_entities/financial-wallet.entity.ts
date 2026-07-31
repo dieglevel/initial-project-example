@@ -2,7 +2,14 @@ import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.de
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
 import { FinancialTransactionEntity } from "../../financial-transaction/_entities/financial-transaction.entity";
-import { IsDecimal, IsNumber, IsString } from "class-validator";
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { FINANCIAL_WALLET_TYPE } from "../financial-wallet.enum";
 import { AccountEntity } from "@/module/account/_entities/account.entity";
@@ -38,6 +45,63 @@ export class FinancialWalletEntity extends BaseEntity {
   @Column({ type: "varchar", length: 7, nullable: false })
   @IsString()
   color: string;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  @IsString()
+  @IsOptional()
+  institutionName?: string | null;
+
+  @Column({ type: "varchar", length: 64, nullable: true })
+  @IsString()
+  @IsOptional()
+  accountNumberMasked?: string | null;
+
+  @Column({
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) =>
+        value === null ? null : parseFloat(value),
+    },
+  })
+  @IsNumber()
+  @IsOptional()
+  creditLimit?: number | null;
+
+  @Column({
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) =>
+        value === null ? null : parseFloat(value),
+    },
+  })
+  @IsNumber()
+  @IsOptional()
+  currentDebt?: number | null;
+
+  @Column({ type: "int", nullable: true })
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @IsOptional()
+  statementDay?: number | null;
+
+  @Column({ type: "int", nullable: true })
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  @IsOptional()
+  dueDay?: number | null;
+
+  @Column({ type: "boolean", nullable: false, default: false })
+  isLockedForDailySpending: boolean;
 
   @OneToMany(
     () => FinancialTransactionEntity,
