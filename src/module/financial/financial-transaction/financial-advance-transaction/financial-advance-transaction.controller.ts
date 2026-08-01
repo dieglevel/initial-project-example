@@ -19,7 +19,7 @@ export class FinancialAdvanceTransactionController {
     @Body() dto: FinancialAdvanceTransaction_Create_Request,
     @CurrentUser() user: JwtPayload,
   ) {
-    console.log("Received DTO in Controller:", JSON.stringify(dto));
+    console.log(" DTO in Controller:", JSON.stringify(dto));
     return this.financialAdvanceTransactionService.createAdvanceTransaction(
       dto,
       user,

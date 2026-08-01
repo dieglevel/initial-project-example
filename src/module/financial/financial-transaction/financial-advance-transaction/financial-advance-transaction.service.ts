@@ -21,7 +21,6 @@ export class FinancialAdvanceTransactionService {
     dto: FinancialAdvanceTransaction_Create_Request,
     user: JwtPayload,
   ) {
-    console.log("Received DTO:", dto);
     if (!dto?.data || dto.data.length === 0) {
       throw new BadRequestException(
         "Danh sách giao dịch chi tiết không được để trống",
