@@ -57,14 +57,14 @@ export class FinancialCategoryEntity extends BaseEntity {
     type: "decimal",
     precision: 10,
     scale: 2,
-    nullable: false,
+    nullable: true,
     transformer: {
       to: (value: number) => value,
       from: (value: string) => parseFloat(value),
     },
   })
   @IsNumber()
-  monthlyBudget: number;
+  monthlyBudget: number | null;
 
   @Column({ type: "boolean", nullable: false, default: false })
   @IsBoolean()
