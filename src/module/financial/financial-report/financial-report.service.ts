@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import dayjs from "dayjs";
-import { Repository } from "typeorm";
+import { Repository, Between } from "typeorm";
 import type { JwtPayload } from "@/module/auth/payload.type";
 import { FinancialTransactionEntity } from "../financial-transaction/_entities/financial-transaction.entity";
 import {
@@ -41,22 +41,19 @@ export class FinancialReportService {
     const range = this.resolveRange(query);
     const groupMode = this.getGroupMode(query.period);
 
+    // Lọc trực tiếp từ Database bằng Between để tối ưu RAM & Performance
     const transactions = await this.transactionRepository.find({
       where: {
         account: { id: user.sub },
+        createdAt: Between(range.from, range.to),
       },
-    });
-
-    const inRangeTransactions = transactions.filter((transaction) => {
-      const createdAt = new Date(transaction.createdAt);
-      return createdAt >= range.from && createdAt <= range.to;
     });
 
     const seriesMap = new Map<string, { income: number; expense: number }>();
     let totalIncome = 0;
     let totalExpense = 0;
 
-    for (const transaction of inRangeTransactions) {
+    for (const transaction of transactions) {
       if (
         transaction.status === FINANCIAL_TRANSACTION_STATUS.FAILED ||
         transaction.type === FINANCIAL_TRANSACTION_TYPE.TRANSFER
@@ -65,8 +62,8 @@ export class FinancialReportService {
       }
 
       const amount = Number(transaction.amount ?? 0);
-      const createdAt = dayjs(transaction.createdAt);
-      const key = createdAt.format(
+      const dateVal = dayjs(transaction.createdAt);
+      const key = dateVal.format(
         groupMode === "month" ? "YYYY-MM" : "YYYY-MM-DD",
       );
 
@@ -116,33 +113,27 @@ export class FinancialReportService {
     const range = this.resolveRange(query);
     const previousRange = this.getPreviousRange(range.from, range.to);
 
-    const transactions = await this.transactionRepository.find({
+    // Fetch dữ liệu kỳ hiện tại trực tiếp từ DB kèm theo chi tiết Advance Transactions
+    const currentExpenses = await this.transactionRepository.find({
       where: {
         account: { id: user.sub },
+        type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
+        createdAt: Between(range.from, range.to),
       },
       relations: {
-        category: true,
+        financialAdvanceTransactions: {
+          category: true,
+        },
       },
     });
 
-    const currentExpenses = transactions.filter((transaction) => {
-      const createdAt = new Date(transaction.createdAt);
-      return (
-        createdAt >= range.from &&
-        createdAt <= range.to &&
-        transaction.type === FINANCIAL_TRANSACTION_TYPE.EXPENSE &&
-        transaction.status !== FINANCIAL_TRANSACTION_STATUS.FAILED
-      );
-    });
-
-    const previousExpenses = transactions.filter((transaction) => {
-      const createdAt = new Date(transaction.createdAt);
-      return (
-        createdAt >= previousRange.from &&
-        createdAt <= previousRange.to &&
-        transaction.type === FINANCIAL_TRANSACTION_TYPE.EXPENSE &&
-        transaction.status !== FINANCIAL_TRANSACTION_STATUS.FAILED
-      );
+    // Fetch dữ liệu kỳ trước
+    const previousExpenses = await this.transactionRepository.find({
+      where: {
+        account: { id: user.sub },
+        type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
+        createdAt: Between(previousRange.from, previousRange.to),
+      },
     });
 
     const categoryMap = new Map<
@@ -151,22 +142,50 @@ export class FinancialReportService {
     >();
 
     let totalExpense = 0;
+
     for (const expense of currentExpenses) {
-      const amount = Number(expense.amount ?? 0);
-      totalExpense += amount;
+      if (expense.status === FINANCIAL_TRANSACTION_STATUS.FAILED) continue;
 
-      const categoryId = expense.category?.id ?? null;
-      const categoryName = expense.category?.name ?? "Uncategorized";
-      const key = categoryId !== null ? String(categoryId) : "uncategorized";
+      // Xử lý nếu là Giao dịch nâng cao có các dòng chi tiết
+      if (
+        expense.financialAdvanceTransactions &&
+        expense.financialAdvanceTransactions.length > 0
+      ) {
+        for (const subItem of expense.financialAdvanceTransactions) {
+          const subAmount = Number(subItem.amount ?? 0);
+          totalExpense += subAmount;
 
-      const current = categoryMap.get(key) ?? {
-        categoryId,
-        categoryName,
-        amount: 0,
-      };
+          const categoryId = subItem.category?.id ?? null;
+          const categoryName = subItem.category?.name ?? "Uncategorized";
+          const key =
+            categoryId !== null ? String(categoryId) : "uncategorized";
 
-      current.amount += amount;
-      categoryMap.set(key, current);
+          const current = categoryMap.get(key) ?? {
+            categoryId,
+            categoryName,
+            amount: 0,
+          };
+
+          current.amount += subAmount;
+          categoryMap.set(key, current);
+        }
+      } else {
+        const amount = Number(expense.amount ?? 0);
+        totalExpense += amount;
+
+        const categoryId = expense.originalTransactionId ?? null;
+        const categoryName = "Uncategorized";
+        const key = categoryId !== null ? String(categoryId) : "uncategorized";
+
+        const current = categoryMap.get(key) ?? {
+          categoryId,
+          categoryName,
+          amount: 0,
+        };
+
+        current.amount += amount;
+        categoryMap.set(key, current);
+      }
     }
 
     const categoryBreakdown = Array.from(categoryMap.values())
@@ -180,10 +199,9 @@ export class FinancialReportService {
             : 0,
       }));
 
-    const previousPeriodExpense = previousExpenses.reduce(
-      (sum, item) => sum + Number(item.amount ?? 0),
-      0,
-    );
+    const previousPeriodExpense = previousExpenses
+      .filter((t) => t.status !== FINANCIAL_TRANSACTION_STATUS.FAILED)
+      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
 
     const changePercentage =
       previousPeriodExpense > 0
@@ -217,9 +235,7 @@ export class FinancialReportService {
 
     const wallets = await this.walletRepository.find({
       where: {
-        account: {
-          id: user.sub,
-        },
+        account: { id: user.sub },
       },
     });
 
@@ -233,11 +249,11 @@ export class FinancialReportService {
 
     const netWorth = assets - liabilities;
 
+    // Chỉ fetch giao dịch trong khoảng thời gian báo cáo
     const transactions = await this.transactionRepository.find({
       where: {
-        account: {
-          id: user.sub,
-        },
+        account: { id: user.sub },
+        createdAt: Between(range.from, range.to),
       },
     });
 
@@ -251,12 +267,7 @@ export class FinancialReportService {
         continue;
       }
 
-      const createdAt = new Date(transaction.createdAt);
-      if (createdAt < range.from || createdAt > range.to) {
-        continue;
-      }
-
-      const key = dayjs(createdAt).format(
+      const key = dayjs(transaction.createdAt).format(
         groupMode === "month" ? "YYYY-MM" : "YYYY-MM-DD",
       );
 
@@ -275,7 +286,7 @@ export class FinancialReportService {
         runningNet += delta;
         return {
           label,
-          assets: Number((assets + Math.max(runningNet, 0)).toFixed(2)),
+          assets: Number((assets + runningNet).toFixed(2)),
           liabilities: Number(liabilities.toFixed(2)),
           netWorth: Number((netWorth + runningNet).toFixed(2)),
         };
@@ -297,9 +308,7 @@ export class FinancialReportService {
 
     const categories = await this.categoryRepository.find({
       where: {
-        account: {
-          id: user.sub,
-        },
+        account: { id: user.sub },
         archived: false,
       },
     });
@@ -312,36 +321,37 @@ export class FinancialReportService {
 
     const transactions = await this.transactionRepository.find({
       where: {
-        account: {
-          id: user.sub,
-        },
+        account: { id: user.sub },
+        createdAt: Between(range.from, range.to),
+        type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
       },
       relations: {
-        category: true,
+        financialAdvanceTransactions: true,
       },
     });
 
     const expenseMap = new Map<number, number>();
 
     for (const transaction of transactions) {
-      const createdAt = new Date(transaction.createdAt);
-      if (createdAt < range.from || createdAt > range.to) {
+      if (transaction.status === FINANCIAL_TRANSACTION_STATUS.FAILED) {
         continue;
       }
 
+      // Cộng dồn tiền từ advance transactions nếu có
       if (
-        transaction.type !== FINANCIAL_TRANSACTION_TYPE.EXPENSE ||
-        transaction.status === FINANCIAL_TRANSACTION_STATUS.FAILED ||
-        !transaction.categoryId
+        transaction.financialAdvanceTransactions &&
+        transaction.financialAdvanceTransactions.length > 0
       ) {
-        continue;
+        for (const subItem of transaction.financialAdvanceTransactions) {
+          if (subItem.categoryId) {
+            expenseMap.set(
+              subItem.categoryId,
+              (expenseMap.get(subItem.categoryId) ?? 0) +
+                Number(subItem.amount ?? 0),
+            );
+          }
+        }
       }
-
-      expenseMap.set(
-        transaction.categoryId,
-        (expenseMap.get(transaction.categoryId) ?? 0) +
-          Number(transaction.amount ?? 0),
-      );
     }
 
     const categoryRows = budgetCategories.map((category) => {

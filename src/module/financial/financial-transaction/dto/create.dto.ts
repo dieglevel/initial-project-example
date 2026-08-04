@@ -10,7 +10,7 @@ import { OmitType, PartialType } from "@nestjs/swagger";
 
 export class FinancialTransaction_Create_Request extends OmitType(
   FinancialTransactionEntity,
-  ["id", "createdAt", "updatedAt", "category", "wallet"],
+  ["id", "createdAt", "updatedAt", "wallet"],
 ) {
   @IsNotEmpty()
   @IsDateString()

@@ -11,6 +11,7 @@ import {
 import type { JwtPayload } from "@/module/auth/payload.type";
 import type { FinancialRecurring_RunDue_Response } from "./dto/run-due.dto";
 import { FINANCIAL_TRANSACTION_TYPE } from "../financial-transaction/financial-transaction.enum";
+import dayjs from "dayjs";
 
 @Injectable()
 export class FinancialRecurringService extends BaseCrudService<FinancialRecurringEntity> {
@@ -69,27 +70,40 @@ export class FinancialRecurringService extends BaseCrudService<FinancialRecurrin
         if (rule.reminderOnly) {
           reminderRules += 1;
         } else {
+          // Map đúng kiểu giao dịch dựa vào FINANCIAL_RECURRING_TYPE thực tế
+          let transactionType = FINANCIAL_TRANSACTION_TYPE.EXPENSE;
+          if (rule.recurringType === FINANCIAL_RECURRING_TYPE.SALARY) {
+            transactionType = FINANCIAL_TRANSACTION_TYPE.INCOME;
+          }
+
+          // Không truyền categoryId vì createAutomatedTransaction chưa nhận param này
           await this.transactionService.createAutomatedTransaction({
             accountId: rule.account.id,
             walletId: rule.walletId,
-            categoryId: rule.categoryId ?? undefined,
             amount: Number(rule.amount),
+            categoryId: rule.categoryId ?? undefined, // <-- Đã hoạt động hợp lệ!
             description: rule.description ?? rule.name,
             merchant: rule.merchant ?? undefined,
             location: rule.location ?? undefined,
             tags: rule.tags ?? undefined,
-            type:
-              rule.transactionType === "income"
-                ? FINANCIAL_TRANSACTION_TYPE.INCOME
-                : FINANCIAL_TRANSACTION_TYPE.EXPENSE,
-            date: now,
+            type: transactionType,
+            date: rule.nextRunAt ? new Date(rule.nextRunAt) : now,
           });
 
           createdTransactions += 1;
         }
 
+        // Cập nhật trạng thái
         rule.lastRunAt = now;
-        rule.nextRunAt = this.computeNextRunAt(rule, now);
+
+        // Tính thời điểm tiếp theo từ nextRunAt cũ để chống trôi lịch
+        const nextDate = this.computeNextRunAt(
+          rule,
+          rule.nextRunAt ? new Date(rule.nextRunAt) : now,
+        );
+
+        rule.nextRunAt = nextDate;
+
         await this.recurringRepository.save(rule);
       } catch {
         failedRules += 1;
@@ -106,47 +120,33 @@ export class FinancialRecurringService extends BaseCrudService<FinancialRecurrin
 
   private computeNextRunAt(
     rule: FinancialRecurringEntity,
-    fromDate: Date,
+    baseDate: Date,
   ): Date {
-    const next = new Date(fromDate);
+    let next = dayjs(baseDate);
 
     if (rule.frequency === FINANCIAL_RECURRING_FREQUENCY.WEEKLY) {
-      next.setDate(next.getDate() + 7);
-      return next;
+      return next.add(1, "week").toDate();
     }
 
     if (rule.frequency === FINANCIAL_RECURRING_FREQUENCY.EVERY_N_DAYS) {
       const days = Math.max(1, Number(rule.intervalDays ?? 1));
-      next.setDate(next.getDate() + days);
-      return next;
+      return next.add(days, "day").toDate();
     }
 
-    const day = Math.max(
-      1,
-      Math.min(31, Number(rule.dayOfMonth ?? next.getDate())),
-    );
-    const year = next.getUTCFullYear();
-    const month = next.getUTCMonth() + 1;
-    const targetMonth = month + 1;
-    const nextMonthDate = new Date(Date.UTC(year, targetMonth - 1, 1));
-    const maxDay = new Date(
-      Date.UTC(
-        nextMonthDate.getUTCFullYear(),
-        nextMonthDate.getUTCMonth() + 1,
-        0,
-      ),
-    ).getUTCDate();
+    if (rule.frequency === FINANCIAL_RECURRING_FREQUENCY.MONTHLY) {
+      const targetDay = Math.max(
+        1,
+        Math.min(31, Number(rule.dayOfMonth ?? next.date())),
+      );
 
-    return new Date(
-      Date.UTC(
-        nextMonthDate.getUTCFullYear(),
-        nextMonthDate.getUTCMonth(),
-        Math.min(day, maxDay),
-        fromDate.getUTCHours(),
-        fromDate.getUTCMinutes(),
-        fromDate.getUTCSeconds(),
-        fromDate.getUTCMilliseconds(),
-      ),
-    );
+      next = next.add(1, "month");
+
+      const daysInMonth = next.daysInMonth();
+      const finalDay = Math.min(targetDay, daysInMonth);
+
+      return next.date(finalDay).toDate();
+    }
+
+    return next.add(1, "month").toDate();
   }
 }

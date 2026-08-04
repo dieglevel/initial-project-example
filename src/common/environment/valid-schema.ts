@@ -29,6 +29,8 @@ export const envValidationSchema = Joi.object({
     .falsy("false", "0")
     .default(false),
 
+  CACHE_MODULE: Joi.string().valid("Redis", "Memory").default("Memory"),
+
   // // Redis
   // REDIS_HOST: Joi.string().required(),
   // REDIS_PORT: Joi.number().default(6379),

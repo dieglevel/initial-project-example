@@ -14,7 +14,12 @@ export abstract class BaseCrudService<T extends { id: number }> {
   constructor(protected readonly repository: Repository<T>) {}
 
   async findAll(options?: any): Promise<T[]> {
-    return this.repository.find(options);
+    return this.repository.find({
+      ...options,
+      order: {
+        createdAt: "DESC",
+      },
+    });
   }
 
   async findOne(id: number, options?: any): Promise<T> {

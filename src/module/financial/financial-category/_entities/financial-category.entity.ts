@@ -16,6 +16,7 @@ import {
   FINANCIAL_CATEGORY_SPENDING_NATURE,
   FINANCIAL_CATEGORY_TYPE,
 } from "../financial-category.enum";
+import { FinancialAdvanceTransactionEntity } from "../../financial-transaction/financial-advance-transaction/_entities/financial-advance-transaction.entity";
 
 @Entity("financial-category")
 @ApiEntity()
@@ -30,10 +31,10 @@ export class FinancialCategoryEntity extends BaseEntity {
   @IsNotEmpty()
   color: string;
 
-  @Column({ name: "icon", type: "varchar", nullable: true })
+  @Column({ name: "icon", type: "varchar", nullable: false })
   @IsString()
   @IsOptional()
-  icon: string | null;
+  icon: string;
 
   @Column({
     type: "enum",
@@ -87,14 +88,14 @@ export class FinancialCategoryEntity extends BaseEntity {
   children?: FinancialCategoryEntity[];
 
   @OneToMany(
-    () => FinancialTransactionEntity,
-    (transaction) => transaction.category,
+    () => FinancialAdvanceTransactionEntity,
+    (advanceTransaction) => advanceTransaction.category,
     {
       nullable: true,
       onDelete: "SET NULL",
     },
   )
-  transactions?: FinancialTransactionEntity[];
+  advanceTransactions?: FinancialAdvanceTransactionEntity[];
 
   @ManyToOne(() => AccountEntity, (account) => account.financialCategories, {
     nullable: false,

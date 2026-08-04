@@ -32,7 +32,7 @@ import { FinancialAdvanceTransactionEntity } from "../financial-advance-transact
 export class FinancialTransactionEntity extends BaseEntity {
   @Column({ type: "varchar", length: 255, nullable: true })
   @IsString()
-  description: string;
+  description?: string | null;
 
   @Column({ type: "varchar", length: 255, nullable: true })
   @IsString()
@@ -96,27 +96,6 @@ export class FinancialTransactionEntity extends BaseEntity {
   @IsNumber()
   @IsOptional()
   walletId?: number;
-
-  @ManyToOne(
-    () => FinancialCategoryEntity,
-    (category) => category.transactions,
-    {
-      nullable: true,
-      onDelete: "SET NULL",
-      eager: true,
-    },
-  )
-  @JoinColumn({ name: "categoryId" })
-  @ApiPropertyOptional({
-    type: () => FinancialCategoryEntity,
-    default: "FinancialCategory",
-  })
-  category?: FinancialCategoryEntity;
-
-  @Column({ nullable: true })
-  @IsNumber()
-  @IsOptional()
-  categoryId?: number;
 
   @ManyToOne(
     () => FinancialTransactionEntity,

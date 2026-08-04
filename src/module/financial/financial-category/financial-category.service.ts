@@ -41,8 +41,10 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     const queryBuilder = this.FinancialCategoryRepository.createQueryBuilder(
       "financialCategory",
     )
+
+      .leftJoin("financialCategory.advanceTransactions", "advanceTransactions")
       .leftJoin(
-        "financialCategory.transactions",
+        "advanceTransactions.transaction",
         "transaction",
         `
       transaction.createdAt >= :startDate

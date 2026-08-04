@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
 import { FinancialTransactionEntity } from "./_entities/financial-transaction.entity";
@@ -8,43 +12,42 @@ import type { FinancialTransaction_GetWithDate_Request } from "./dto/get-with-da
 import type { FinancialTransaction_GetAll_Response } from "./dto/get-all.dto";
 import dayjs from "dayjs";
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
-import { FINANCIAL_TRANSACTION_TYPE } from "./financial-transaction.enum";
+import {
+  FINANCIAL_TRANSACTION_TYPE,
+  FINANCIAL_TRANSACTION_STATUS,
+} from "./financial-transaction.enum";
 import type { JwtPayload } from "@/module/auth/payload.type";
-import { FINANCIAL_TRANSACTION_STATUS } from "./financial-transaction.enum";
+import { FinancialAdvanceTransactionEntity } from "./financial-advance-transaction/_entities/financial-advance-transaction.entity";
 
 @Injectable()
 export class FinancialTransactionService extends BaseCrudService<FinancialTransactionEntity> {
   constructor(
     @InjectRepository(FinancialTransactionEntity)
-    private readonly FinancialTransactionRepository: Repository<FinancialTransactionEntity>,
+    private readonly financialTransactionRepository: Repository<FinancialTransactionEntity>,
 
     @InjectRepository(FinancialWalletEntity)
-    private readonly FinancialWalletRepository: Repository<FinancialWalletEntity>,
+    private readonly financialWalletRepository: Repository<FinancialWalletEntity>,
 
     private readonly dataSource: DataSource,
   ) {
-    super(FinancialTransactionRepository);
+    super(financialTransactionRepository);
   }
 
   async createOverride(
     dto: FinancialTransaction_Create_Request,
     user: JwtPayload,
   ): Promise<FinancialTransactionEntity> {
-    const { walletId, categoryId, ...transactionData } = dto;
+    const { walletId, ...transactionData } = dto;
 
     return await this.dataSource.transaction(async (manager) => {
       // Lock wallet để tránh race condition khi nhiều giao dịch cùng lúc
       const wallet = await manager.findOne(FinancialWalletEntity, {
-        where: {
-          id: walletId,
-        },
-        lock: {
-          mode: "pessimistic_write",
-        },
+        where: { id: walletId },
+        lock: { mode: "pessimistic_write" },
       });
 
       if (!wallet) {
-        throw new Error("Wallet not found");
+        throw new NotFoundException("Wallet not found");
       }
 
       const amount = Number(transactionData.amount);
@@ -58,9 +61,6 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
 
         case FINANCIAL_TRANSACTION_TYPE.INCOME:
         case FINANCIAL_TRANSACTION_TYPE.REFUND:
-          wallet.balance = currentBalance + amount;
-          break;
-
         case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
           wallet.balance = currentBalance + amount;
           break;
@@ -77,23 +77,17 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       // Tạo transaction
       const transaction = manager.create(FinancialTransactionEntity, {
         ...transactionData,
-        wallet: wallet,
-        ...(categoryId
-          ? {
-              category: {
-                id: categoryId,
-              },
-            }
-          : {}),
-        createdAt: transactionData.date,
+        wallet,
+        createdAt: transactionData.date
+          ? new Date(transactionData.date)
+          : new Date(),
         account: {
           id: user.sub,
         },
       });
 
-      // Save trong cùng transaction
+      // Save trong cùng DB transaction
       await manager.save(wallet);
-
       return await manager.save(transaction);
     });
   }
@@ -104,20 +98,19 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
   }: {
     date: FinancialTransaction_GetWithDate_Request["date"];
     user: JwtPayload;
-  }): Promise<FinancialTransaction_GetAll_Response[]> {
+  }): Promise<FinancialTransactionEntity[]> {
     const targetDate = dayjs(date);
-
     const startDate = targetDate.startOf("month").toDate();
-
     const endDate = targetDate.endOf("month").toDate();
 
-    return this.FinancialTransactionRepository.createQueryBuilder("transaction")
+    return this.financialTransactionRepository
+      .createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.wallet", "wallet")
-      .leftJoinAndSelect("transaction.category", "category")
       .leftJoinAndSelect(
         "transaction.financialAdvanceTransactions",
         "advanceTransaction",
       )
+      .leftJoinAndSelect("advanceTransaction.category", "category") // Join category từ advanceTransaction
       .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
@@ -132,7 +125,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
   async createAutomatedTransaction({
     accountId,
     walletId,
-    categoryId,
+    categoryId, // <-- Bổ sung tham số này
     amount,
     type,
     description,
@@ -146,7 +139,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
   }: {
     accountId: number;
     walletId: number;
-    categoryId?: number;
+    categoryId?: number; // <-- Bổ sung tham số này
     amount: number;
     type: FINANCIAL_TRANSACTION_TYPE;
     description?: string;
@@ -160,16 +153,12 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
   }): Promise<FinancialTransactionEntity> {
     return this.dataSource.transaction(async (manager) => {
       const wallet = await manager.findOne(FinancialWalletEntity, {
-        where: {
-          id: walletId,
-        },
-        lock: {
-          mode: "pessimistic_write",
-        },
+        where: { id: walletId },
+        lock: { mode: "pessimistic_write" },
       });
 
       if (!wallet) {
-        throw new Error("Wallet not found");
+        throw new NotFoundException("Wallet not found");
       }
 
       const numericAmount = Number(amount);
@@ -182,9 +171,6 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
 
         case FINANCIAL_TRANSACTION_TYPE.INCOME:
         case FINANCIAL_TRANSACTION_TYPE.REFUND:
-          wallet.balance = currentBalance + numericAmount;
-          break;
-
         case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
           wallet.balance = currentBalance + numericAmount;
           break;
@@ -198,6 +184,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
           throw new BadRequestException("Invalid transaction type");
       }
 
+      // 1. Tạo Transaction chính (Master)
       const transaction = manager.create(FinancialTransactionEntity, {
         amount: numericAmount,
         description,
@@ -208,13 +195,6 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         type,
         status: status ?? FINANCIAL_TRANSACTION_STATUS.COMPLETED,
         wallet,
-        ...(categoryId
-          ? {
-              category: {
-                id: categoryId,
-              },
-            }
-          : {}),
         ...(originalTransactionId
           ? {
               originalTransaction: {
@@ -229,8 +209,21 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       });
 
       await manager.save(wallet);
+      const savedTransaction = await manager.save(transaction);
 
-      return manager.save(transaction);
+      // 2. Nếu có categoryId, tự động tạo Advance Transaction con (Detail)
+      if (categoryId) {
+        const advanceItem = manager.create(FinancialAdvanceTransactionEntity, {
+          amount: numericAmount,
+          description: description ?? "Automated Item",
+          category: { id: categoryId },
+          transactionId: savedTransaction.id,
+        });
+
+        await manager.save(advanceItem);
+      }
+
+      return savedTransaction;
     });
   }
 }
