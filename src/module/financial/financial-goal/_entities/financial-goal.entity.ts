@@ -27,7 +27,7 @@ export class FinancialGoalEntity extends BaseEntity {
   @Column({ type: "varchar", length: 500, nullable: true })
   @IsString()
   @IsOptional()
-  description: string;
+  description: string | null;
 
   @Column({
     type: "enum",
