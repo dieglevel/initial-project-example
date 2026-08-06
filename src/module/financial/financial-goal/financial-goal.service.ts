@@ -198,15 +198,10 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
 
     return {
       goalId: goal.id,
-
       targetAmount: goal.targetAmount,
-
       currentAmount: goal.currentAmount,
-
       remainingAmount,
-
       monthlyAmount,
-
       estimatedMonthsToTarget,
     };
   }
