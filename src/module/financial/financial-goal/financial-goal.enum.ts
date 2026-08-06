@@ -1,12 +1,19 @@
 export enum FINANCIAL_GOAL_TYPE {
-  EMERGENCY_FUND = "emergency_fund",
-  BIG_PURCHASE = "big_purchase",
-  TRAVEL = "travel",
-  OTHER = "other",
+  SAVING = "SAVING",
+  INVESTMENT = "INVESTMENT",
+  DEBT_PAYMENT = "DEBT_PAYMENT",
+  EMERGENCY_FUND = "EMERGENCY_FUND",
+  OTHER = "OTHER",
+}
+
+export enum FINANCIAL_GOAL_SAVING_MODE {
+  MANUAL = "MANUAL",
+  AUTO = "AUTO",
 }
 
 export enum FINANCIAL_GOAL_STATUS {
-  ACTIVE = "active",
-  COMPLETED = "completed",
-  PAUSED = "paused",
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  INACTIVE = "INACTIVE",
 }

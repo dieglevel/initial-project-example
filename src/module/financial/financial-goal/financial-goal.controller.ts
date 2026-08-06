@@ -1,30 +1,51 @@
-import { Controller, Get, HttpCode, Param, Query } from "@nestjs/common";
-import { ApiBearerAuth } from "@nestjs/swagger";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Post,
+  Patch,
+  Query,
+} from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+
+import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
+import type { JwtPayload } from "@/module/auth/payload.type";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { CreateGenericController } from "@/common/controller/base-crud.controller";
+
+import { FinancialGoalService } from "./financial-goal.service";
 import { FinancialGoalEntity } from "./_entities/financial-goal.entity";
+import { FinancialGoalHistoryEntity } from "./financial-goal-history/_entities/financial-goal-history.entity";
+import { FINANCIAL_GOAL_STATUS } from "./financial-goal.enum";
+
 import {
   FinancialGoal_Create_Request,
   FinancialGoal_Create_Response,
+  AddManualContributionDto,
 } from "./dto/create.dto";
+
 import {
   FinancialGoal_Update_Request,
   FinancialGoal_Update_Response,
+  CompleteAutoContributionDto,
 } from "./dto/update.dto";
+
 import { FinancialGoal_GetAll_Response } from "./dto/get-all.dto";
 import { FinancialGoal_Paging_Response } from "./dto/paging.dto";
 import { FinancialGoal_Delete_Response } from "./dto/delete.dto";
-import {
-  FinancialGoal_Projection_Request,
-  FinancialGoal_Projection_Response,
-} from "./dto/projection.dto";
-import { FinancialGoalService } from "./financial-goal.service";
-import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
-import type { JwtPayload } from "@/module/auth/payload.type";
-
-@Controller("financial-goal")
+import { FinancialGoal_Projection_Response } from "./dto/projection.dto";
+@ApiTags("Financial Goal")
 @ApiBearerAuth("access-token")
-export class FinancialGoalController extends CreateGenericController({
+@Controller("financial-goal")
+export class FinancialGoalController extends CreateGenericController<
+  FinancialGoalEntity,
+  FinancialGoal_Create_Request,
+  FinancialGoal_Update_Request
+>({
   entity: FinancialGoalEntity,
   dto: {
     create: FinancialGoal_Create_Request,
@@ -43,14 +64,89 @@ export class FinancialGoalController extends CreateGenericController({
     super(financialGoalService);
   }
 
-  @Get(":id/projection")
-  @HttpCode(200)
-  @ApiBaseResponse(FinancialGoal_Projection_Response)
-  async getProjection(
-    @Param("id") id: number,
-    @Query() query: FinancialGoal_Projection_Request,
+  @Get(":id/detail")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Get financial goal detail",
+  })
+  async getDetail(
+    @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.financialGoalService.getProjection(Number(id), query, user);
+    return this.financialGoalService.getDetail(id, user.sub);
+  }
+
+  @Get(":id/projection")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Estimate goal completion",
+  })
+  @ApiBaseResponse(FinancialGoal_Projection_Response)
+  async getProjection(
+    @Param("id", ParseIntPipe) id: number,
+    @Query("monthlySavingRate") monthlySavingRate: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialGoalService.getProjection(
+      id,
+      { monthlySavingRate },
+      user,
+    );
+  }
+
+  @Post(":id/manual-contribution")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Add manual contribution",
+  })
+  async addManualContribution(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: AddManualContributionDto,
+  ) {
+    return this.financialGoalService.addManualContribution(id, user.sub, dto);
+  }
+
+  @Post("history/:historyId/complete")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Complete pending contribution",
+  })
+  async completePendingHistory(
+    @Param("historyId", ParseIntPipe)
+    historyId: number,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CompleteAutoContributionDto,
+  ) {
+    return this.financialGoalService.completePendingHistory(
+      historyId,
+      user.sub,
+      dto,
+    );
+  }
+
+  @Post("history/:historyId/skip")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Skip pending contribution",
+  })
+  async skipHistory(
+    @Param("historyId", ParseIntPipe)
+    historyId: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialGoalService.skipHistory(historyId, user.sub);
+  }
+
+  @Patch(":id/cancel")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Cancel financial goal",
+  })
+  async cancelGoal(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialGoalService.cancelGoal(id, user.sub);
   }
 }

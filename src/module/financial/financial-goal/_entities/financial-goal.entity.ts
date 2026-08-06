@@ -11,23 +11,35 @@ import {
   Max,
   Min,
 } from "class-validator";
-import { Column, Entity, ManyToOne } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
+
 import {
+  FINANCIAL_GOAL_SAVING_MODE,
   FINANCIAL_GOAL_STATUS,
   FINANCIAL_GOAL_TYPE,
 } from "../financial-goal.enum";
 
+import { FinancialGoalHistoryEntity } from "../financial-goal-history/_entities/financial-goal-history.entity";
+
 @Entity("financial-goal")
 @ApiEntity()
 export class FinancialGoalEntity extends BaseEntity {
-  @Column({ type: "varchar", length: 255, nullable: false })
+  @Column({
+    type: "varchar",
+    length: 255,
+    nullable: false,
+  })
   @IsString()
   name: string;
 
-  @Column({ type: "varchar", length: 500, nullable: true })
+  @Column({
+    type: "varchar",
+    length: 500,
+    nullable: true,
+  })
   @IsString()
   @IsOptional()
-  description: string | null;
+  description?: string | null;
 
   @Column({
     type: "enum",
@@ -37,15 +49,6 @@ export class FinancialGoalEntity extends BaseEntity {
   })
   @IsEnum(FINANCIAL_GOAL_TYPE)
   type: FINANCIAL_GOAL_TYPE;
-
-  @Column({
-    type: "enum",
-    enum: FINANCIAL_GOAL_STATUS,
-    nullable: false,
-    default: FINANCIAL_GOAL_STATUS.ACTIVE,
-  })
-  @IsEnum(FINANCIAL_GOAL_STATUS)
-  status: FINANCIAL_GOAL_STATUS;
 
   @Column({
     type: "decimal",
@@ -74,18 +77,50 @@ export class FinancialGoalEntity extends BaseEntity {
   @IsNumber()
   currentAmount: number;
 
-  @Column({ type: "timestamptz", nullable: true })
+  /**
+   * MANUAL:
+   * User tự nhập contribution
+   *
+   * AUTO:
+   * Cron tự tạo contribution theo lịch
+   */
+  @Column({
+    type: "enum",
+    enum: FINANCIAL_GOAL_SAVING_MODE,
+    nullable: false,
+    default: FINANCIAL_GOAL_SAVING_MODE.MANUAL,
+  })
+  @IsEnum(FINANCIAL_GOAL_SAVING_MODE)
+  savingMode: FINANCIAL_GOAL_SAVING_MODE;
+
+  @Column({
+    type: "enum",
+    enum: FINANCIAL_GOAL_STATUS,
+    nullable: false,
+    default: FINANCIAL_GOAL_STATUS.ACTIVE,
+  })
+  @IsEnum(FINANCIAL_GOAL_STATUS)
+  status: FINANCIAL_GOAL_STATUS;
+
+  @Column({
+    type: "timestamptz",
+    nullable: true,
+  })
   @IsOptional()
   deadline?: Date | null;
 
-  @Column({ type: "varchar", length: 500, nullable: true })
+  @Column({
+    type: "varchar",
+    length: 500,
+    nullable: true,
+  })
   @IsString()
   @IsOptional()
   imageUrl?: string | null;
 
-  @Column({ type: "boolean", nullable: false, default: false })
-  isLocked: boolean;
-
+  /**
+   * Số tiền tự động cộng mỗi kỳ
+   */
   @Column({
     type: "decimal",
     precision: 14,
@@ -101,17 +136,43 @@ export class FinancialGoalEntity extends BaseEntity {
   @IsNumber()
   autoContributionAmount?: number | null;
 
-  @Column({ type: "int", nullable: true })
+  /**
+   * Ngày chạy auto contribution trong tháng
+   * 1 - 31
+   */
+  @Column({
+    type: "int",
+    nullable: true,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(31)
   autoContributionDay?: number | null;
 
+  @Column({
+    type: "boolean",
+    nullable: false,
+    default: false,
+  })
+  isLocked: boolean;
+
   @ManyToOne(() => AccountEntity, (account) => account.financialGoals, {
     nullable: false,
     onDelete: "CASCADE",
   })
-  @ApiPropertyOptional({ type: () => AccountEntity, default: "Account" })
+  @ApiPropertyOptional({
+    type: () => AccountEntity,
+    default: "Account",
+  })
   account: AccountEntity;
+
+  @Column({ type: "int", nullable: false })
+  @IsNumber()
+  accountId: number;
+
+  @OneToMany(() => FinancialGoalHistoryEntity, (history) => history.goal, {
+    cascade: true,
+  })
+  histories: FinancialGoalHistoryEntity[];
 }
