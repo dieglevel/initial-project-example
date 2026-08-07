@@ -14,7 +14,7 @@ import {
 import { FinancialGoalEntity } from "../../_entities/financial-goal.entity";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 
-@Entity("financial_goal_history")
+@Entity("financial-goal-history")
 export class FinancialGoalHistoryEntity extends BaseEntity {
   @Column()
   goalId: number;

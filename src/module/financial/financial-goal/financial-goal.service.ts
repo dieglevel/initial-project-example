@@ -96,6 +96,7 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
   }
 
   private enrichGoal(goal: FinancialGoalEntity) {
+    console.log("Enriching goal:", goal);
     return {
       ...goal,
       progressPercentage: this.calculateProgress(
@@ -171,7 +172,22 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
 
     histories: FinancialGoalHistoryEntity[];
   }> {
-    const goal = await this.findUserGoal(goalId, userId, ["histories"]);
+    // const goal = await this.findUserGoal(goalId, userId, ["histories"]);
+    const goal = await this.goalRepository.findOne({
+      where: {
+        id: goalId,
+        account: {
+          id: userId,
+        },
+      },
+      relations: ["histories"],
+    });
+
+    console.log("Goal fetched:", goal);
+
+    if (!goal) {
+      throw new NotFoundException(`Financial Goal #${goalId} not found`);
+    }
 
     return {
       goal: this.enrichGoal(goal),

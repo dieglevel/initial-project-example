@@ -174,5 +174,9 @@ export class FinancialGoalEntity extends BaseEntity {
   @OneToMany(() => FinancialGoalHistoryEntity, (history) => history.goal, {
     cascade: true,
   })
+  @ApiPropertyOptional({
+    type: () => [FinancialGoalHistoryEntity],
+    default: [],
+  })
   histories: FinancialGoalHistoryEntity[];
 }
