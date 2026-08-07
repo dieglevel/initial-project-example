@@ -94,6 +94,15 @@ export class FinancialGoalController extends CreateGenericController<
     );
   }
 
+  @Get("wallet-balance-apply-goal")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Get wallet balance apply goal",
+  })
+  async walletBalanceApplyGoal(@CurrentUser() user: JwtPayload) {
+    return this.financialGoalService.walletBalanceApplyGoal(user);
+  }
+
   @Post(":id/manual-contribution")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

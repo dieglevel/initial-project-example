@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, MoreThan, Repository } from "typeorm";
 
 import { BaseCrudService } from "@/common/service/base-crud.service";
 import type { PaginationQuery } from "@/common/dto/interface/pagination.interface";
@@ -29,6 +29,7 @@ import {
   FINANCIAL_GOAL_HISTORY_STATUS,
 } from "./financial-goal-history/financial-goal-history.enum";
 import type { CompleteAutoContributionDto } from "./dto/update.dto";
+import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
 
 export interface FinancialGoalPagingResult {
   items: (FinancialGoalEntity & {
@@ -63,6 +64,9 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
 
     @InjectRepository(FinancialGoalHistoryEntity)
     private readonly historyRepository: Repository<FinancialGoalHistoryEntity>,
+
+    @InjectRepository(FinancialWalletEntity)
+    private readonly walletRepository: Repository<FinancialWalletEntity>,
 
     private readonly dataSource: DataSource,
   ) {
@@ -392,5 +396,81 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
     goal.status = FINANCIAL_GOAL_STATUS.CANCELLED;
 
     return this.goalRepository.save(goal);
+  }
+
+  async walletBalanceApplyGoal(user: JwtPayload): Promise<{
+    unApplyWallet: {
+      totalCurrentAmount: number;
+      totalTargetAmount: number;
+      percentage: number;
+    };
+    applyWallet: {
+      totalCurrentAmount: number;
+      totalTargetAmount: number;
+      percentage: number;
+    };
+    walletBalance: number;
+    totalActiveGoalAmount: number;
+  }> {
+    const walletBalanceResult: { totalAmount: string }[] =
+      await this.dataSource.query(
+        `
+      SELECT COALESCE(SUM(balance), 0) as "totalAmount"
+      FROM "financial-wallet"
+      WHERE "accountId" = $1
+      `,
+        [user.sub],
+      );
+
+    const walletBalance = Number(walletBalanceResult[0].totalAmount);
+
+    const goals = await this.goalRepository.find({
+      where: {
+        account: {
+          id: user.sub,
+        },
+      },
+    });
+
+    const activeGoals = goals.filter(
+      (goal) => goal.status === FINANCIAL_GOAL_STATUS.ACTIVE,
+    );
+
+    const inactiveGoals = goals.filter(
+      (goal) => goal.status !== FINANCIAL_GOAL_STATUS.ACTIVE,
+    );
+
+    const calculateGoalSummary = (items: typeof goals) => {
+      const totalCurrentAmount = items.reduce(
+        (sum, goal) => sum + Number(goal.currentAmount ?? 0),
+        0,
+      );
+
+      const totalTargetAmount = items.reduce(
+        (sum, goal) => sum + Number(goal.targetAmount ?? 0),
+        0,
+      );
+
+      return {
+        totalCurrentAmount,
+        totalTargetAmount,
+        percentage:
+          totalTargetAmount > 0
+            ? Number(
+                ((totalCurrentAmount / totalTargetAmount) * 100).toFixed(2),
+              )
+            : 0,
+      };
+    };
+
+    const active = calculateGoalSummary(activeGoals);
+    const inActive = calculateGoalSummary(inactiveGoals);
+
+    return {
+      walletBalance,
+      totalActiveGoalAmount: active.totalCurrentAmount,
+      active,
+      inActive,
+    };
   }
 }
