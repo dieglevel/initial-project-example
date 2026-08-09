@@ -76,7 +76,6 @@ export function CreateGenericController<
     @Get("paging")
     @HttpCode(200)
     @ApiBaseResponse(responses.paging)
-    // TypeScript giờ đã thỏa mãn vì excludeSearch có kiểu trùng khớp hoàn toàn
     @ApiPagination(entity, { excludeSearch, excludeOrder: [] })
     async getPaging(@Pagination() pagination: PaginationQuery<TEntity>) {
       return this.service.paging(pagination);

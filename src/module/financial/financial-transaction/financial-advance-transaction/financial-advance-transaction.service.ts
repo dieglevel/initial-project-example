@@ -53,7 +53,6 @@ export class FinancialAdvanceTransactionService {
         status: dto.status,
         merchant: dto.merchant,
         location: dto.location,
-        tags: dto.tags,
         receiptImageUrl: dto.receiptImageUrl,
         originalTransactionId: dto.originalTransactionId,
         date: dto.date, // Gán cho trường date thay vì createdAt

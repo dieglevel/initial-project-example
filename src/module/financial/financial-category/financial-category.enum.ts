@@ -1,10 +1,10 @@
 export enum FINANCIAL_CATEGORY_TYPE {
-  INCOME = "income",
-  EXPENSE = "expense",
-  TRANSFER = "transfer",
+  INCOME = "INCOME",
+  EXPENSE = "EXPENSE",
+  TRANSFER = "TRANSFER",
 }
 
 export enum FINANCIAL_CATEGORY_SPENDING_NATURE {
-  ESSENTIAL = "essential",
-  FLEXIBLE = "flexible",
+  ESSENTIAL = "ESSENTIAL",
+  FLEXIBLE = "FLEXIBLE",
 }

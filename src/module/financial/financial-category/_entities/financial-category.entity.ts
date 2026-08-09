@@ -11,12 +11,12 @@ import {
   IsString,
 } from "class-validator";
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
-import { FinancialTransactionEntity } from "../../financial-transaction/_entities/financial-transaction.entity";
 import {
   FINANCIAL_CATEGORY_SPENDING_NATURE,
   FINANCIAL_CATEGORY_TYPE,
 } from "../financial-category.enum";
 import { FinancialAdvanceTransactionEntity } from "../../financial-transaction/financial-advance-transaction/_entities/financial-advance-transaction.entity";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 @Entity("financial-category")
 @ApiEntity()
@@ -77,6 +77,10 @@ export class FinancialCategoryEntity extends BaseEntity {
   })
   @JoinColumn({ name: "parentId" })
   @IsOptional()
+  @ApiPropertyOptional({
+    type: () => FinancialCategoryEntity,
+    default: null,
+  })
   parent?: FinancialCategoryEntity | null;
 
   @Column({ nullable: true })
@@ -85,6 +89,11 @@ export class FinancialCategoryEntity extends BaseEntity {
   parentId?: number | null;
 
   @OneToMany(() => FinancialCategoryEntity, (category) => category.parent)
+  @ApiPropertyOptional({
+    type: () => FinancialCategoryEntity,
+    isArray: true,
+  })
+  @IsOptional()
   children?: FinancialCategoryEntity[];
 
   @OneToMany(
@@ -95,11 +104,19 @@ export class FinancialCategoryEntity extends BaseEntity {
       onDelete: "SET NULL",
     },
   )
+  @ApiPropertyOptional({
+    type: () => FinancialAdvanceTransactionEntity,
+    isArray: true,
+    name: "advanceTransactions",
+  })
   advanceTransactions?: FinancialAdvanceTransactionEntity[];
 
   @ManyToOne(() => AccountEntity, (account) => account.financialCategories, {
     nullable: false,
     onDelete: "CASCADE",
+  })
+  @ApiPropertyOptional({
+    type: () => AccountEntity,
   })
   account: AccountEntity;
 }

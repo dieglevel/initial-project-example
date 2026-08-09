@@ -44,11 +44,6 @@ export class FinancialTransactionEntity extends BaseEntity {
   @IsOptional()
   location?: string | null;
 
-  @Column({ type: "simple-array", nullable: true })
-  @IsArray()
-  @IsOptional()
-  tags?: string[] | null;
-
   @Column({ type: "varchar", length: 500, nullable: true })
   @IsString()
   @IsOptional()

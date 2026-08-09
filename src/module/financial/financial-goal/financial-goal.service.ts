@@ -398,20 +398,21 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
     return this.goalRepository.save(goal);
   }
 
-  async walletBalanceApplyGoal(user: JwtPayload): Promise<{
-    unApplyWallet: {
-      totalCurrentAmount: number;
-      totalTargetAmount: number;
-      percentage: number;
-    };
-    applyWallet: {
-      totalCurrentAmount: number;
-      totalTargetAmount: number;
-      percentage: number;
-    };
-    walletBalance: number;
-    totalActiveGoalAmount: number;
-  }> {
+  async walletBalanceApplyGoal(user: JwtPayload): Promise<any> {
+    // {
+    //   unApplyWallet: {
+    //     totalCurrentAmount: number;
+    //     totalTargetAmount: number;
+    //     percentage: number;
+    //   };
+    //   applyWallet: {
+    //     totalCurrentAmount: number;
+    //     totalTargetAmount: number;
+    //     percentage: number;
+    //   };
+    //   walletBalance: number;
+    //   totalActiveGoalAmount: number;
+    // }
     const walletBalanceResult: { totalAmount: string }[] =
       await this.dataSource.query(
         `

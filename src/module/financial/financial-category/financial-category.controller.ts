@@ -1,4 +1,13 @@
-import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { FinancialCategoryService } from "./financial-category.service";
@@ -51,16 +60,13 @@ export class FinancialCategoryController extends CreateGenericController<
     super(financialCategoryService);
   }
 
-  @Get("/with-transaction-count")
+  @Get("/list")
   @HttpCode(200)
   @ApiBaseResponse(FinancialCategory_GetWithTransactionCount_Response, {
     isArray: true,
   })
-  async getsFinancialCategoryWithTransactionCount(
-    @Query("date") date: Date,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.financialCategoryService.getCategoriesWithTotals({
+  async gets(@Query("date") date: Date, @CurrentUser() user: JwtPayload) {
+    return this.financialCategoryService.gets({
       date: date,
       user: user,
     });
@@ -79,5 +85,14 @@ export class FinancialCategoryController extends CreateGenericController<
       date,
       user,
     });
+  }
+
+  @Post("/archive/:categoryId")
+  @HttpCode(200)
+  async archiveCategory(
+    @Param("categoryId", ParseIntPipe) categoryId: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialCategoryService.archiveCategory(categoryId, user);
   }
 }
