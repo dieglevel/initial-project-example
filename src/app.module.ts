@@ -20,7 +20,7 @@ import { StaticFileModule } from "./module/static-file/static-file.module";
 import { InitialServeStaticModule } from "./common/config/serve-static.module";
 import { InitialScheduleModule } from "./common/config/schedule.module";
 import { FinancialModule } from "./module/financial/financial.module";
-
+// Version: 0.1
 @Module({
   imports: [
     InitialConfigServiceModule,
