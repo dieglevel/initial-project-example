@@ -17,7 +17,7 @@ import {
   type FinancialCategory_GetBudgetStatus_Response,
 } from "./dto/get-budget-status.dto";
 import { FinancialTransactionEntity } from "../financial-transaction/_entities/financial-transaction.entity";
-import { FinancialAdvanceTransactionEntity } from "../financial-transaction/financial-advance-transaction/_entities/financial-advance-transaction.entity";
+import { FinancialTransactionItemEntity } from "../financial-transaction/_entities/financial-transaction-item.entity";
 
 @Injectable()
 export class FinancialCategoryService extends BaseCrudService<FinancialCategoryEntity> {
@@ -76,18 +76,18 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     const transactionTotals = await this.financialCategoryRepository
       .createQueryBuilder("financialCategory")
       .leftJoin(
-        FinancialAdvanceTransactionEntity,
-        "advanceTransactions",
+        FinancialTransactionItemEntity,
+        "transactionItem",
         `
-        "advanceTransactions"."categoryId" = "financialCategory"."id"
-        AND "advanceTransactions"."deletedAt" IS NULL
+        "transactionItem"."categoryId" = "financialCategory"."id"
+        AND "transactionItem"."deletedAt" IS NULL
       `,
       )
       .leftJoin(
         FinancialTransactionEntity,
         "transaction",
         `
-        "transaction"."id" = "advanceTransactions"."transactionId"
+        "transaction"."id" = "transactionItem"."transactionId"
         AND "transaction"."createdAt" >= :startDate
         AND "transaction"."createdAt" <= :endDate
         AND "transaction"."type" = :transactionType

@@ -25,7 +25,7 @@ import {
   IsString,
 } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { FinancialAdvanceTransactionEntity } from "../financial-advance-transaction/_entities/financial-advance-transaction.entity";
+import { FinancialTransactionItemEntity } from "./financial-transaction-item.entity";
 
 @Entity("financial-transaction")
 @ApiEntity()
@@ -125,13 +125,10 @@ export class FinancialTransactionEntity extends BaseEntity {
   })
   account: AccountEntity;
 
-  @OneToMany(
-    () => FinancialAdvanceTransactionEntity,
-    (advanceTransaction) => advanceTransaction.transaction,
-  )
+  @OneToMany(() => FinancialTransactionItemEntity, (item) => item.transaction)
   @ApiPropertyOptional({
-    type: () => FinancialAdvanceTransactionEntity,
-    default: "FinancialAdvanceTransaction",
+    type: () => FinancialTransactionItemEntity,
+    default: "FinancialTransactionItem",
   })
-  financialAdvanceTransactions?: FinancialAdvanceTransactionEntity[];
+  financialTransactionItems?: FinancialTransactionItemEntity[];
 }

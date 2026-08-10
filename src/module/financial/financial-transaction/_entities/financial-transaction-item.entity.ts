@@ -1,14 +1,14 @@
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
-import { FinancialTransactionEntity } from "../../_entities/financial-transaction.entity";
+import { FinancialTransactionEntity } from "./financial-transaction.entity";
 import { FinancialCategoryEntity } from "@/module/financial/financial-category/_entities/financial-category.entity";
 import { IsNumber, IsOptional } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 
-@Entity("financial-advance-transaction")
+@Entity("financial-transaction-item")
 @ApiEntity()
-export class FinancialAdvanceTransactionEntity extends BaseEntity {
+export class FinancialTransactionItemEntity extends BaseEntity {
   @Column({ type: "varchar", length: 255, nullable: false })
   description: string;
 
@@ -17,7 +17,7 @@ export class FinancialAdvanceTransactionEntity extends BaseEntity {
 
   @ManyToOne(
     () => FinancialTransactionEntity,
-    (transaction) => transaction.financialAdvanceTransactions,
+    (transaction) => transaction.financialTransactionItems,
     {
       onDelete: "CASCADE",
     },
@@ -30,7 +30,7 @@ export class FinancialAdvanceTransactionEntity extends BaseEntity {
 
   @ManyToOne(
     () => FinancialCategoryEntity,
-    (category) => category.advanceTransactions,
+    (category) => category.transactionItems,
     {
       nullable: true,
       onDelete: "SET NULL",

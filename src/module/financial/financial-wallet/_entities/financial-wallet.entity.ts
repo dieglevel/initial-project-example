@@ -30,6 +30,7 @@ export class FinancialWalletEntity extends BaseEntity {
     precision: 10,
     scale: 2,
     nullable: false,
+    default: 0,
     transformer: {
       to: (value: number) => value,
       from: (value: string) => parseFloat(value),

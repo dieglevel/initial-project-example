@@ -1,13 +1,13 @@
 export enum FINANCIAL_TRANSACTION_TYPE {
-  INCOME = "income",
-  EXPENSE = "expense",
-  REFUND = "refund",
-  ADJUSTMENT = "adjustment",
-  TRANSFER = "transfer",
+  INCOME = "INCOME",
+  EXPENSE = "EXPENSE",
+  REFUND = "REFUND",
+  ADJUSTMENT = "ADJUSTMENT",
+  TRANSFER = "TRANSFER",
 }
 
 export enum FINANCIAL_TRANSACTION_STATUS {
-  PENDING = "pending",
-  COMPLETED = "completed",
-  FAILED = "failed",
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
 }

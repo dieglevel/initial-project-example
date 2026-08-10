@@ -17,7 +17,7 @@ import {
   FINANCIAL_TRANSACTION_STATUS,
 } from "./financial-transaction.enum";
 import type { JwtPayload } from "@/module/auth/payload.type";
-import { FinancialAdvanceTransactionEntity } from "./financial-advance-transaction/_entities/financial-advance-transaction.entity";
+import { FinancialTransactionItemEntity } from "./_entities/financial-transaction-item.entity";
 
 @Injectable()
 export class FinancialTransactionService extends BaseCrudService<FinancialTransactionEntity> {
@@ -106,11 +106,8 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     return this.financialTransactionRepository
       .createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.wallet", "wallet")
-      .leftJoinAndSelect(
-        "transaction.financialAdvanceTransactions",
-        "advanceTransaction",
-      )
-      .leftJoinAndSelect("advanceTransaction.category", "category") // Join category từ advanceTransaction
+      .leftJoinAndSelect(FinancialTransactionItemEntity, "transactionItem")
+      .leftJoinAndSelect("transactionItem.category", "category") // Join category từ transactionItem
       .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
@@ -213,7 +210,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
 
       // 2. Nếu có categoryId, tự động tạo Advance Transaction con (Detail)
       if (categoryId) {
-        const advanceItem = manager.create(FinancialAdvanceTransactionEntity, {
+        const advanceItem = manager.create(FinancialTransactionItemEntity, {
           amount: numericAmount,
           description: description ?? "Automated Item",
           category: { id: categoryId },

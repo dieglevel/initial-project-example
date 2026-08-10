@@ -4,11 +4,13 @@ import { FinancialTransactionController } from "./financial-transaction.controll
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { FinancialTransactionEntity } from "./_entities/financial-transaction.entity";
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
+import { FinancialTransactionItemEntity } from "./_entities/financial-transaction-item.entity";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       FinancialTransactionEntity,
+      FinancialTransactionItemEntity,
       FinancialWalletEntity,
     ]),
   ],

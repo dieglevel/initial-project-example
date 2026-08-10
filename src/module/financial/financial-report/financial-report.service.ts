@@ -121,7 +121,7 @@ export class FinancialReportService {
         createdAt: Between(range.from, range.to),
       },
       relations: {
-        financialAdvanceTransactions: {
+        financialTransactionItems: {
           category: true,
         },
       },
@@ -148,10 +148,10 @@ export class FinancialReportService {
 
       // Xử lý nếu là Giao dịch nâng cao có các dòng chi tiết
       if (
-        expense.financialAdvanceTransactions &&
-        expense.financialAdvanceTransactions.length > 0
+        expense.financialTransactionItems &&
+        expense.financialTransactionItems.length > 0
       ) {
-        for (const subItem of expense.financialAdvanceTransactions) {
+        for (const subItem of expense.financialTransactionItems) {
           const subAmount = Number(subItem.amount ?? 0);
           totalExpense += subAmount;
 
@@ -326,7 +326,7 @@ export class FinancialReportService {
         type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
       },
       relations: {
-        financialAdvanceTransactions: true,
+        financialTransactionItems: true,
       },
     });
 
@@ -339,10 +339,10 @@ export class FinancialReportService {
 
       // Cộng dồn tiền từ advance transactions nếu có
       if (
-        transaction.financialAdvanceTransactions &&
-        transaction.financialAdvanceTransactions.length > 0
+        transaction.financialTransactionItems &&
+        transaction.financialTransactionItems.length > 0
       ) {
-        for (const subItem of transaction.financialAdvanceTransactions) {
+        for (const subItem of transaction.financialTransactionItems) {
           if (subItem.categoryId) {
             expenseMap.set(
               subItem.categoryId,
