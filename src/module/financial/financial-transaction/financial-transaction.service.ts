@@ -32,15 +32,19 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
   ) {
     super(financialTransactionRepository);
   }
-
   async createOverride(
     dto: FinancialTransaction_Create_Request,
     user: JwtPayload,
   ): Promise<FinancialTransactionEntity> {
-    const { walletId, ...transactionData } = dto;
+    const {
+      walletId,
+      toWalletId,
+      financialTransactionItems,
+      ...transactionData
+    } = dto;
 
     return await this.dataSource.transaction(async (manager) => {
-      // Lock wallet để tránh race condition khi nhiều giao dịch cùng lúc
+      // 1. Lock ví nguồn
       const wallet = await manager.findOne(FinancialWalletEntity, {
         where: { id: walletId },
         lock: { mode: "pessimistic_write" },
@@ -53,42 +57,91 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       const amount = Number(transactionData.amount);
       const currentBalance = Number(wallet.balance);
 
-      // Update wallet balance
+      // 2. Xử lý số dư theo cả 5 ENUM
       switch (transactionData.type) {
         case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
+          if (currentBalance < amount) {
+            throw new BadRequestException("Insufficient wallet balance");
+          }
           wallet.balance = currentBalance - amount;
           break;
 
         case FINANCIAL_TRANSACTION_TYPE.INCOME:
         case FINANCIAL_TRANSACTION_TYPE.REFUND:
-        case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
           wallet.balance = currentBalance + amount;
           break;
 
-        case FINANCIAL_TRANSACTION_TYPE.TRANSFER:
-          throw new BadRequestException(
-            "Use financial-wallet transfer endpoint for internal transfers",
-          );
+        case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
+          // Cộng/Trừ trực tiếp theo giá trị amount
+          wallet.balance = currentBalance + amount;
+          break;
+
+        case FINANCIAL_TRANSACTION_TYPE.TRANSFER: {
+          if (!toWalletId) {
+            throw new BadRequestException(
+              "Destination wallet (toWalletId) is required for transfers",
+            );
+          }
+          if (walletId === toWalletId) {
+            throw new BadRequestException("Cannot transfer to the same wallet");
+          }
+          if (currentBalance < amount) {
+            throw new BadRequestException(
+              "Insufficient wallet balance for transfer",
+            );
+          }
+
+          // Lock và cộng tiền cho ví đích
+          const targetWallet = await manager.findOne(FinancialWalletEntity, {
+            where: { id: toWalletId },
+            lock: { mode: "pessimistic_write" },
+          });
+
+          if (!targetWallet) {
+            throw new NotFoundException("Destination wallet not found");
+          }
+
+          wallet.balance = currentBalance - amount;
+          targetWallet.balance = Number(targetWallet.balance) + amount;
+          await manager.save(targetWallet);
+          break;
+        }
 
         default:
           throw new BadRequestException("Invalid transaction type");
       }
 
-      // Tạo transaction
+      // 3. Tạo Transaction record
       const transaction = manager.create(FinancialTransactionEntity, {
         ...transactionData,
         wallet,
+        status:
+          transactionData.status || FINANCIAL_TRANSACTION_STATUS.COMPLETED,
         createdAt: transactionData.date
           ? new Date(transactionData.date)
           : new Date(),
-        account: {
-          id: user.sub,
-        },
+        account: { id: user.sub },
       });
 
-      // Save trong cùng DB transaction
+      const savedTransaction = await manager.save(transaction);
+
+      // 4. Lưu Transaction Items (nếu có)
+      if (financialTransactionItems && financialTransactionItems.length > 0) {
+        const transactionItems = financialTransactionItems.map((item) =>
+          manager.create(FinancialTransactionItemEntity, {
+            ...item,
+            amount: Number(item.amount),
+            transactionId: savedTransaction.id,
+          }),
+        );
+        await manager.save(transactionItems);
+        savedTransaction.financialTransactionItems = transactionItems;
+      }
+
+      // 5. Cập nhật số dư ví nguồn
       await manager.save(wallet);
-      return await manager.save(transaction);
+
+      return savedTransaction;
     });
   }
 

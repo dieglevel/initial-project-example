@@ -3,6 +3,8 @@ import {
   IsDate,
   IsDateString,
   IsNotEmpty,
+  IsNumber,
+  IsOptional,
   IsString,
 } from "class-validator";
 import { FinancialTransactionEntity } from "../_entities/financial-transaction.entity";
@@ -15,6 +17,10 @@ export class FinancialTransaction_Create_Request extends OmitType(
   @IsNotEmpty()
   @IsDateString()
   date: Date;
+
+  @IsNumber()
+  @IsOptional()
+  toWalletId?: number;
 }
 
 export class FinancialTransaction_Create_Response extends FinancialTransactionEntity {}
