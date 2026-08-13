@@ -1,4 +1,13 @@
-import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { FinancialTransactionService } from "./financial-transaction.service";
@@ -52,6 +61,16 @@ export class FinancialTransactionController extends CreateGenericController({
       date: date,
       user: user,
     });
+  }
+
+  @Get("view/:id")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialTransaction_GetAll_Response)
+  async view(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialTransactionService.view(id, user);
   }
 
   @Post("/create")

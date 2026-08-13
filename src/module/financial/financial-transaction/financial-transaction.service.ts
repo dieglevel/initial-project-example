@@ -159,8 +159,11 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     return this.financialTransactionRepository
       .createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.wallet", "wallet")
-      .leftJoinAndSelect(FinancialTransactionItemEntity, "transactionItem")
-      .leftJoinAndSelect("transactionItem.category", "category") // Join category từ transactionItem
+      .leftJoinAndSelect(
+        "transaction.financialTransactionItems",
+        "financialTransactionItems",
+      )
+      .leftJoinAndSelect("financialTransactionItems.category", "category") // Join category từ transactionItem
       .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
@@ -275,5 +278,30 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
 
       return savedTransaction;
     });
+  }
+
+  async view(
+    id: number,
+    user: JwtPayload,
+  ): Promise<FinancialTransactionEntity> {
+    const transaction = await this.financialTransactionRepository
+      .createQueryBuilder("transaction")
+      .leftJoinAndSelect("transaction.wallet", "wallet")
+      .leftJoinAndSelect(
+        "transaction.financialTransactionItems",
+        "financialTransactionItems",
+      )
+      .leftJoinAndSelect("financialTransactionItems.category", "category") // Join category từ transactionItem
+      .where("transaction.id = :id", { id })
+      .andWhere("transaction.accountId = :accountId", {
+        accountId: user.sub,
+      })
+      .getOne();
+
+    if (!transaction) {
+      throw new NotFoundException("Transaction not found");
+    }
+
+    return transaction;
   }
 }
