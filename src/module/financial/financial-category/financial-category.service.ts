@@ -73,37 +73,41 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
      * Do NOT join children here.
      * Each category gets its own direct transaction amount.
      */
+    /**
+     * 2. Get actual amount by category
+     */
     const transactionTotals = await this.financialCategoryRepository
       .createQueryBuilder("financialCategory")
       .leftJoin(
         FinancialTransactionItemEntity,
         "transactionItem",
         `
-        "transactionItem"."categoryId" = "financialCategory"."id"
-        AND "transactionItem"."deletedAt" IS NULL
-      `,
+    "transactionItem"."categoryId" = "financialCategory"."id"
+    AND "transactionItem"."deletedAt" IS NULL
+  `,
       )
       .leftJoin(
         FinancialTransactionEntity,
         "transaction",
         `
-        "transaction"."id" = "transactionItem"."transactionId"
-        AND "transaction"."createdAt" >= :startDate
-        AND "transaction"."createdAt" <= :endDate
-        AND "transaction"."type" = :transactionType
-        AND "transaction"."deletedAt" IS NULL
-      `,
+    "transaction"."id" = "transactionItem"."transactionId"
+    AND "transaction"."createdAt" >= :startDate
+    AND "transaction"."createdAt" <= :endDate
+    AND "transaction"."type" = :transactionType
+    AND "transaction"."deletedAt" IS NULL
+  `,
       )
       .select(`"financialCategory"."id"`, "categoryId")
-      .addSelect(`COALESCE(SUM("transaction"."amount"), 0)`, "totalAmount")
+      // 🟢 SỬA TẠI ĐÂY: Thay "transaction"."amount" thành "transactionItem"."amount"
+      .addSelect(`COALESCE(SUM("transactionItem"."amount"), 0)`, "totalAmount")
       .where(`"financialCategory"."accountId" = :accountId`, {
         accountId: user.sub,
       })
       .andWhere(
         `(
-        "financialCategory"."type" = :categoryType
-        OR "financialCategory"."type" IS NULL
-      )`,
+    "financialCategory"."type" = :categoryType
+    OR "financialCategory"."type" IS NULL
+  )`,
         {
           categoryType: FINANCIAL_CATEGORY_TYPE.EXPENSE,
         },
