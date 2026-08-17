@@ -9,6 +9,7 @@ import { FinancialRecurringModule } from "./financial-recurring/financial-recurr
 import { FinancialNotificationModule } from "./financial-notification/financial-notification.module";
 import { FinancialReportModule } from "./financial-report/financial-report.module";
 import { FinancialTransactionItemEntity } from "./financial-transaction/_entities/financial-transaction-item.entity";
+import { FinancialDashboardModule } from "./financial-dashboard/financial-dashboard.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { FinancialTransactionItemEntity } from "./financial-transaction/_entitie
     FinancialRecurringModule,
     FinancialNotificationModule,
     FinancialReportModule,
+    FinancialDashboardModule,
   ],
   providers: [],
 })

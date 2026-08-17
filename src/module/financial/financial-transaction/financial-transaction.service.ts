@@ -151,19 +151,24 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
   }: {
     date: FinancialTransaction_GetWithDate_Request["date"];
     user: JwtPayload;
-  }): Promise<FinancialTransactionEntity[]> {
+  }): Promise<{
+    transactions: FinancialTransactionEntity[];
+    totalExpense: number;
+    totalIncome: number;
+  }> {
     const targetDate = dayjs(date);
     const startDate = targetDate.startOf("month").toDate();
     const endDate = targetDate.endOf("month").toDate();
 
-    return this.financialTransactionRepository
+    // 1. Lấy danh sách giao dịch cùng các quan hệ
+    const transactions = await this.financialTransactionRepository
       .createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.wallet", "wallet")
       .leftJoinAndSelect(
         "transaction.financialTransactionItems",
         "financialTransactionItems",
       )
-      .leftJoinAndSelect("financialTransactionItems.category", "category") // Join category từ transactionItem
+      .leftJoinAndSelect("financialTransactionItems.category", "category")
       .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
         startDate,
         endDate,
@@ -173,6 +178,26 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       })
       .orderBy("transaction.createdAt", "DESC")
       .getMany();
+
+    // 2. Tính tổng expense và income từ danh sách đã lấy
+    const totals = transactions.reduce(
+      (acc, transaction) => {
+        // Giả sử entity của bạn có thuộc tính type ('EXPENSE' | 'INCOME') và amount (hoặc totalAmount)
+        if (transaction.type === FINANCIAL_TRANSACTION_TYPE.EXPENSE) {
+          acc.totalExpense += Number(transaction.amount || 0);
+        } else if (transaction.type === FINANCIAL_TRANSACTION_TYPE.INCOME) {
+          acc.totalIncome += Number(transaction.amount || 0);
+        }
+        return acc;
+      },
+      { totalExpense: 0, totalIncome: 0 },
+    );
+
+    return {
+      transactions,
+      totalExpense: totals.totalExpense,
+      totalIncome: totals.totalIncome,
+    };
   }
 
   async createAutomatedTransaction({

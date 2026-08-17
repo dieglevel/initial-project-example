@@ -187,8 +187,6 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
       relations: ["histories"],
     });
 
-    console.log("Goal fetched:", goal);
-
     if (!goal) {
       throw new NotFoundException(`Financial Goal #${goalId} not found`);
     }
@@ -399,20 +397,6 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
   }
 
   async walletBalanceApplyGoal(user: JwtPayload): Promise<any> {
-    // {
-    //   unApplyWallet: {
-    //     totalCurrentAmount: number;
-    //     totalTargetAmount: number;
-    //     percentage: number;
-    //   };
-    //   applyWallet: {
-    //     totalCurrentAmount: number;
-    //     totalTargetAmount: number;
-    //     percentage: number;
-    //   };
-    //   walletBalance: number;
-    //   totalActiveGoalAmount: number;
-    // }
     const walletBalanceResult: { totalAmount: string }[] =
       await this.dataSource.query(
         `
