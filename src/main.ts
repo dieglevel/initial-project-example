@@ -16,6 +16,7 @@ import { ValidatePipeConfig } from "./common/pipe/validation.pipe";
 import { swaggerCss } from "./common/config/swagger/swagger.css";
 import { appConfig } from "./common/environment/types/app.config";
 import { ClassSerializerInterceptor } from "@nestjs/common";
+import * as express from "express";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -40,6 +41,11 @@ async function bootstrap() {
     });
   });
 
+  app.use(
+    express.text({
+      type: ["text/plain", "application/json", "text/*"],
+    }),
+  );
   app.enableCors({
     credentials: true,
     origin: ["https://dieglevel.github.io", "http://localhost:5173"],

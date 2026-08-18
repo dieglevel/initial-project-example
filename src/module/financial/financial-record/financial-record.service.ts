@@ -10,8 +10,8 @@ export class FinancialRecordService {
     private readonly FinancialRecordRepository: Repository<FinancialRecordEntity>,
   ) {}
 
-  async createFinancialRecord(record: string): Promise<FinancialRecordEntity> {
-    const newRecord = this.FinancialRecordRepository.create({ record });
+  async createFinancialRecord(record: any): Promise<FinancialRecordEntity> {
+    const newRecord = this.FinancialRecordRepository.create({ record: record });
     return this.FinancialRecordRepository.save(newRecord);
   }
 }
