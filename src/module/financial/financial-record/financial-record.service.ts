@@ -24,7 +24,7 @@ export class FinancialRecordService {
   }): Promise<FinancialRecordEntity> {
     console.log("record", record);
     const newRecord = this.FinancialRecordRepository.create({
-      record: String(record),
+      record: JSON.stringify(record),
     });
     return this.FinancialRecordRepository.save(newRecord);
   }
