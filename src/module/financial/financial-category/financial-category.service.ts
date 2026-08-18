@@ -38,7 +38,7 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     const selectedDate = dayjs(date).isValid() ? dayjs(date) : dayjs();
 
     const startDate = selectedDate.startOf("month").toDate();
-    const endDate = selectedDate.endOf("month").toDate();
+    const endDate = selectedDate.add(1, "month").startOf("month").toDate();
 
     /**
      * 1. Get all categories
@@ -67,14 +67,14 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       .getMany();
 
     /**
-     * 2. Get actual amount by category
+     * 2. Get direct transaction amount by category
      *
      * Important:
-     * Do NOT join children here.
-     * Each category gets its own direct transaction amount.
-     */
-    /**
-     * 2. Get actual amount by category
+     * - Category -> Item -> Transaction
+     * - Date is determined by Transaction.createdAt
+     * - All categories must be returned
+     * - If a category has no transaction in the selected month,
+     *   totalAmount = 0
      */
     const transactionTotals = await this.financialCategoryRepository
       .createQueryBuilder("financialCategory")
@@ -82,32 +82,45 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
         FinancialTransactionItemEntity,
         "transactionItem",
         `
-    "transactionItem"."categoryId" = "financialCategory"."id"
-    AND "transactionItem"."deletedAt" IS NULL
-  `,
+        "transactionItem"."categoryId" = "financialCategory"."id"
+        AND "transactionItem"."deletedAt" IS NULL
+      `,
       )
       .leftJoin(
         FinancialTransactionEntity,
         "transaction",
         `
-    "transaction"."id" = "transactionItem"."transactionId"
-    AND "transaction"."createdAt" >= :startDate
-    AND "transaction"."createdAt" <= :endDate
-    AND "transaction"."type" = :transactionType
-    AND "transaction"."deletedAt" IS NULL
-  `,
+        "transaction"."id" = "transactionItem"."transactionId"
+        AND "transaction"."createdAt" >= :startDate
+        AND "transaction"."createdAt" < :endDate
+        AND "transaction"."type" = :transactionType
+        AND "transaction"."deletedAt" IS NULL
+      `,
       )
       .select(`"financialCategory"."id"`, "categoryId")
-      // 🟢 SỬA TẠI ĐÂY: Thay "transaction"."amount" thành "transactionItem"."amount"
-      .addSelect(`COALESCE(SUM("transactionItem"."amount"), 0)`, "totalAmount")
+      .addSelect(
+        `
+        COALESCE(
+          SUM(
+            CASE
+              WHEN "transaction"."id" IS NOT NULL
+              THEN "transactionItem"."amount"
+              ELSE 0
+            END
+          ),
+          0
+        )
+      `,
+        "totalAmount",
+      )
       .where(`"financialCategory"."accountId" = :accountId`, {
         accountId: user.sub,
       })
       .andWhere(
         `(
-    "financialCategory"."type" = :categoryType
-    OR "financialCategory"."type" IS NULL
-  )`,
+        "financialCategory"."type" = :categoryType
+        OR "financialCategory"."type" IS NULL
+      )`,
         {
           categoryType: FINANCIAL_CATEGORY_TYPE.EXPENSE,
         },
@@ -181,16 +194,17 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     const calculateTotal = (
       category: FinancialCategory_GetWithTransactionCount_Response,
     ): number => {
-      const childrenTotal = category?.children?.reduce(
-        (sum, child) =>
-          sum +
-          calculateTotal(
-            child as FinancialCategory_GetWithTransactionCount_Response,
-          ),
-        0,
-      );
+      const childrenTotal =
+        category.children?.reduce((sum, child) => {
+          return (
+            sum +
+            calculateTotal(
+              child as FinancialCategory_GetWithTransactionCount_Response,
+            )
+          );
+        }, 0) ?? 0;
 
-      category.totalAmount += childrenTotal || 0;
+      category.totalAmount += childrenTotal;
 
       return category.totalAmount;
     };
