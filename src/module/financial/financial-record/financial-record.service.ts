@@ -10,8 +10,22 @@ export class FinancialRecordService {
     private readonly FinancialRecordRepository: Repository<FinancialRecordEntity>,
   ) {}
 
-  async createFinancialRecord(record: any): Promise<FinancialRecordEntity> {
-    const newRecord = this.FinancialRecordRepository.create({ record: record });
+  async createFinancialRecord(record: {
+    title: string;
+    ticker: string;
+    notification: string;
+    sub_text: string;
+    text_lines: string;
+    text_big: string;
+    action_names: string;
+    app_name: string;
+    app_package: string;
+    channel: string;
+  }): Promise<FinancialRecordEntity> {
+    console.log("record", record);
+    const newRecord = this.FinancialRecordRepository.create({
+      record: String(record),
+    });
     return this.FinancialRecordRepository.save(newRecord);
   }
 }

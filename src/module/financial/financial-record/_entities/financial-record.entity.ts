@@ -5,6 +5,6 @@ import { Column, Entity } from "typeorm";
 @Entity("financial-record")
 @ApiEntity()
 export class FinancialRecordEntity extends BaseEntity {
-  @Column({ type: "text" })
-  record: string;
+  @Column({ type: "text", nullable: true })
+  record: string | null;
 }

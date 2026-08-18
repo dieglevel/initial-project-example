@@ -41,11 +41,6 @@ async function bootstrap() {
     });
   });
 
-  app.use(
-    express.text({
-      type: ["text/plain", "application/json", "text/*"],
-    }),
-  );
   app.enableCors({
     credentials: true,
     origin: ["https://dieglevel.github.io", "http://localhost:5173"],
