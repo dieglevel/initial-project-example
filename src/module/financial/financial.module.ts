@@ -11,6 +11,7 @@ import { FinancialReportModule } from "./financial-report/financial-report.modul
 import { FinancialTransactionItemEntity } from "./financial-transaction/_entities/financial-transaction-item.entity";
 import { FinancialDashboardModule } from "./financial-dashboard/financial-dashboard.module";
 import { FinancialRecordModule } from "./financial-record/financial-record.module";
+import { FinancialDebtModule } from "./financial-debt/financial-debt.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { FinancialRecordModule } from "./financial-record/financial-record.modul
     FinancialReportModule,
     FinancialDashboardModule,
     FinancialRecordModule,
+    FinancialDebtModule,
   ],
   providers: [],
 })

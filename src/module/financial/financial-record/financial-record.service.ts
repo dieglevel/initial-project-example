@@ -10,22 +10,21 @@ export class FinancialRecordService {
     private readonly FinancialRecordRepository: Repository<FinancialRecordEntity>,
   ) {}
 
-  async createFinancialRecord(record: {
-    title: string;
-    ticker: string;
-    notification: string;
-    sub_text: string;
-    text_lines: string;
-    text_big: string;
-    action_names: string;
-    app_name: string;
-    app_package: string;
-    channel: string;
-  }): Promise<FinancialRecordEntity> {
+  async createFinancialRecord(record: JSON): Promise<FinancialRecordEntity> {
     console.log("record", record);
     const newRecord = this.FinancialRecordRepository.create({
       record: JSON.stringify(record),
     });
     return this.FinancialRecordRepository.save(newRecord);
+  }
+
+  async test(): Promise<any> {
+    const getRecord = await this.FinancialRecordRepository.find({
+      where: {
+        id: 99,
+      },
+    });
+
+    return getRecord;
   }
 }

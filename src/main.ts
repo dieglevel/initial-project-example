@@ -41,11 +41,11 @@ async function bootstrap() {
     });
   });
 
-  app.use(
-    express.text({
-      type: ["text/plain", "application/json", "text/*"],
-    }),
-  );
+  // app.use(
+  //   express.text({
+  //     type: ["text/plain", "application/json", "text/*"],
+  //   }),
+  // );
 
   app.enableCors({
     credentials: true,

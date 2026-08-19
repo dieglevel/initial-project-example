@@ -9,6 +9,7 @@ import { FinancialWalletEntity } from "@/module/financial/financial-wallet/_enti
 import { FinancialGoalEntity } from "@/module/financial/financial-goal/_entities/financial-goal.entity";
 import { FinancialRecurringEntity } from "@/module/financial/financial-recurring/_entities/financial-recurring.entity";
 import { FinancialNotificationEntity } from "@/module/financial/financial-notification/_entities/financial-notification.entity";
+import { FinancialDebtEntity } from "@/module/financial/financial-debt/_entities/financial-debt.entity";
 
 @Entity()
 @ApiEntity()
@@ -82,4 +83,11 @@ export class AccountEntity extends BaseEntity {
     default: [],
   })
   financialNotifications: FinancialNotificationEntity[];
+
+  @OneToMany(
+    () => FinancialDebtEntity,
+    (financialDebt) => financialDebt.account,
+  )
+  @ApiPropertyOptional({ type: () => [FinancialDebtEntity], default: [] })
+  financialDebts: FinancialDebtEntity[];
 }
