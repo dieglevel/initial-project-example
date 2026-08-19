@@ -16,19 +16,9 @@ export class FinancialRecordController {
   @HttpCode(200)
   async createFinancialRecord(
     @Body()
-    body: {
-      title: string;
-      ticker: string;
-      notification: string;
-      sub_text: string;
-      text_lines: string;
-      text_big: string;
-      action_names: string;
-      app_name: string;
-      app_package: string;
-      channel: string;
-    },
+    body: any,
   ) {
+    console.log("body", body);
     return this.financialRecordService.createFinancialRecord(body);
   }
 }
