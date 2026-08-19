@@ -6,5 +6,5 @@ import { Column, Entity } from "typeorm";
 @ApiEntity()
 export class FinancialRecordEntity extends BaseEntity {
   @Column({ type: "json", nullable: true })
-  record: string | null;
+  record: JSON | null;
 }

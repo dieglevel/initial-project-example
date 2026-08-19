@@ -16,17 +16,8 @@ export class FinancialRecordController {
   @HttpCode(200)
   async createFinancialRecord(
     @Body()
-    body: any,
+    body: JSON,
   ) {
-    console.log("body", JSON.parse(JSON.stringify(body)));
-    return this.financialRecordService.createFinancialRecord(
-      JSON.parse(JSON.stringify(body)),
-    );
-  }
-
-  @Post("test")
-  @HttpCode(200)
-  async test() {
-    return this.financialRecordService.test();
+    return this.financialRecordService.createFinancialRecord(body);
   }
 }

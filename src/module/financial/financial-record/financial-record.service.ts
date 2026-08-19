@@ -11,9 +11,8 @@ export class FinancialRecordService {
   ) {}
 
   async createFinancialRecord(record: JSON): Promise<FinancialRecordEntity> {
-    console.log("record", record);
     const newRecord = this.FinancialRecordRepository.create({
-      record: JSON.stringify(record),
+      record: record,
     });
     return this.FinancialRecordRepository.save(newRecord);
   }
@@ -21,7 +20,7 @@ export class FinancialRecordService {
   async test(): Promise<any> {
     const getRecord = await this.FinancialRecordRepository.find({
       where: {
-        id: 99,
+        id: 292,
       },
     });
 

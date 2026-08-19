@@ -41,6 +41,8 @@ async function bootstrap() {
     });
   });
 
+  app.use(express.text({ type: "text/plain" }));
+
   // app.use(
   //   express.text({
   //     type: ["text/plain", "application/json", "text/*"],
