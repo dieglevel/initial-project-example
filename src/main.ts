@@ -17,6 +17,8 @@ import { swaggerCss } from "./common/config/swagger/swagger.css";
 import { appConfig } from "./common/environment/types/app.config";
 import { ClassSerializerInterceptor } from "@nestjs/common";
 import * as express from "express";
+import path from "path";
+import fs from "fs";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -32,8 +34,8 @@ async function bootstrap() {
           defaultSrc: ["'self'"],
           frameAncestors: [
             "'self'",
-            "http://localhost:5173",
             "http://localhost:3002",
+            "http://localhost:5173",
             "https://dieglevel.github.io",
           ],
         },
@@ -41,7 +43,41 @@ async function bootstrap() {
     });
   });
 
-  app.use(express.text({ type: "text/plain" }));
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method === "POST" && req.path === "/api/financial-record/record") {
+      let rawBody = "";
+
+      req.on("data", (chunk) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        rawBody += chunk.toString();
+      });
+
+      req.on("end", () => {
+        console.log("\n========== RAW REQUEST BODY ==========");
+        console.log(rawBody);
+        console.log("======================================\n");
+      });
+
+      req.on("end", () => {
+        console.log("\n========== RAW REQUEST BODY ==========");
+        console.log(rawBody);
+        console.log("======================================\n");
+
+        const logFilePath = path.join(process.cwd(), "debug-raw-body.log");
+        const logContent = `[${new Date().toISOString()}]\n${rawBody}\n----------------------------------------\n`;
+
+        fs.appendFile(logFilePath, logContent, (err) => {
+          if (err) {
+            console.error("Lỗi khi lưu raw body ra file:", err);
+          }
+        });
+      });
+    }
+
+    next();
+  });
+
+  // app.use(express.text({ type: "text/plain" }));
 
   // app.use(
   //   express.text({

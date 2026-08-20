@@ -21,6 +21,10 @@ export class FinancialTransaction_Create_Request extends OmitType(
   @IsNumber()
   @IsOptional()
   toWalletId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  transferFee?: number;
 }
 
 export class FinancialTransaction_Create_Response extends FinancialTransactionEntity {}

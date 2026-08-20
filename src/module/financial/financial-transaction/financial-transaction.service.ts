@@ -101,9 +101,22 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
             throw new NotFoundException("Destination wallet not found");
           }
 
-          wallet.balance = currentBalance - amount;
+          wallet.balance = currentBalance - amount - (dto.transferFee || 0);
           targetWallet.balance = Number(targetWallet.balance) + amount;
           await manager.save(targetWallet);
+
+          if (dto.transferFee && dto.transferFee > 0) {
+            const feeItem = manager.create(FinancialTransactionEntity, {
+              description: "Transfer Fee",
+              amount: Number(dto.transferFee),
+              type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
+              status: FINANCIAL_TRANSACTION_STATUS.COMPLETED,
+              wallet: wallet,
+              account: { id: user.sub },
+              createdAt: new Date(),
+            });
+            await manager.save(feeItem);
+          }
           break;
         }
 
