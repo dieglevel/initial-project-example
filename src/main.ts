@@ -56,12 +56,6 @@ async function bootstrap() {
         console.log("\n========== RAW REQUEST BODY ==========");
         console.log(rawBody);
         console.log("======================================\n");
-      });
-
-      req.on("end", () => {
-        console.log("\n========== RAW REQUEST BODY ==========");
-        console.log(rawBody);
-        console.log("======================================\n");
 
         const logFilePath = path.join(process.cwd(), "debug-raw-body.log");
         const logContent = `[${new Date().toISOString()}]\n${rawBody}\n----------------------------------------\n`;

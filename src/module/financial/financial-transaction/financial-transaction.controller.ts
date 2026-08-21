@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -81,5 +82,26 @@ export class FinancialTransactionController extends CreateGenericController({
     @CurrentUser() user: JwtPayload,
   ) {
     return this.financialTransactionService.createOverride(dto, user);
+  }
+
+  @Post("/update/:id")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialTransaction_Update_Response)
+  async updateOverride(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: FinancialTransaction_Update_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialTransactionService.updateOverride(id, dto, user);
+  }
+
+  @Delete("/delete/:id")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialTransaction_Delete_Response)
+  async deleteOverride(
+    @Param("id", ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialTransactionService.deleteOverride(id, user);
   }
 }
