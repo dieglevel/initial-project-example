@@ -6,6 +6,7 @@ import { FinancialSettingService } from "./financial-setting.service";
 @Controller("financial-setting")
 @ApiBearerAuth("access-token")
 export class FinancialSettingController {
-  constructor(private readonly financialSettingService: FinancialSettingService) {}
-
+  constructor(
+    private readonly financialSettingService: FinancialSettingService,
+  ) {}
 }

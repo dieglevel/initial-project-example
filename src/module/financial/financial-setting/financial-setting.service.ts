@@ -9,5 +9,4 @@ export class FinancialSettingService {
     @InjectRepository(FinancialSettingEntity)
     private readonly FinancialSettingRepository: Repository<FinancialSettingEntity>,
   ) {}
-
 }

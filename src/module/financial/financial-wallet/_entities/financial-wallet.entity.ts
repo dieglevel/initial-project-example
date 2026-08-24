@@ -1,6 +1,13 @@
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
+import {
+  BeforeInsert,
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+} from "typeorm";
 import { FinancialTransactionEntity } from "../../financial-transaction/_entities/financial-transaction.entity";
 import {
   IsInt,
@@ -13,6 +20,7 @@ import {
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { FINANCIAL_WALLET_TYPE } from "../financial-wallet.enum";
 import { AccountEntity } from "@/module/account/_entities/account.entity";
+import * as crypto from "node:crypto";
 
 @Entity("financial-wallet")
 @ApiEntity()
@@ -103,6 +111,18 @@ export class FinancialWalletEntity extends BaseEntity {
 
   @Column({ type: "boolean", nullable: false, default: false })
   isLockedForDailySpending: boolean;
+
+  @Column({ type: "varchar", length: 64, nullable: true, unique: true })
+  @IsString()
+  @IsOptional()
+  apiKey?: string | null;
+
+  @BeforeInsert()
+  generateApiKey() {
+    if (!this.apiKey) {
+      this.apiKey = `wapi_${crypto.randomBytes(16).toString("hex")}`;
+    }
+  }
 
   @OneToMany(
     () => FinancialTransactionEntity,

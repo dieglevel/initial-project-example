@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Post,
+} from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { FinancialWalletService } from "./financial-wallet.service";
@@ -58,5 +66,11 @@ export class FinancialWalletController extends CreateGenericController({
     @Body() transferData: FinancialWallet_Transfer_Request,
   ) {
     return this.financialWalletService.transferBetweenWallets(transferData);
+  }
+
+  @Post("/:id/api-key")
+  @HttpCode(200)
+  async generateApiKey(@Param("id", ParseIntPipe) id: number) {
+    return this.financialWalletService.generateApiKey(id);
   }
 }

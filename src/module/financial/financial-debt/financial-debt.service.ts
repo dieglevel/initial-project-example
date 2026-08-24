@@ -60,14 +60,16 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
         throw new NotFoundException("Financial wallet not found");
       }
 
-      // 3. Cập nhật số dư Wallet
+      // 3. Cập nhật số dư Wallet khi THANH TOÁN / THU HỒI NỢ
       if (direction === FINANCIAL_DEBT_DIRECTION_ENUM.OUTGOING) {
-        wallet.balance += originalAmount;
-      } else if (direction === FINANCIAL_DEBT_DIRECTION_ENUM.INCOMING) {
+        // Trả nợ -> Tiền ra khỏi ví
         if (wallet.balance < originalAmount) {
           throw new BadRequestException("Insufficient wallet balance");
         }
         wallet.balance -= originalAmount;
+      } else if (direction === FINANCIAL_DEBT_DIRECTION_ENUM.INCOMING) {
+        // Thu nợ -> Tiền vào ví
+        wallet.balance += originalAmount;
       }
 
       // 4. Tạo khoản nợ

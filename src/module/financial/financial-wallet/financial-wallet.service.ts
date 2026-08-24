@@ -13,6 +13,7 @@ import type {
   FinancialWallet_Transfer_Response,
 } from "./dto/transfer.dto";
 import { FinancialWalletTransferService } from "../financial-wallet-transfer/financial-wallet-transfer.service";
+import crypto from "node:crypto";
 
 @Injectable()
 export class FinancialWalletService extends BaseCrudService<FinancialWalletEntity> {
@@ -44,11 +45,11 @@ export class FinancialWalletService extends BaseCrudService<FinancialWalletEntit
       const totalAmount = Number(
         (raw[index] as { totalAmount?: string | number | null })?.totalAmount,
       );
-
-      return {
+      const result: FinancialWallet_GetWithTransactionCount_Response = {
         ...entity,
         totalAmount: Number.isFinite(totalAmount) ? totalAmount : 0,
       };
+      return result;
     });
   }
 
@@ -97,5 +98,26 @@ export class FinancialWalletService extends BaseCrudService<FinancialWalletEntit
 
       return { message: "Transfer completed successfully" };
     });
+  }
+
+  async findByApiKey(apiKey: string): Promise<FinancialWalletEntity | null> {
+    if (!apiKey) return null;
+    return this.FinancialWalletRepository.findOne({
+      where: { apiKey },
+      relations: ["account"],
+    });
+  }
+
+  async generateApiKey(walletId: number): Promise<{ apiKey: string }> {
+    const wallet = await this.FinancialWalletRepository.findOne({
+      where: { id: walletId },
+    });
+    if (!wallet) {
+      throw new NotFoundException("Wallet not found");
+    }
+    const newApiKey = `wapi_${crypto.randomBytes(16).toString("hex")}`;
+    wallet.apiKey = newApiKey;
+    await this.FinancialWalletRepository.save(wallet);
+    return { apiKey: newApiKey };
   }
 }

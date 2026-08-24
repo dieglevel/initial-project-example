@@ -1,10 +1,51 @@
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { Column, Entity } from "typeorm";
+import { IsNumber, IsOptional, IsString } from "class-validator";
 
 @Entity("financial-record")
 @ApiEntity()
 export class FinancialRecordEntity extends BaseEntity {
   @Column({ type: "json", nullable: true })
-  record: JSON | null;
+  record: any | null;
+
+  @Column({ type: "varchar", length: 255, nullable: true })
+  @IsString()
+  @IsOptional()
+  appPackage?: string | null;
+
+  @Column({ type: "varchar", length: 64, nullable: true })
+  @IsString()
+  @IsOptional()
+  apiKey?: string | null;
+
+  @Column({
+    type: "decimal",
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) =>
+        value === null ? null : parseFloat(value),
+    },
+  })
+  @IsNumber()
+  @IsOptional()
+  parsedAmount?: number | null;
+
+  @Column({ type: "varchar", length: 50, nullable: true })
+  @IsString()
+  @IsOptional()
+  status?: string | null;
+
+  @Column({ type: "int", nullable: true })
+  @IsNumber()
+  @IsOptional()
+  walletId?: number | null;
+
+  @Column({ type: "int", nullable: true })
+  @IsNumber()
+  @IsOptional()
+  transactionId?: number | null;
 }
