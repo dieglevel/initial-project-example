@@ -3,10 +3,10 @@ import {
   IBankNotificationAdapter,
   ParsedBankNotification,
 } from "./bank-adapter.interface";
-import { VietinBankAdapter } from "./vietinbank.adapter";
-import { VietcombankAdapter } from "./vietcombank.adapter";
-import { MBBankAdapter } from "./mbbank.adapter";
-import { TPBankAdapter } from "./tpbank.adapter";
+import { VietinBankAdapter } from "./implement/vietinbank.adapter";
+import { VietcombankAdapter } from "./implement/vietcombank.adapter";
+import { MBBankAdapter } from "./implement/mbbank.adapter";
+import { TPBankAdapter } from "./implement/tpbank.adapter";
 import { GenericBankAdapter } from "./generic-bank.adapter";
 import type { FinancialRecordDTO } from "../dto/record.dto";
 

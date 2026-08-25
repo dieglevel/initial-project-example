@@ -2,13 +2,13 @@ import { Injectable } from "@nestjs/common";
 import {
   IBankNotificationAdapter,
   ParsedBankNotification,
-} from "./bank-adapter.interface";
-import { FINANCIAL_TRANSACTION_TYPE } from "../../financial-transaction/financial-transaction.enum";
-import type { FinancialRecordDTO } from "../dto/record.dto";
+} from "../bank-adapter.interface";
+import { FINANCIAL_TRANSACTION_TYPE } from "../../../financial-transaction/financial-transaction.enum";
+import type { FinancialRecordDTO } from "../../dto/record.dto";
 
 @Injectable()
-export class MBBankAdapter implements IBankNotificationAdapter {
-  private readonly appPackages = ["com.mbmobile", "com.mb", "mbbank"];
+export class TPBankAdapter implements IBankNotificationAdapter {
+  private readonly appPackages = ["com.tpb.mbanking", "com.tpb", "tpbank"];
 
   supports(appPackage: string): boolean {
     if (!appPackage) return false;
@@ -21,7 +21,6 @@ export class MBBankAdapter implements IBankNotificationAdapter {
       payload.notification || payload.title || payload.sub_text || "";
     if (!rawText) return null;
 
-    // MBBank: "TK 098... +100,000VND luc..." or "TK 098... -50,000VND..."
     const incomeMatch = rawText.match(
       /(?:\+|\bco\b)\s*([\d,.]+)\s*(?:VND|đ)?/i,
     );
@@ -43,7 +42,7 @@ export class MBBankAdapter implements IBankNotificationAdapter {
     if (amount <= 0) return null;
 
     let description = rawText;
-    const ndMatch = rawText.match(/(?:ND|Noidung):\s*(.+)/i);
+    const ndMatch = rawText.match(/(?:ND|Noidung|Noi dung):\s*(.+)/i);
     if (ndMatch && ndMatch[1]) {
       description = ndMatch[1].trim();
     }
@@ -52,7 +51,7 @@ export class MBBankAdapter implements IBankNotificationAdapter {
       amount,
       type,
       description,
-      merchant: "MB Bank",
+      merchant: "TPBank",
     };
   }
 

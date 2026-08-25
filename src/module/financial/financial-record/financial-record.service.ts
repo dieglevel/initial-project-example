@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { FinancialRecordEntity } from "./_entities/financial-record.entity";
@@ -8,6 +13,7 @@ import { FINANCIAL_TRANSACTION_STATUS } from "../financial-transaction/financial
 import { BankAdapterService } from "./adapters/bank-adapter.service";
 import { FinancialWalletService } from "../financial-wallet/financial-wallet.service";
 import type { FinancialRecordDTO } from "./dto/record.dto";
+import { FinancialTransactionItemEntity } from "../financial-transaction/_entities/financial-transaction-item.entity";
 
 @Injectable()
 export class FinancialRecordService {
@@ -22,6 +28,9 @@ export class FinancialRecordService {
 
     @InjectRepository(FinancialTransactionEntity)
     private readonly financialTransactionRepository: Repository<FinancialTransactionEntity>,
+
+    @InjectRepository(FinancialTransactionItemEntity)
+    private readonly financialTransactionItemRepository: Repository<FinancialTransactionItemEntity>,
 
     private readonly bankAdapterService: BankAdapterService,
     private readonly financialWalletService: FinancialWalletService,
@@ -89,7 +98,7 @@ export class FinancialRecordService {
       };
     }
 
-    // 3. Create Financial Transaction with status = PENDING
+    // 3. Create & Save Financial Transaction with status = PENDING
     const newTransaction = this.financialTransactionRepository.create({
       wallet: wallet,
       walletId: wallet.id,
@@ -97,14 +106,24 @@ export class FinancialRecordService {
       amount: parsed.amount,
       type: parsed.type,
       status: FINANCIAL_TRANSACTION_STATUS.PENDING,
-      description: parsed.description,
+      description: parsed.description || "Bank Notification",
       merchant: parsed.merchant || "Bank Notification",
     });
 
     const savedTransaction =
       await this.financialTransactionRepository.save(newTransaction);
 
-    // 4. Save Financial Record linking to Wallet & Transaction
+    // 4. Create & Save Financial Transaction Item
+    const transactionItem = this.financialTransactionItemRepository.create({
+      description: parsed.merchant,
+      amount: parsed.amount,
+      transaction: savedTransaction,
+      transactionId: savedTransaction.id,
+    });
+
+    await this.financialTransactionItemRepository.save(transactionItem);
+
+    // 5. Save Financial Record linking to Wallet & Transaction
     const recordEntity = this.financialRecordRepository.create({
       record: payload,
       appPackage: payload.app_package,
@@ -118,7 +137,7 @@ export class FinancialRecordService {
     const savedRecord = await this.financialRecordRepository.save(recordEntity);
 
     this.logger.log(
-      `Successfully created pending transaction #${savedTransaction.id} for wallet #${wallet.id} from record #${savedRecord.id}`,
+      `Successfully created pending transaction #${savedTransaction.id} with item for wallet #${wallet.id} from record #${savedRecord.id}`,
     );
 
     return {

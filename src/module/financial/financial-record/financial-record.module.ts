@@ -7,12 +7,13 @@ import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-w
 import { FinancialTransactionEntity } from "../financial-transaction/_entities/financial-transaction.entity";
 import { FinancialWalletModule } from "../financial-wallet/financial-wallet.module";
 
-import { VietinBankAdapter } from "./adapters/vietinbank.adapter";
-import { VietcombankAdapter } from "./adapters/vietcombank.adapter";
-import { MBBankAdapter } from "./adapters/mbbank.adapter";
-import { TPBankAdapter } from "./adapters/tpbank.adapter";
+import { VietinBankAdapter } from "./adapters/implement/vietinbank.adapter";
+import { VietcombankAdapter } from "./adapters/implement/vietcombank.adapter";
+import { MBBankAdapter } from "./adapters/implement/mbbank.adapter";
+import { TPBankAdapter } from "./adapters/implement/tpbank.adapter";
 import { GenericBankAdapter } from "./adapters/generic-bank.adapter";
 import { BankAdapterService } from "./adapters/bank-adapter.service";
+import { FinancialTransactionItemEntity } from "../financial-transaction/_entities/financial-transaction-item.entity";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BankAdapterService } from "./adapters/bank-adapter.service";
       FinancialRecordEntity,
       FinancialWalletEntity,
       FinancialTransactionEntity,
+      FinancialTransactionItemEntity,
     ]),
     FinancialWalletModule,
   ],

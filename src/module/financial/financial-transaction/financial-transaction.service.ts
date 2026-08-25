@@ -181,7 +181,11 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         throw new NotFoundException("Transaction not found");
       }
 
-      // 2. Nếu có gửi items, tự động tính lại tổng amount của Transaction từ items
+      const rawToWalletId = (dto as { toWalletId?: unknown }).toWalletId;
+      const normalizedToWalletId =
+        typeof rawToWalletId === "number" ? rawToWalletId : undefined;
+
+      // 2. Tính lại tổng amount từ items nếu có
       let calculatedAmount =
         dto.amount !== undefined
           ? Number(dto.amount)
@@ -204,34 +208,29 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         );
       }
 
-      const rawToWalletId = (dto as { toWalletId?: unknown }).toWalletId;
-      const normalizedToWalletId =
-        typeof rawToWalletId === "number" ? rawToWalletId : undefined;
-
-      // Merge dữ liệu cũ và mới để tính toán chính xác
-      const updatedData: {
-        walletId: number;
-        toWalletId?: number;
-        amount: number;
-        type: FINANCIAL_TRANSACTION_TYPE;
-        transferFee: number;
-      } = {
+      const updatedData = {
         walletId: dto.walletId ?? oldTransaction.wallet.id,
         toWalletId: normalizedToWalletId,
-        amount: calculatedAmount, // Amount tổng chính xác
+        amount: calculatedAmount,
         type: dto.type ?? oldTransaction.type,
+        status: dto.status ?? oldTransaction.status, // Thêm status mới
         transferFee:
           dto.transferFee !== undefined ? Number(dto.transferFee) : 0,
       };
 
-      // 3. Lock tất cả các ví có liên quan (ví nguồn cũ, ví nguồn mới, ví đích mới)
+      // 3. Lock tất cả ví liên quan
+      const oldToWalletId = (
+        oldTransaction as unknown as { toWalletId?: number }
+      ).toWalletId;
+
       const walletIdsToLock = Array.from(
         new Set(
           [
             oldTransaction.wallet.id,
+            oldToWalletId,
             updatedData.walletId,
             updatedData.toWalletId,
-          ].filter((id): id is number => Boolean(id)),
+          ].filter((wId): wId is number => Boolean(wId)),
         ),
       );
 
@@ -243,97 +242,99 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       const walletMap = new Map(wallets.map((w) => [w.id, w]));
 
       // ----------------------------------------------------
-      // STEP A: ROLLBACK GIAO DỊCH CŨ (Đảo ngược ảnh hưởng)
+      // STEP A: ROLLBACK GIAO DỊCH CŨ (Chỉ làm khi cũ = COMPLETED)
       // ----------------------------------------------------
-      const oldWallet = walletMap.get(oldTransaction.wallet.id);
-      if (!oldWallet)
-        throw new NotFoundException("Old source wallet not found");
+      if (oldTransaction.status === FINANCIAL_TRANSACTION_STATUS.COMPLETED) {
+        const oldWallet = walletMap.get(oldTransaction.wallet.id);
+        if (!oldWallet)
+          throw new NotFoundException("Old source wallet not found");
 
-      const oldAmount = Number(oldTransaction.amount);
-      let oldBalance = Number(oldWallet.balance);
+        const oldAmount = Number(oldTransaction.amount);
 
-      switch (oldTransaction.type) {
-        case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
-          oldBalance += oldAmount; // Hoàn lại tiền tiêu
-          break;
+        switch (oldTransaction.type) {
+          case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
+            oldWallet.balance = Number(oldWallet.balance) + oldAmount;
+            break;
 
-        case FINANCIAL_TRANSACTION_TYPE.INCOME:
-        case FINANCIAL_TRANSACTION_TYPE.REFUND:
-        case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
-          oldBalance -= oldAmount; // Trừ lại tiền thu/điều chỉnh
-          break;
+          case FINANCIAL_TRANSACTION_TYPE.INCOME:
+          case FINANCIAL_TRANSACTION_TYPE.REFUND:
+          case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
+            oldWallet.balance = Number(oldWallet.balance) - oldAmount;
+            break;
 
-        case FINANCIAL_TRANSACTION_TYPE.TRANSFER: {
-          // Hoàn lại tiền + phí cho ví nguồn cũ
-          oldBalance += oldAmount;
-          break;
+          case FINANCIAL_TRANSACTION_TYPE.TRANSFER: {
+            oldWallet.balance = Number(oldWallet.balance) + oldAmount;
+            if (oldToWalletId) {
+              const oldTargetWallet = walletMap.get(oldToWalletId);
+              if (oldTargetWallet) {
+                oldTargetWallet.balance =
+                  Number(oldTargetWallet.balance) - oldAmount;
+              }
+            }
+            break;
+          }
         }
       }
-      oldWallet.balance = oldBalance;
 
       // ----------------------------------------------------
-      // STEP B: APPLY GIAO DỊCH MỚI (Áp dụng logic mới)
+      // STEP B: APPLY GIAO DỊCH MỚI (Chỉ trừ/cộng tiền khi mới = COMPLETED)
       // ----------------------------------------------------
-      const newWallet = walletMap.get(updatedData.walletId);
-      if (!newWallet)
-        throw new NotFoundException("New source wallet not found");
+      if (updatedData.status === FINANCIAL_TRANSACTION_STATUS.COMPLETED) {
+        const newWallet = walletMap.get(updatedData.walletId);
+        if (!newWallet)
+          throw new NotFoundException("New source wallet not found");
 
-      const newAmount = updatedData.amount;
-      let newBalance = Number(newWallet.balance);
+        const newAmount = updatedData.amount;
+        const currentNewBalance = Number(newWallet.balance);
 
-      switch (updatedData.type) {
-        case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
-          if (newBalance < newAmount) {
-            throw new BadRequestException(
-              "Insufficient wallet balance for update",
-            );
+        switch (updatedData.type) {
+          case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
+            if (currentNewBalance < newAmount) {
+              throw new BadRequestException("Insufficient wallet balance");
+            }
+            newWallet.balance = currentNewBalance - newAmount;
+            break;
+
+          case FINANCIAL_TRANSACTION_TYPE.INCOME:
+          case FINANCIAL_TRANSACTION_TYPE.REFUND:
+          case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
+            newWallet.balance = currentNewBalance + newAmount;
+            break;
+
+          case FINANCIAL_TRANSACTION_TYPE.TRANSFER: {
+            if (!updatedData.toWalletId) {
+              throw new BadRequestException(
+                "Destination wallet (toWalletId) is required",
+              );
+            }
+            if (updatedData.walletId === updatedData.toWalletId) {
+              throw new BadRequestException(
+                "Cannot transfer to the same wallet",
+              );
+            }
+
+            const targetWallet = walletMap.get(updatedData.toWalletId);
+            if (!targetWallet)
+              throw new NotFoundException("Destination wallet not found");
+
+            const totalDeduction = newAmount + updatedData.transferFee;
+            if (currentNewBalance < totalDeduction) {
+              throw new BadRequestException(
+                "Insufficient wallet balance for transfer",
+              );
+            }
+
+            newWallet.balance = currentNewBalance - totalDeduction;
+            targetWallet.balance = Number(targetWallet.balance) + newAmount;
+            break;
           }
-          newBalance -= newAmount;
-          break;
 
-        case FINANCIAL_TRANSACTION_TYPE.INCOME:
-        case FINANCIAL_TRANSACTION_TYPE.REFUND:
-          newBalance += newAmount;
-          break;
-
-        case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
-          newBalance += newAmount;
-          break;
-
-        case FINANCIAL_TRANSACTION_TYPE.TRANSFER: {
-          if (!updatedData.toWalletId) {
-            throw new BadRequestException(
-              "Destination wallet (toWalletId) is required",
-            );
-          }
-          if (updatedData.walletId === updatedData.toWalletId) {
-            throw new BadRequestException("Cannot transfer to the same wallet");
-          }
-
-          const targetWallet = walletMap.get(updatedData.toWalletId);
-          if (!targetWallet)
-            throw new NotFoundException("Destination wallet not found");
-
-          const totalDeduction = newAmount + updatedData.transferFee;
-          if (newBalance < totalDeduction) {
-            throw new BadRequestException(
-              "Insufficient wallet balance for transfer",
-            );
-          }
-
-          newBalance -= totalDeduction;
-          targetWallet.balance = Number(targetWallet.balance) + newAmount;
-          await manager.save(targetWallet);
-          break;
+          default:
+            throw new BadRequestException("Invalid transaction type");
         }
-
-        default:
-          throw new BadRequestException("Invalid transaction type");
       }
 
-      newWallet.balance = newBalance;
-
-      // Save tất cả ví đã cập nhật số dư
+      // Luôn lưu lại ví nếu có bất kỳ sự thay đổi số dư nào ở Step A hoặc Step B
       await manager.save(Array.from(walletMap.values()));
 
       // ----------------------------------------------------
@@ -343,23 +344,27 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         financialTransactionItems,
         walletId,
         toWalletId,
-        ...transactionData
+        date,
+        amount,
+        type,
+        status,
+        ...otherFields
       } = dto;
 
       Object.assign(oldTransaction, {
-        ...transactionData,
-        amount: newAmount, // Cập nhật amount chính xác
-        wallet: newWallet,
-        createdAt:
-          dto.date !== undefined
-            ? new Date(String(dto.date))
-            : oldTransaction.createdAt,
+        ...otherFields,
+        amount: updatedData.amount,
+        type: updatedData.type,
+        status: updatedData.status, // Cập nhật status mới vào DB
+        wallet: walletMap.get(updatedData.walletId),
+        walletId: updatedData.walletId,
+        ...(date !== undefined && { createdAt: new Date(String(date)) }),
       });
 
       const updatedTransaction = await manager.save(oldTransaction);
 
-      // Cập nhật lại Items nếu có
-      if (financialTransactionItems) {
+      // Cập nhật Items nếu có
+      if (financialTransactionItems !== undefined) {
         await manager.delete(FinancialTransactionItemEntity, {
           transactionId: id,
         });
@@ -367,14 +372,16 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         if (financialTransactionItems.length > 0) {
           const newItems = financialTransactionItems.map((item) =>
             manager.create(FinancialTransactionItemEntity, {
-              ...item,
+              description: item.description,
               amount: Number(item.amount),
-              categoryId: item.categoryId ?? undefined,
+              categoryId: item.categoryId ? Number(item.categoryId) : undefined,
               transactionId: id,
             }),
           );
-          await manager.save(newItems);
-          updatedTransaction.financialTransactionItems = newItems;
+          const savedItems = await manager.save(newItems);
+          updatedTransaction.financialTransactionItems = savedItems;
+        } else {
+          updatedTransaction.financialTransactionItems = [];
         }
       }
 
@@ -615,6 +622,14 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       .leftJoinAndSelect(
         "transaction.financialTransactionItems",
         "financialTransactionItems",
+      )
+      .leftJoinAndSelect(
+        "transaction.originalTransaction",
+        "originalTransaction",
+      )
+      .leftJoinAndSelect(
+        "originalTransaction.financialTransactionItems",
+        "originalTransactionItems",
       )
       .leftJoinAndSelect("financialTransactionItems.category", "category") // Join category từ transactionItem
       .where("transaction.id = :id", { id })

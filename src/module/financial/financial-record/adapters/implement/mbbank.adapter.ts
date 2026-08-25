@@ -2,17 +2,13 @@ import { Injectable } from "@nestjs/common";
 import {
   IBankNotificationAdapter,
   ParsedBankNotification,
-} from "./bank-adapter.interface";
-import { FINANCIAL_TRANSACTION_TYPE } from "../../financial-transaction/financial-transaction.enum";
-import type { FinancialRecordDTO } from "../dto/record.dto";
+} from "../bank-adapter.interface";
+import { FINANCIAL_TRANSACTION_TYPE } from "../../../financial-transaction/financial-transaction.enum";
+import type { FinancialRecordDTO } from "../../dto/record.dto";
 
 @Injectable()
-export class VietinBankAdapter implements IBankNotificationAdapter {
-  private readonly appPackages = [
-    "com.vietinbank.ipay",
-    "com.vietinbank",
-    "vietinbank",
-  ];
+export class MBBankAdapter implements IBankNotificationAdapter {
+  private readonly appPackages = ["com.mbmobile", "com.mb", "mbbank"];
 
   supports(appPackage: string): boolean {
     if (!appPackage) return false;
@@ -25,13 +21,12 @@ export class VietinBankAdapter implements IBankNotificationAdapter {
       payload.notification || payload.title || payload.sub_text || "";
     if (!rawText) return null;
 
-    // Ví dụ text: "TK 10123456789 +500,000VND vao 24/08/2026. ND: Chuyen khoan..."
-    // Hoặc: "TK 10123456789 -250.000 VND. ND: Thanh toan..."
+    // MBBank: "TK 098... +100,000VND luc..." or "TK 098... -50,000VND..."
     const incomeMatch = rawText.match(
-      /(?:\+|BDSD\s*\+|\bco\b)\s*([\d,.]+)\s*(?:VND|đ)?/i,
+      /(?:\+|\bco\b)\s*([\d,.]+)\s*(?:VND|đ)?/i,
     );
     const expenseMatch = rawText.match(
-      /(?:-|BDSD\s*-|\btru\b)\s*([\d,.]+)\s*(?:VND|đ)?/i,
+      /(?:-|\btru\b)\s*([\d,.]+)\s*(?:VND|đ)?/i,
     );
 
     let amount = 0;
@@ -43,23 +38,12 @@ export class VietinBankAdapter implements IBankNotificationAdapter {
     } else if (expenseMatch && expenseMatch[1]) {
       amount = this.cleanAmount(expenseMatch[1]);
       type = FINANCIAL_TRANSACTION_TYPE.EXPENSE;
-    } else {
-      // Fallback: Tìm con số bất kỳ nếu có chữ + hoặc -
-      const generalMatch = rawText.match(/([+-])\s*([\d,.]+)/);
-      if (generalMatch) {
-        type =
-          generalMatch[1] === "+"
-            ? FINANCIAL_TRANSACTION_TYPE.INCOME
-            : FINANCIAL_TRANSACTION_TYPE.EXPENSE;
-        amount = this.cleanAmount(generalMatch[2]);
-      }
     }
 
     if (amount <= 0) return null;
 
-    // Lấy nội dung ghi chú sau ND:
     let description = rawText;
-    const ndMatch = rawText.match(/(?:ND|Noidung|Noi dung):\s*(.+)/i);
+    const ndMatch = rawText.match(/(?:ND|Noidung):\s*(.+)/i);
     if (ndMatch && ndMatch[1]) {
       description = ndMatch[1].trim();
     }
@@ -68,7 +52,7 @@ export class VietinBankAdapter implements IBankNotificationAdapter {
       amount,
       type,
       description,
-      merchant: "VietinBank iPay",
+      merchant: "MB Bank",
     };
   }
 

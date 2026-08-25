@@ -56,4 +56,21 @@ export class FinancialRecordController {
   async getRecords() {
     return this.financialRecordService.getAllRecords();
   }
+
+  @Public()
+  @Post("test-record")
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "Endpoint để test thử nghiệm bắn dữ liệu thông báo ngân hàng lên server",
+  })
+  async testFinancialRecord(
+    @Body() body: FinancialRecordDTO,
+    @Headers("x-api-key") headerApiKey?: string,
+  ) {
+    return this.financialRecordService.processIncomingRecord(
+      body,
+      headerApiKey,
+    );
+  }
 }
