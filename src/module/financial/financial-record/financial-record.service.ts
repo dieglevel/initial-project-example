@@ -51,7 +51,46 @@ export class FinancialRecordService {
       );
     }
 
-    // 1. Check API Key & Find Wallet
+    // 0. Idempotency check: nếu id_notification đã tồn tại thì bỏ qua
+    const idNotification = payload.id_notification;
+    if (idNotification) {
+      const existing = await this.financialRecordRepository.findOne({
+        where: { idNotification },
+      });
+      if (existing) {
+        this.logger.log(
+          `Duplicate notification detected (id_notification: '${idNotification}'). Skipping.`,
+        );
+        return {
+          status: "DUPLICATE",
+          message: "Notification with this id_notification already processed",
+          record: existing,
+        };
+      }
+    }
+
+    // 1. Check app_package có được hỗ trợ không
+    if (!this.bankAdapterService.supportsPackage(payload.app_package)) {
+      this.logger.warn(
+        `Unsupported app_package: '${payload.app_package}'. No matching adapter found.`,
+      );
+      const unsupportedRecord = this.financialRecordRepository.create({
+        idNotification: idNotification || null,
+        record: payload,
+        appPackage: payload.app_package,
+        apiKey,
+        status: "UNSUPPORTED_PACKAGE",
+      });
+      const savedRecord =
+        await this.financialRecordRepository.save(unsupportedRecord);
+      return {
+        status: "UNSUPPORTED_PACKAGE",
+        message: `app_package '${payload.app_package}' is not supported by any bank adapter`,
+        record: savedRecord,
+      };
+    }
+
+    // 2. Check API Key & Find Wallet
     let wallet: FinancialWalletEntity | null = null;
     if (apiKey) {
       wallet = await this.financialWalletService.findByApiKey(apiKey);
@@ -60,6 +99,7 @@ export class FinancialRecordService {
     if (!wallet) {
       this.logger.warn(`Incoming record rejected: Invalid API key '${apiKey}'`);
       const invalidRecord = this.financialRecordRepository.create({
+        idNotification: idNotification || null,
         record: payload,
         appPackage: payload.app_package,
         apiKey,
@@ -74,7 +114,7 @@ export class FinancialRecordService {
       };
     }
 
-    // 2. Parse notification payload using Bank Adapters
+    // 3. Parse notification payload using Bank Adapters
     const parsed = this.bankAdapterService.parseNotification(payload);
 
     if (!parsed || parsed.amount <= 0) {
@@ -82,6 +122,7 @@ export class FinancialRecordService {
         `Incoming record parsed with 0 amount or unsupported format for wallet ${wallet.id}`,
       );
       const parseFailedRecord = this.financialRecordRepository.create({
+        idNotification: idNotification || null,
         record: payload,
         appPackage: payload.app_package,
         apiKey,
@@ -98,7 +139,7 @@ export class FinancialRecordService {
       };
     }
 
-    // 3. Create & Save Financial Transaction with status = PENDING
+    // 4. Create & Save Financial Transaction with status = PENDING
     const newTransaction = this.financialTransactionRepository.create({
       wallet: wallet,
       walletId: wallet.id,
@@ -113,7 +154,7 @@ export class FinancialRecordService {
     const savedTransaction =
       await this.financialTransactionRepository.save(newTransaction);
 
-    // 4. Create & Save Financial Transaction Item
+    // 5. Create & Save Financial Transaction Item
     const transactionItem = this.financialTransactionItemRepository.create({
       description: parsed.merchant,
       amount: parsed.amount,
@@ -123,29 +164,57 @@ export class FinancialRecordService {
 
     await this.financialTransactionItemRepository.save(transactionItem);
 
-    // 5. Save Financial Record linking to Wallet & Transaction
-    const recordEntity = this.financialRecordRepository.create({
-      record: payload,
-      appPackage: payload.app_package,
-      apiKey,
-      walletId: wallet.id,
-      transactionId: savedTransaction.id,
-      parsedAmount: parsed.amount,
-      status: "PENDING_TRANSACTION_CREATED",
-    });
+    // 6. Save Financial Record linking to Wallet & Transaction
+    // Dùng try/catch để xử lý race condition: 2 request cùng id_notification đến đồng thời
+    try {
+      const recordEntity = this.financialRecordRepository.create({
+        idNotification: idNotification || null,
+        record: payload,
+        appPackage: payload.app_package,
+        apiKey,
+        walletId: wallet.id,
+        transactionId: savedTransaction.id,
+        parsedAmount: parsed.amount,
+        status: "PENDING_TRANSACTION_CREATED",
+      });
 
-    const savedRecord = await this.financialRecordRepository.save(recordEntity);
+      const savedRecord =
+        await this.financialRecordRepository.save(recordEntity);
 
-    this.logger.log(
-      `Successfully created pending transaction #${savedTransaction.id} with item for wallet #${wallet.id} from record #${savedRecord.id}`,
-    );
+      this.logger.log(
+        `Successfully created pending transaction #${savedTransaction.id} with item for wallet #${wallet.id} from record #${savedRecord.id}`,
+      );
 
-    return {
-      status: "SUCCESS",
-      message: "Notification record received and pending transaction created",
-      record: savedRecord,
-      transaction: savedTransaction,
-    };
+      return {
+        status: "SUCCESS",
+        message: "Notification record received and pending transaction created",
+        record: savedRecord,
+        transaction: savedTransaction,
+      };
+    } catch (err: any) {
+      // Unique constraint violation: record đã được xử lý bởi request song song
+      if (err?.code === "23505" || err?.message?.includes("duplicate")) {
+        this.logger.warn(
+          `Race condition detected for id_notification '${idNotification}': rolling back transaction #${savedTransaction.id}`,
+        );
+        // Rollback transaction và item vừa tạo
+        await this.financialTransactionItemRepository.delete({
+          transactionId: savedTransaction.id,
+        });
+        await this.financialTransactionRepository.delete(savedTransaction.id);
+
+        const duplicate = await this.financialRecordRepository.findOne({
+          where: { idNotification },
+        });
+        return {
+          status: "DUPLICATE",
+          message:
+            "Notification with this id_notification already processed (race condition)",
+          record: duplicate ?? undefined,
+        };
+      }
+      throw err;
+    }
   }
 
   async getAllRecords(): Promise<FinancialRecordEntity[]> {

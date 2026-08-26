@@ -1,11 +1,17 @@
 import { ApiEntity } from "@/common/decorator/api-swagger/api-entity-property.decorator";
 import { BaseEntity } from "@/common/global-entity/base-entity.entity";
-import { Column, Entity } from "typeorm";
+import { Column, Entity, Index } from "typeorm";
 import { IsNumber, IsOptional, IsString } from "class-validator";
 
 @Entity("financial-record")
 @ApiEntity()
 export class FinancialRecordEntity extends BaseEntity {
+  @Index({ unique: true, where: '"idNotification" IS NOT NULL' })
+  @Column({ type: "varchar", length: 128, nullable: true })
+  @IsString()
+  @IsOptional()
+  idNotification?: string | null;
+
   @Column({ type: "json", nullable: true })
   record: any | null;
 

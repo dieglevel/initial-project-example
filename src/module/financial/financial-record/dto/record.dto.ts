@@ -1,4 +1,5 @@
 export interface FinancialRecordDTO {
+  id_notification: string;
   title: string;
   ticker: string;
   notification: string;
