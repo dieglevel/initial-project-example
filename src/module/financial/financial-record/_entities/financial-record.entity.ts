@@ -3,6 +3,16 @@ import { BaseEntity } from "@/common/global-entity/base-entity.entity";
 import { Column, Entity, Index } from "typeorm";
 import { IsNumber, IsOptional, IsString } from "class-validator";
 
+export interface RecordData {
+  id_notification: string;
+  title: string;
+  ticker: string;
+  notification: string;
+  sub_text: string;
+  app_package: string;
+  channel: string;
+}
+
 @Entity("financial-record")
 @ApiEntity()
 export class FinancialRecordEntity extends BaseEntity {
@@ -13,7 +23,7 @@ export class FinancialRecordEntity extends BaseEntity {
   idNotification?: string | null;
 
   @Column({ type: "json", nullable: true })
-  record: any | null;
+  record: RecordData | null;
 
   @Column({ type: "varchar", length: 255, nullable: true })
   @IsString()

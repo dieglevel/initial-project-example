@@ -191,9 +191,10 @@ export class FinancialRecordService {
         record: savedRecord,
         transaction: savedTransaction,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Unique constraint violation: record đã được xử lý bởi request song song
-      if (err?.code === "23505" || err?.message?.includes("duplicate")) {
+      const dbError = err as { code?: string; message?: string };
+      if (dbError.code === "23505" || dbError.message?.includes("duplicate")) {
         this.logger.warn(
           `Race condition detected for id_notification '${idNotification}': rolling back transaction #${savedTransaction.id}`,
         );
