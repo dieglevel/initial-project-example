@@ -19,6 +19,10 @@ import {
 } from "./financial-transaction.enum";
 import type { JwtPayload } from "@/module/auth/payload.type";
 import { FinancialTransactionItemEntity } from "./_entities/financial-transaction-item.entity";
+import type {
+  FinancialTransaction_GetAll_Request,
+  FinancialTransaction_Paging_Response,
+} from "./dto/paging.dto";
 
 @Injectable()
 export class FinancialTransactionService extends BaseCrudService<FinancialTransactionEntity> {
@@ -452,23 +456,27 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     });
   }
 
-  async getByDate({
-    date,
+  async get({
+    query,
     user,
   }: {
-    date: FinancialTransaction_GetWithDate_Request["date"];
+    query: FinancialTransaction_GetAll_Request;
     user: JwtPayload;
-  }): Promise<{
-    transactions: FinancialTransactionEntity[];
-    totalExpense: number;
-    totalIncome: number;
-  }> {
-    const targetDate = dayjs(date);
-    const startDate = targetDate.startOf("month").toDate();
-    const endDate = targetDate.endOf("month").toDate();
+  }): Promise<FinancialTransaction_Paging_Response> {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "DESC",
+    } = query;
 
-    // 1. Lấy danh sách giao dịch cùng các quan hệ
-    const transactions = await this.financialTransactionRepository
+    const { type, status, walletId, minAmount, maxAmount, fromDate, toDate } =
+      query.filter || {};
+
+    const search = query.search?.trim() || undefined;
+
+    // 1. Khởi tạo QueryBuilder cơ bản
+    const queryBuilder = this.financialTransactionRepository
       .createQueryBuilder("transaction")
       .leftJoinAndSelect("transaction.wallet", "wallet")
       .leftJoinAndSelect(
@@ -476,20 +484,51 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         "financialTransactionItems",
       )
       .leftJoinAndSelect("financialTransactionItems.category", "category")
-      .where("transaction.createdAt BETWEEN :startDate AND :endDate", {
-        startDate,
-        endDate,
-      })
-      .andWhere("transaction.accountId = :accountId", {
-        accountId: user.sub,
-      })
-      .orderBy("transaction.createdAt", "DESC")
-      .getMany();
+      .where("transaction.accountId = :accountId", { accountId: user.sub });
 
-    // 2. Tính tổng expense và income từ danh sách đã lấy
-    const totals = transactions.reduce(
+    // 2. Thêm các điều kiện lọc linh hoạt (Filter)
+    if (search) {
+      queryBuilder.andWhere(
+        "(transaction.description ILIKE :search OR transaction.merchant ILIKE :search OR transaction.location ILIKE :search)",
+        { search: `%${search}%` },
+      );
+    }
+
+    if (type) {
+      queryBuilder.andWhere("transaction.type = :type", { type });
+    }
+
+    if (status) {
+      queryBuilder.andWhere("transaction.status = :status", { status });
+    }
+
+    if (walletId) {
+      queryBuilder.andWhere("transaction.walletId = :walletId", { walletId });
+    }
+
+    if (minAmount !== undefined) {
+      queryBuilder.andWhere("transaction.amount >= :minAmount", { minAmount });
+    }
+
+    if (maxAmount !== undefined) {
+      queryBuilder.andWhere("transaction.amount <= :maxAmount", { maxAmount });
+    }
+
+    // Lọc theo thời gian (Từ ngày - Đến ngày)
+    if (fromDate) {
+      const start = dayjs(fromDate).startOf("day").toDate();
+      queryBuilder.andWhere("transaction.createdAt >= :start", { start });
+    }
+
+    if (toDate) {
+      const end = dayjs(toDate).endOf("day").toDate();
+      queryBuilder.andWhere("transaction.createdAt <= :end", { end });
+    }
+
+    // 3. Tính tổng Income/Expense TRƯỚC KHI phân trang (trên toàn bộ danh sách đã filter)
+    const allFilteredTransactions = await queryBuilder.getMany();
+    const totals = allFilteredTransactions.reduce(
       (acc, transaction) => {
-        // Giả sử entity của bạn có thuộc tính type ('EXPENSE' | 'INCOME') và amount (hoặc totalAmount)
         if (transaction.type === FINANCIAL_TRANSACTION_TYPE.EXPENSE) {
           acc.totalExpense += Number(transaction.amount || 0);
         } else if (transaction.type === FINANCIAL_TRANSACTION_TYPE.INCOME) {
@@ -500,10 +539,25 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       { totalExpense: 0, totalIncome: 0 },
     );
 
+    // 4. Áp dụng Sắp xếp & Phân trang
+    queryBuilder.orderBy(`transaction.${sortBy}`, sortOrder);
+
+    const skip = (page - 1) * limit;
+    queryBuilder.skip(skip).take(limit);
+
+    // 5. Lấy kết quả phân trang và tổng số bản ghi
+    const [transactions, total] = await queryBuilder.getManyAndCount();
+
     return {
-      transactions,
+      data: transactions,
       totalExpense: totals.totalExpense,
       totalIncome: totals.totalIncome,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 

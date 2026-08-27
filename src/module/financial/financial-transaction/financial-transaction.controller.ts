@@ -21,7 +21,10 @@ import {
   FinancialTransaction_Update_Response,
 } from "./dto/update.dto";
 import { FinancialTransaction_GetAll_Response } from "./dto/get-all.dto";
-import { FinancialTransaction_Paging_Response } from "./dto/paging.dto";
+import {
+  FinancialTransaction_Paging_Response,
+  type FinancialTransaction_GetAll_Request,
+} from "./dto/paging.dto";
 import { FinancialTransaction_Delete_Response } from "./dto/delete.dto";
 import { FinancialTransactionEntity } from "./_entities/financial-transaction.entity";
 import { CreateGenericController } from "@/common/controller/base-crud.controller";
@@ -51,17 +54,14 @@ export class FinancialTransactionController extends CreateGenericController({
     super(financialTransactionService);
   }
 
-  @Get("/get-with-date")
+  @Get("/get")
   @HttpCode(200)
   @ApiBaseResponse(FinancialTransaction_GetAll_Response, { isArray: true })
-  async getWithDate(
-    @Query("date") date: Date,
+  async get(
+    @Query() query: FinancialTransaction_GetAll_Request,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.financialTransactionService.getByDate({
-      date: date,
-      user: user,
-    });
+    return this.financialTransactionService.get({ query, user });
   }
 
   @Get("view/:id")
