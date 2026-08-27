@@ -140,8 +140,15 @@ export class AuthService {
       authRefreshTokenCacheExpiresIn,
     );
 
+    const user = await this.accountService.findById(payload.sub);
+
+    if (!user.profile) {
+      throw new UnauthorizedException("User not found");
+    }
+
     return {
       accessToken: newAccessToken,
+      user: user.profile,
       refreshToken: newRefreshToken,
     };
   }

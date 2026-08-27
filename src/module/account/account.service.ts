@@ -87,4 +87,25 @@ export class AccountService {
     }
     return account;
   }
+
+  async findById(id: number): Promise<AccountEntity> {
+    const account = await this.accountRepository.findOne({
+      where: { id },
+      relations: {
+        profile: true,
+      },
+      select: {
+        password: false,
+        id: true,
+        username: true,
+        email: true,
+        profile: true,
+      },
+    });
+
+    if (!account) {
+      throw new NotFoundException("Account not found");
+    }
+    return account;
+  }
 }
