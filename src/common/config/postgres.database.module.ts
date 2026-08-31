@@ -20,7 +20,7 @@ import { databaseConfig } from "../environment/types/database.type";
           database: database.POSTGRES_DB,
           autoLoadEntities: true,
           // * Check later
-          // synchronize: true,
+          synchronize: true,
           entities: ["dist/**/*.entity.js"],
           // synchronize: database.POSTGRES_SYNC,
           // dropSchema: database.DATABASE_DROP_SCHEMA,

@@ -4,6 +4,7 @@ type JwtConfigType = {
   JWT_SECRET: string;
   JWT_EXPIRATION_TIME: string;
   AUTH_ACCESS_TOKEN_CACHE_MODE: "whitelist" | "blacklist";
+  AUTH_TOKEN_STORE_DRIVER: "database" | "redis" | "memoryCache";
 };
 
 export const jwtConfig = registerAs(
@@ -14,5 +15,10 @@ export const jwtConfig = registerAs(
     AUTH_ACCESS_TOKEN_CACHE_MODE:
       (process.env.AUTH_ACCESS_TOKEN_CACHE_MODE as "whitelist" | "blacklist") ||
       "whitelist",
+    AUTH_TOKEN_STORE_DRIVER:
+      (process.env.AUTH_TOKEN_STORE_DRIVER as
+        | "database"
+        | "redis"
+        | "memoryCache") || "memoryCache",
   }),
 );
