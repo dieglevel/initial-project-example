@@ -1,11 +1,18 @@
+import * as crypto from "crypto";
+
 export const TOKEN_STORAGE_SERVICE = "TOKEN_STORAGE_SERVICE";
 
 export type TokenType = "accessToken" | "refreshToken";
 export type TokenMode = "whitelist" | "blacklist";
 
+export const getTokenHash = (token: string): string => {
+  if (!token) return "empty";
+  return crypto.createHash("md5").update(token).digest("hex");
+};
+
 export interface IJwtTokenStorageService {
   /**
-   * Save a token or blacklist entry for a user
+   * Save a specific token or blacklist entry for a user session
    */
   saveToken(
     userId: number,
@@ -16,18 +23,24 @@ export interface IJwtTokenStorageService {
   ): Promise<void>;
 
   /**
-   * Remove a token (e.g. on logout in whitelist mode or token invalidation)
+   * Remove a specific token (e.g. on logout for current device)
    */
   removeToken(
     userId: number,
+    token: string,
     tokenType: TokenType,
     mode: TokenMode,
   ): Promise<void>;
 
   /**
-   * Validate token against the selected mode:
-   * - Whitelist mode: returns true if token exists and matches active user token.
-   * - Blacklist mode: returns true if token is NOT in the revoked list.
+   * Remove all active tokens for a user across all devices
+   */
+  removeAllUserTokens?(userId: number): Promise<void>;
+
+  /**
+   * Validate token against the selected mode for multi-device support:
+   * - Whitelist mode: returns true if specific token exists in storage.
+   * - Blacklist mode: returns true if specific token is NOT in revoked list.
    */
   validateToken(
     userId: number,
@@ -35,13 +48,4 @@ export interface IJwtTokenStorageService {
     tokenType: TokenType,
     mode: TokenMode,
   ): Promise<boolean>;
-
-  /**
-   * Retrieve active stored token string
-   */
-  getToken(
-    userId: number,
-    tokenType: TokenType,
-    mode: TokenMode,
-  ): Promise<string | null>;
 }

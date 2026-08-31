@@ -58,7 +58,7 @@ export class AuthService {
     const isBlacklistMode = this.mode === "blacklist";
 
     if (!isBlacklistMode) {
-      // Whitelist mode: store active access token
+      // Whitelist mode: store new device's active access token & refresh token
       await this.tokenStorage.saveToken(
         user.id,
         accessToken,
@@ -66,19 +66,14 @@ export class AuthService {
         authAccessTokenCacheExpiresIn,
         "whitelist",
       );
-    } else {
-      // Blacklist mode: clear any existing blacklist entry upon login
-      await this.tokenStorage.removeToken(user.id, "accessToken", "blacklist");
+      await this.tokenStorage.saveToken(
+        user.id,
+        refreshToken,
+        "refreshToken",
+        authRefreshTokenCacheExpiresIn,
+        "whitelist",
+      );
     }
-
-    // Store refresh token
-    await this.tokenStorage.saveToken(
-      user.id,
-      refreshToken,
-      "refreshToken",
-      authRefreshTokenCacheExpiresIn,
-      this.mode,
-    );
 
     return {
       accessToken,
@@ -91,21 +86,44 @@ export class AuthService {
     const isBlacklistMode = this.mode === "blacklist";
 
     if (!isBlacklistMode) {
-      // Whitelist mode: delete active token
-      await this.tokenStorage.removeToken(data.userId, "accessToken", "whitelist");
+      // Whitelist mode: remove current device's access token and refresh token
+      if (data.accessToken) {
+        await this.tokenStorage.removeToken(
+          data.userId,
+          data.accessToken,
+          "accessToken",
+          "whitelist",
+        );
+      }
+      if (data.refreshToken) {
+        await this.tokenStorage.removeToken(
+          data.userId,
+          data.refreshToken,
+          "refreshToken",
+          "whitelist",
+        );
+      }
     } else {
-      // Blacklist mode: mark user/token as blacklisted
-      await this.tokenStorage.saveToken(
-        data.userId,
-        "blacklisted",
-        "accessToken",
-        authAccessTokenCacheExpiresIn,
-        "blacklist",
-      );
+      // Blacklist mode: mark current device's tokens as blacklisted
+      if (data.accessToken) {
+        await this.tokenStorage.saveToken(
+          data.userId,
+          data.accessToken,
+          "accessToken",
+          authAccessTokenCacheExpiresIn,
+          "blacklist",
+        );
+      }
+      if (data.refreshToken) {
+        await this.tokenStorage.saveToken(
+          data.userId,
+          data.refreshToken,
+          "refreshToken",
+          authRefreshTokenCacheExpiresIn,
+          "blacklist",
+        );
+      }
     }
-
-    // Remove refresh token
-    await this.tokenStorage.removeToken(data.userId, "refreshToken", this.mode);
 
     return {
       success: true,
@@ -117,13 +135,17 @@ export class AuthService {
       data.refreshToken,
     );
 
-    const storedRefreshToken = await this.tokenStorage.getToken(
+    const isBlacklistMode = this.mode === "blacklist";
+
+    // Check validity of current refresh token
+    const isRefreshTokenValid = await this.tokenStorage.validateToken(
       payload.sub,
+      data.refreshToken,
       "refreshToken",
       this.mode,
     );
 
-    if (!storedRefreshToken || storedRefreshToken !== data.refreshToken) {
+    if (!isRefreshTokenValid) {
       throw new UnauthorizedException("Invalid refresh token");
     }
 
@@ -136,9 +158,15 @@ export class AuthService {
       expiresIn: `${authRefreshTokenCacheExpiresIn}s`,
     });
 
-    const isBlacklistMode = this.mode === "blacklist";
-
     if (!isBlacklistMode) {
+      // Remove old refresh token from whitelist
+      await this.tokenStorage.removeToken(
+        payload.sub,
+        data.refreshToken,
+        "refreshToken",
+        "whitelist",
+      );
+      // Save new tokens
       await this.tokenStorage.saveToken(
         payload.sub,
         newAccessToken,
@@ -146,17 +174,23 @@ export class AuthService {
         authAccessTokenCacheExpiresIn,
         "whitelist",
       );
+      await this.tokenStorage.saveToken(
+        payload.sub,
+        newRefreshToken,
+        "refreshToken",
+        authRefreshTokenCacheExpiresIn,
+        "whitelist",
+      );
     } else {
-      await this.tokenStorage.removeToken(payload.sub, "accessToken", "blacklist");
+      // Blacklist old refresh token
+      await this.tokenStorage.saveToken(
+        payload.sub,
+        data.refreshToken,
+        "refreshToken",
+        authRefreshTokenCacheExpiresIn,
+        "blacklist",
+      );
     }
-
-    await this.tokenStorage.saveToken(
-      payload.sub,
-      newRefreshToken,
-      "refreshToken",
-      authRefreshTokenCacheExpiresIn,
-      this.mode,
-    );
 
     const user = await this.accountService.findById(payload.sub);
 

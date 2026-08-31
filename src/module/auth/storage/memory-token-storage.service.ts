@@ -4,6 +4,7 @@ import {
   IJwtTokenStorageService,
   TokenMode,
   TokenType,
+  getTokenHash,
 } from "./token-storage.interface";
 
 @Injectable()
@@ -15,10 +16,12 @@ export class MemoryTokenStorageService implements IJwtTokenStorageService {
 
   private getCacheKey(
     userId: number,
+    token: string,
     tokenType: TokenType,
     mode: TokenMode,
   ): string {
-    return `auth:${userId}:${mode}:${tokenType}`;
+    const hash = getTokenHash(token);
+    return `auth:${userId}:${mode}:${tokenType}:${hash}`;
   }
 
   async saveToken(
@@ -28,17 +31,19 @@ export class MemoryTokenStorageService implements IJwtTokenStorageService {
     ttlSeconds: number,
     mode: TokenMode,
   ): Promise<void> {
-    const key = this.getCacheKey(userId, tokenType, mode);
-    // Store key with TTL in milliseconds or seconds depending on cache-manager version
+    if (!token) return;
+    const key = this.getCacheKey(userId, token, tokenType, mode);
     await this.cacheManager.set(key, token, ttlSeconds * 1000);
   }
 
   async removeToken(
     userId: number,
+    token: string,
     tokenType: TokenType,
     mode: TokenMode,
   ): Promise<void> {
-    const key = this.getCacheKey(userId, tokenType, mode);
+    if (!token) return;
+    const key = this.getCacheKey(userId, token, tokenType, mode);
     await this.cacheManager.del(key);
   }
 
@@ -48,27 +53,18 @@ export class MemoryTokenStorageService implements IJwtTokenStorageService {
     tokenType: TokenType,
     mode: TokenMode,
   ): Promise<boolean> {
-    const key = this.getCacheKey(userId, tokenType, mode);
+    if (!token) return false;
+    const key = this.getCacheKey(userId, token, tokenType, mode);
     const cached = await this.cacheManager.get<string>(key);
 
     if (mode === "whitelist") {
-      return cached === token;
+      return !!cached && cached === token;
     } else {
-      // Blacklist mode: invalid if cached blacklisted token matches presented token
-      if (cached === token) {
+      // Blacklist mode: invalid if specific token is in cache
+      if (cached && cached === token) {
         return false;
       }
       return true;
     }
-  }
-
-  async getToken(
-    userId: number,
-    tokenType: TokenType,
-    mode: TokenMode,
-  ): Promise<string | null> {
-    const key = this.getCacheKey(userId, tokenType, mode);
-    const cached = await this.cacheManager.get<string>(key);
-    return cached || null;
   }
 }

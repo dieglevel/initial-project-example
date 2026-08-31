@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, Headers, HttpCode, Post } from "@nestjs/common";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorator/current-user.decorator";
@@ -28,8 +28,20 @@ export class AuthController {
   @HttpCode(200)
   @ApiBearerAuth("access-token")
   @ApiBaseResponse(LogOutDtoResponse)
-  async logOut(@CurrentUser() user: JwtPayload) {
-    await this.authService.logOut({ userId: user.sub });
+  async logOut(
+    @CurrentUser() user: JwtPayload,
+    @Headers("authorization") authorization?: string,
+    @Body() body?: { refreshToken?: string },
+  ) {
+    const accessToken = authorization?.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : authorization;
+
+    await this.authService.logOut({
+      userId: user.sub,
+      accessToken,
+      refreshToken: body?.refreshToken,
+    });
   }
 
   @Public()

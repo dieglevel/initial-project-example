@@ -32,9 +32,10 @@ export class DatabaseTokenStorageService implements IJwtTokenStorageService {
     ttlSeconds: number,
     mode: TokenMode,
   ): Promise<void> {
-    // Delete existing token entries for this user & type & mode
+    // Delete existing identical token if re-saving
     await this.repository.delete({
       userId,
+      token,
       tokenType,
       mode,
     });
@@ -51,20 +52,28 @@ export class DatabaseTokenStorageService implements IJwtTokenStorageService {
 
     await this.repository.save(newToken);
 
-    // Asynchronously clean expired tokens
+    // Clean expired tokens in background
     this.cleanExpiredTokens();
   }
 
   async removeToken(
     userId: number,
+    token: string,
     tokenType: TokenType,
     mode: TokenMode,
   ): Promise<void> {
+    if (!token) return;
+
     await this.repository.delete({
       userId,
+      token,
       tokenType,
       mode,
     });
+  }
+
+  async removeAllUserTokens(userId: number): Promise<void> {
+    await this.repository.delete({ userId });
   }
 
   async validateToken(
@@ -73,53 +82,34 @@ export class DatabaseTokenStorageService implements IJwtTokenStorageService {
     tokenType: TokenType,
     mode: TokenMode,
   ): Promise<boolean> {
+    if (!token) return false;
     const now = new Date();
 
     if (mode === "whitelist") {
       const record = await this.repository.findOne({
         where: {
           userId,
+          token,
           tokenType,
           mode: "whitelist",
-          token,
           expiresAt: MoreThan(now),
         },
       });
 
       return !!record;
     } else {
-      // Blacklist mode: check if token is blacklisted
+      // Blacklist mode: check if this specific token is in blacklist
       const blacklisted = await this.repository.findOne({
         where: {
           userId,
+          token,
           tokenType,
           mode: "blacklist",
-          token,
           expiresAt: MoreThan(now),
         },
       });
 
-      // Valid if NOT blacklisted
       return !blacklisted;
     }
-  }
-
-  async getToken(
-    userId: number,
-    tokenType: TokenType,
-    mode: TokenMode,
-  ): Promise<string | null> {
-    const now = new Date();
-    const record = await this.repository.findOne({
-      where: {
-        userId,
-        tokenType,
-        mode,
-        expiresAt: MoreThan(now),
-      },
-      order: { createdAt: "DESC" },
-    });
-
-    return record ? record.token : null;
   }
 }
