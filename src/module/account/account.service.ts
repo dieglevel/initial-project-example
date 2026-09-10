@@ -36,6 +36,7 @@ export class AccountService {
       const account = manager.create(AccountEntity, {
         ...data,
         password: passwordHash,
+        isVerified: true,
       });
 
       const savedAccount = await manager.save(AccountEntity, account);
