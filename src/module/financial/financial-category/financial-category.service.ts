@@ -68,13 +68,6 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
 
     /**
      * 2. Get direct transaction amount by category
-     *
-     * Important:
-     * - Category -> Item -> Transaction
-     * - Date is determined by Transaction.createdAt
-     * - All categories must be returned
-     * - If a category has no transaction in the selected month,
-     *   totalAmount = 0
      */
     const transactionTotals = await this.financialCategoryRepository
       .createQueryBuilder("financialCategory")
@@ -139,6 +132,37 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       }>();
 
     /**
+     * 2.5. Bổ sung: Tính tổng số tiền cho các item KHÔNG CÓ categoryId (categoryId IS NULL)
+     */
+    const uncategorizedResult = await this.financialCategoryRepository.manager
+      .createQueryBuilder(FinancialTransactionItemEntity, "transactionItem")
+      .innerJoin(
+        FinancialTransactionEntity,
+        "transaction",
+        `
+        "transaction"."id" = "transactionItem"."transactionId"
+        AND "transaction"."createdAt" >= :startDate
+        AND "transaction"."createdAt" < :endDate
+        AND "transaction"."type" = :transactionType
+        AND "transaction"."deletedAt" IS NULL
+      `,
+      )
+      .select(`COALESCE(SUM("transactionItem"."amount"), 0)`, "totalAmount")
+      .where(`"transactionItem"."categoryId" IS NULL`)
+      .andWhere(`"transactionItem"."deletedAt" IS NULL`)
+      .andWhere(`"transaction"."accountId" = :accountId`, {
+        accountId: user.sub,
+      })
+      .setParameters({
+        startDate,
+        endDate,
+        transactionType: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
+      })
+      .getRawOne<{ totalAmount: string }>();
+
+    const uncategorizedTotal = Number(uncategorizedResult?.totalAmount ?? 0);
+
+    /**
      * 3. Map direct transaction amount
      */
     const directAmountMap = new Map<number, number>();
@@ -186,10 +210,6 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
 
     /**
      * 6. Aggregate totalAmount recursively
-     *
-     * parent.totalAmount =
-     *   own transaction
-     *   + children.totalAmount
      */
     const calculateTotal = (
       category: FinancialCategory_GetWithTransactionCount_Response,
@@ -212,6 +232,26 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     for (const root of roots) {
       calculateTotal(root);
     }
+
+    /**
+     * 7. Bổ sung: Thêm category giả lập đại diện cho các item "Chưa phân loại" vào roots
+     */
+    const uncategorizedCategory: FinancialCategory_GetWithTransactionCount_Response =
+      {
+        id: 0,
+        archived: false,
+        color: "#4d4d4d",
+        name: "Chưa phân loại",
+        type: FINANCIAL_CATEGORY_TYPE.EXPENSE,
+        monthlyBudget: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        icon: "FileQuestionMark",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        account: null as any,
+        totalAmount: uncategorizedTotal,
+      };
+    roots.push(uncategorizedCategory);
 
     return roots;
   }
