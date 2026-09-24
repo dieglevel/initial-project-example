@@ -1,52 +1,61 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
+  MaxLength,
   Min,
 } from "class-validator";
 
-export class FinancialDebt_Payment_Request {
-  @ApiProperty({ description: "ID ví thực hiện thanh toán" })
-  @IsNumber()
-  @IsNotEmpty()
-  walletId: number;
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
-  @ApiProperty({ description: "Số tiền thanh toán", example: 100000 })
-  @IsNumber()
+class DebtActionBase {
+  @ApiPropertyOptional({
+    example: "2026-09-23",
+    description: "Ngày giao dịch thực tế, mặc định hôm nay",
+  })
+  @IsOptional()
+  @Matches(DATE_REGEX, { message: "occurredAt must be YYYY-MM-DD" })
+  occurredAt?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
+export class FinancialDebt_Payment_Request extends DebtActionBase {
+  @ApiProperty()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
   amount: number;
 
-  @ApiPropertyOptional({ description: "Ghi chú thanh toán" })
-  @IsString()
+  @ApiPropertyOptional({
+    description: "Bỏ trống = không thay đổi số dư ví nào",
+  })
   @IsOptional()
-  note?: string;
+  @IsInt()
+  walletId?: number;
 }
 
-export class FinancialDebt_Adjust_Request {
-  @ApiProperty({ description: "Số tiền nợ còn lại mới sau điều chỉnh" })
-  @IsNumber()
+export class FinancialDebt_Adjust_Request extends DebtActionBase {
+  @ApiProperty()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   outstandingAmount: number;
-
-  @ApiPropertyOptional({ description: "Lý do điều chỉnh" })
-  @IsString()
-  @IsOptional()
-  note?: string;
 }
 
-export class FinancialDebt_Settle_Request {
-  @ApiPropertyOptional({ description: "Ghi chú tất toán" })
-  @IsString()
-  @IsOptional()
-  note?: string;
-}
+export class FinancialDebt_Settle_Request extends DebtActionBase {}
+export class FinancialDebt_Cancel_Request extends DebtActionBase {}
 
-export class FinancialDebt_Cancel_Request {
-  @ApiPropertyOptional({ description: "Lý do hủy khoản nợ" })
-  @IsString()
-  @IsOptional()
-  note?: string;
+export class FinancialDebt_Correct_Request extends DebtActionBase {
+  @ApiProperty({ description: "Số tiền gốc đúng" })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  originalAmount: number;
 }

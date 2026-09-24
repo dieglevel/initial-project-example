@@ -66,7 +66,7 @@ export abstract class BaseCrudService<T extends { id: number }> {
   }
 
   async delete(id: number): Promise<boolean> {
-    const result = await this.repository.delete(id);
+    const result = await this.repository.softDelete(id);
 
     if (!result.affected) {
       throw new NotFoundException(`${this.repository.metadata.name} not found`);

@@ -21,6 +21,7 @@ import { InitialServeStaticModule } from "./common/config/serve-static.module";
 import { InitialScheduleModule } from "./common/config/schedule.module";
 import { FinancialModule } from "./module/financial/financial.module";
 import { HealthCheckModule } from "./module/health-check/health-check.module";
+import { AppGateway } from "./gateway/app.gateway";
 // Version: 0.1
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { HealthCheckModule } from "./module/health-check/health-check.module";
       provide: APP_GUARD,
       useClass: AuthGuard,
     },
+    // AppGateway,
   ],
 })
 export class AppModule implements NestModule {

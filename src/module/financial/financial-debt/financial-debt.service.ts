@@ -16,6 +16,19 @@ import { FINANCIAL_DEBT_HISTORY_TYPE_ENUM } from "./financial-debt-history.enum"
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
 import { BaseCrudService } from "@/common/service/base-crud.service";
 
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/** "YYYY-MM-DD" theo giờ Việt Nam (không phụ thuộc múi giờ server) */
+const todayVN = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(
+    new Date(),
+  );
+
+interface DebtActionMeta {
+  occurredAt?: string;
+  note?: string;
+}
+
 @Injectable()
 export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   constructor(
@@ -25,70 +38,55 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
     @InjectRepository(FinancialDebtHistoryEntity)
     private readonly financialDebtHistoryRepository: Repository<FinancialDebtHistoryEntity>,
 
-    @InjectRepository(FinancialWalletEntity)
-    private readonly financialWalletRepository: Repository<FinancialWalletEntity>,
-
     private readonly dataSource: DataSource,
   ) {
     super(financialDebtRepository);
   }
 
   /**
-   * Tạo khoản nợ mới & biến động số dư Ví tương ứng
+   * Tạo khoản nợ. Nếu có walletId thì biến động số dư ví (không tạo transaction).
    */
-  async create(data: Partial<FinancialDebtEntity> & { walletId: number }) {
-    // 1. Validation & Type Narrowing
-    const { originalAmount, walletId, accountId, direction } = data;
+  async create(
+    data: Partial<FinancialDebtEntity> & { walletId?: number | null },
+  ) {
+    const { walletId, ...debtData } = data;
+    const { account, direction } = debtData;
+    const originalAmount = round2(Number(debtData.originalAmount));
+    const accountId = account?.id;
 
     if (!originalAmount || originalAmount <= 0) {
       throw new BadRequestException("Original amount must be greater than 0");
     }
-
-    if (!walletId) {
-      throw new BadRequestException("walletId is required to create a debt");
+    if (!accountId || !direction) {
+      throw new BadRequestException("accountId and direction are required");
     }
 
-    // Tại đây TypeScript đã hiểu originalAmount chắc chắn là number (không undefined/null)
-
     return this.dataSource.transaction(async (manager) => {
-      // 2. Kiểm tra Ví
-      const wallet = await manager.findOne(FinancialWalletEntity, {
-        where: { id: walletId, account: { id: accountId } },
-      });
-
-      if (!wallet) {
-        throw new NotFoundException("Financial wallet not found");
+      if (walletId) {
+        await this.applyWalletChange(
+          manager,
+          walletId,
+          accountId,
+          this.walletDelta(direction, "CREATE", originalAmount),
+        );
       }
 
-      // 3. Cập nhật số dư Wallet khi THANH TOÁN / THU HỒI NỢ
-      if (direction === FINANCIAL_DEBT_DIRECTION_ENUM.OUTGOING) {
-        // Trả nợ -> Tiền ra khỏi ví
-        if (wallet.balance < originalAmount) {
-          throw new BadRequestException("Insufficient wallet balance");
-        }
-        wallet.balance -= originalAmount;
-      } else if (direction === FINANCIAL_DEBT_DIRECTION_ENUM.INCOMING) {
-        // Thu nợ -> Tiền vào ví
-        wallet.balance += originalAmount;
-      }
-
-      // 4. Tạo khoản nợ
       const debt = manager.create(FinancialDebtEntity, {
-        ...data,
+        ...debtData,
+        originalAmount,
         outstandingAmount: originalAmount,
         status: FINANCIAL_DEBT_STATUS_ENUM.ACTIVE,
       });
-
-      await manager.save(wallet);
       const savedDebt = await manager.save(debt);
 
-      // 5. Ghi lịch sử
-      await this.createHistoryWithManager(manager, {
+      await this.createHistory(manager, {
         debtId: savedDebt.id,
         type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.CREATED,
-        amount: savedDebt.originalAmount,
+        amount: originalAmount,
         previousOutstandingAmount: 0,
-        outstandingAmount: savedDebt.outstandingAmount,
+        outstandingAmount: originalAmount,
+        occurredAt: debtData.startDate ?? todayVN(),
+        walletId: walletId ?? null,
       });
 
       return savedDebt;
@@ -96,28 +94,20 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   }
 
   /**
-   * Thanh toán nợ (Trọng phần hoặc toàn phần)
+   * Thanh toán nợ (một phần hoặc toàn phần)
    */
   async payment(
     id: number,
     accountId: number,
-    walletId: number,
-    amount: number,
-    note?: string,
+    dto: DebtActionMeta & { amount: number; walletId?: number | null },
   ) {
-    if (amount <= 0) {
+    const amount = round2(Number(dto.amount));
+    if (!(amount > 0)) {
       throw new BadRequestException("Payment amount must be greater than 0");
     }
 
     return this.dataSource.transaction(async (manager) => {
-      const debt = await manager.findOne(FinancialDebtEntity, {
-        where: { id, accountId },
-      });
-
-      if (!debt) {
-        throw new NotFoundException("Financial debt not found");
-      }
-
+      const debt = await this.lockDebt(manager, id, accountId);
       this.validateActiveDebt(debt);
 
       if (amount > debt.outstandingAmount) {
@@ -126,43 +116,31 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
         );
       }
 
-      const wallet = await manager.findOne(FinancialWalletEntity, {
-        where: { id: walletId, account: { id: accountId } },
-      });
-
-      if (!wallet) {
-        throw new NotFoundException("Financial wallet not found");
-      }
-
-      // Biến động số dư ví khi Thanh toán:
-      // - OUTGOING (Đi vay -> Trả nợ -> TRỪ tiền trong ví)
-      // - INCOMING (Cho vay -> Thu nợ -> CỘNG tiền vào ví)
-      if (debt.direction === FINANCIAL_DEBT_DIRECTION_ENUM.OUTGOING) {
-        if (wallet.balance < amount) {
-          throw new BadRequestException("Insufficient wallet balance");
-        }
-        wallet.balance -= amount;
-      } else if (debt.direction === FINANCIAL_DEBT_DIRECTION_ENUM.INCOMING) {
-        wallet.balance += amount;
+      if (dto.walletId) {
+        await this.applyWalletChange(
+          manager,
+          dto.walletId,
+          accountId,
+          this.walletDelta(debt.direction, "PAYMENT", amount),
+        );
       }
 
       const previousOutstandingAmount = debt.outstandingAmount;
-      debt.outstandingAmount -= amount;
-
+      debt.outstandingAmount = round2(previousOutstandingAmount - amount);
       if (debt.outstandingAmount === 0) {
         debt.status = FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF;
       }
-
-      await manager.save(wallet);
       const savedDebt = await manager.save(debt);
 
-      await this.createHistoryWithManager(manager, {
+      await this.createHistory(manager, {
         debtId: savedDebt.id,
         type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.PAYMENT,
         amount,
         previousOutstandingAmount,
         outstandingAmount: savedDebt.outstandingAmount,
-        note,
+        occurredAt: dto.occurredAt ?? todayVN(),
+        walletId: dto.walletId ?? null,
+        note: dto.note,
       });
 
       return savedDebt;
@@ -170,47 +148,39 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   }
 
   /**
-   * Điều chỉnh số dư nợ thủ công
+   * Điều chỉnh số dư nợ thủ công (không đụng ví)
    */
   async adjust(
     id: number,
     accountId: number,
-    outstandingAmount: number,
-    note?: string,
+    dto: DebtActionMeta & { outstandingAmount: number },
   ) {
+    const outstandingAmount = round2(Number(dto.outstandingAmount));
+    if (!(outstandingAmount >= 0)) {
+      throw new BadRequestException("Outstanding amount cannot be negative");
+    }
+
     return this.dataSource.transaction(async (manager) => {
-      const debt = await manager.findOne(FinancialDebtEntity, {
-        where: { id, accountId },
-      });
-
-      if (!debt) {
-        throw new NotFoundException("Financial debt not found");
-      }
-
+      const debt = await this.lockDebt(manager, id, accountId);
       this.validateActiveDebt(debt);
-
-      if (outstandingAmount < 0) {
-        throw new BadRequestException("Outstanding amount cannot be negative");
-      }
 
       const previousOutstandingAmount = debt.outstandingAmount;
       debt.outstandingAmount = outstandingAmount;
-
-      if (outstandingAmount === 0) {
-        debt.status = FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF;
-      } else {
-        debt.status = FINANCIAL_DEBT_STATUS_ENUM.ACTIVE;
-      }
+      debt.status =
+        outstandingAmount === 0
+          ? FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF
+          : FINANCIAL_DEBT_STATUS_ENUM.ACTIVE;
 
       const savedDebt = await manager.save(debt);
 
-      await this.createHistoryWithManager(manager, {
+      await this.createHistory(manager, {
         debtId: savedDebt.id,
         type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.ADJUSTMENT,
-        amount: Math.abs(outstandingAmount - previousOutstandingAmount),
+        amount: round2(Math.abs(outstandingAmount - previousOutstandingAmount)),
         previousOutstandingAmount,
         outstandingAmount,
-        note,
+        occurredAt: dto.occurredAt ?? todayVN(),
+        note: dto.note,
       });
 
       return savedDebt;
@@ -218,34 +188,26 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   }
 
   /**
-   * Tất toán / Miễn nợ (Không làm thay đổi tiền trong Ví)
+   * Tất toán / miễn nợ (không đụng ví)
    */
-  async settle(id: number, accountId: number, note?: string) {
+  async settle(id: number, accountId: number, dto: DebtActionMeta = {}) {
     return this.dataSource.transaction(async (manager) => {
-      const debt = await manager.findOne(FinancialDebtEntity, {
-        where: { id, accountId },
-      });
-
-      if (!debt) {
-        throw new NotFoundException("Financial debt not found");
-      }
-
+      const debt = await this.lockDebt(manager, id, accountId);
       this.validateActiveDebt(debt);
 
       const previousOutstandingAmount = debt.outstandingAmount;
-
       debt.outstandingAmount = 0;
       debt.status = FINANCIAL_DEBT_STATUS_ENUM.SETTLED;
-
       const savedDebt = await manager.save(debt);
 
-      await this.createHistoryWithManager(manager, {
+      await this.createHistory(manager, {
         debtId: savedDebt.id,
         type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.SETTLED,
         amount: previousOutstandingAmount,
         previousOutstandingAmount,
         outstandingAmount: 0,
-        note,
+        occurredAt: dto.occurredAt ?? todayVN(),
+        note: dto.note,
       });
 
       return savedDebt;
@@ -253,39 +215,30 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   }
 
   /**
-   * Hủy khoản nợ
+   * Hủy khoản nợ (không đụng ví)
    */
-  async cancel(id: number, accountId: number, note?: string) {
+  async cancel(id: number, accountId: number, dto: DebtActionMeta = {}) {
     return this.dataSource.transaction(async (manager) => {
-      const debt = await manager.findOne(FinancialDebtEntity, {
-        where: { id, accountId },
-      });
-
-      if (!debt) {
-        throw new NotFoundException("Financial debt not found");
-      }
+      const debt = await this.lockDebt(manager, id, accountId);
 
       if (debt.status === FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF) {
         throw new BadRequestException("Paid off debt cannot be cancelled");
       }
-
       if (debt.status === FINANCIAL_DEBT_STATUS_ENUM.CANCELLED) {
         throw new BadRequestException("Debt is already cancelled");
       }
 
-      const previousOutstandingAmount = debt.outstandingAmount;
-
       debt.status = FINANCIAL_DEBT_STATUS_ENUM.CANCELLED;
-
       const savedDebt = await manager.save(debt);
 
-      await this.createHistoryWithManager(manager, {
+      await this.createHistory(manager, {
         debtId: savedDebt.id,
         type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.CANCELLED,
         amount: 0,
-        previousOutstandingAmount,
-        outstandingAmount: previousOutstandingAmount,
-        note,
+        previousOutstandingAmount: savedDebt.outstandingAmount,
+        outstandingAmount: savedDebt.outstandingAmount,
+        occurredAt: dto.occurredAt ?? todayVN(),
+        note: dto.note,
       });
 
       return savedDebt;
@@ -293,36 +246,163 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   }
 
   /**
-   * Lấy lịch sử nợ
+   * Lịch sử nợ: mới nhất trước
    */
   async getHistories(id: number, accountId: number) {
     await this.findOne(id, accountId);
 
     return this.financialDebtHistoryRepository.find({
       where: { debtId: id },
-      order: { createdAt: "DESC" },
+      relations: { wallet: true },
+      order: { occurredAt: "DESC", id: "DESC" },
     });
   }
 
   /**
-   * Helper tạo history trong Transaction
+   * Sửa số tiền gốc nhập nhầm.
+   * - Giữ nguyên số đã thu/trả, dư nợ mới = gốc mới - đã trả
+   * - Bù chênh lệch vào đúng ví đã dùng lúc tạo (nếu có)
    */
-  private async createHistoryWithManager(
-    manager: EntityManager,
-    data: Partial<FinancialDebtHistoryEntity>,
+  async correctAmount(
+    id: number,
+    accountId: number,
+    dto: DebtActionMeta & { originalAmount: number },
   ) {
-    const history = manager.create(FinancialDebtHistoryEntity, data);
-    return manager.save(history);
+    const newOriginal = round2(Number(dto.originalAmount));
+    if (!(newOriginal > 0)) {
+      throw new BadRequestException("Original amount must be greater than 0");
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const debt = await this.lockDebt(manager, id, accountId);
+      this.validateActiveDebt(debt);
+
+      const oldOriginal = Number(debt.originalAmount);
+      const diff = round2(newOriginal - oldOriginal);
+      if (diff === 0) {
+        throw new BadRequestException("Số tiền không thay đổi");
+      }
+
+      const paid = round2(oldOriginal - Number(debt.outstandingAmount));
+      const newOutstanding = round2(newOriginal - paid);
+      if (newOutstanding < 0) {
+        throw new BadRequestException(
+          `Số tiền gốc mới không được nhỏ hơn số đã thu/trả (${paid})`,
+        );
+      }
+
+      // Ví đã dùng lúc tạo nợ
+      const created = await manager.findOne(FinancialDebtHistoryEntity, {
+        where: { debtId: id, type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.CREATED },
+      });
+      if (created?.walletId) {
+        // diff âm → walletDelta tự đảo dấu, hoàn tiền lại đúng chiều
+        await this.applyWalletChange(
+          manager,
+          created.walletId,
+          accountId,
+          this.walletDelta(debt.direction, "CREATE", diff),
+        );
+      }
+
+      const previousOutstandingAmount = Number(debt.outstandingAmount);
+      debt.originalAmount = newOriginal;
+      debt.outstandingAmount = newOutstanding;
+      if (newOutstanding === 0)
+        debt.status = FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF;
+      const savedDebt = await manager.save(debt);
+
+      await this.createHistory(manager, {
+        debtId: savedDebt.id,
+        type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.CORRECTED,
+        amount: round2(Math.abs(diff)),
+        previousOutstandingAmount,
+        outstandingAmount: newOutstanding,
+        occurredAt: dto.occurredAt ?? todayVN(),
+        walletId: created?.walletId ?? null,
+        note: dto.note ?? `Sửa số tiền gốc: ${oldOriginal} → ${newOriginal}`,
+      });
+
+      return savedDebt;
+    });
+  }
+
+  // ───────────────────────── helpers ─────────────────────────
+
+  /**
+   * Chiều tiền của VÍ:
+   * - OUTGOING (mình nợ):      tạo nợ → tiền vào ví,  trả nợ → tiền ra ví
+   * - INCOMING (người khác nợ): tạo nợ → tiền ra ví,  thu nợ → tiền vào ví
+   */
+  private walletDelta(
+    direction: FINANCIAL_DEBT_DIRECTION_ENUM,
+    kind: "CREATE" | "PAYMENT",
+    amount: number,
+  ): number {
+    const moneyIn =
+      (direction === FINANCIAL_DEBT_DIRECTION_ENUM.OUTGOING) ===
+      (kind === "CREATE");
+    return moneyIn ? amount : -amount;
   }
 
   /**
-   * Validate trạng thái nợ
+   * Kiểm tra ví thuộc account, khóa dòng, cập nhật số dư. Không tạo transaction.
    */
+  private async applyWalletChange(
+    manager: EntityManager,
+    walletId: number,
+    accountId: number,
+    delta: number,
+  ) {
+    // Kiểm tra quyền sở hữu (query có join relation nên không khóa ở đây)
+    const owned = await manager.findOne(FinancialWalletEntity, {
+      where: { id: walletId, account: { id: accountId } },
+    });
+    if (!owned) {
+      throw new NotFoundException("Financial wallet not found");
+    }
+
+    // Đọc lại số dư mới nhất dưới khóa
+    const wallet = await manager.findOneOrFail(FinancialWalletEntity, {
+      where: { id: walletId },
+      lock: { mode: "pessimistic_write" },
+    });
+
+    const newBalance = round2(Number(wallet.balance) + delta);
+    if (newBalance < 0) {
+      throw new BadRequestException("Insufficient wallet balance");
+    }
+
+    wallet.balance = newBalance;
+    return manager.save(wallet);
+  }
+
+  private async lockDebt(
+    manager: EntityManager,
+    id: number,
+    accountId: number,
+  ) {
+    const debt = await manager.findOne(FinancialDebtEntity, {
+      where: { id, accountId },
+      lock: { mode: "pessimistic_write" },
+    });
+    if (!debt) {
+      throw new NotFoundException("Financial debt not found");
+    }
+    return debt;
+  }
+
+  private createHistory(
+    manager: EntityManager,
+    data: Partial<FinancialDebtHistoryEntity>,
+  ) {
+    return manager.save(manager.create(FinancialDebtHistoryEntity, data));
+  }
+
   private validateActiveDebt(debt: FinancialDebtEntity) {
     if (debt.status !== FINANCIAL_DEBT_STATUS_ENUM.ACTIVE) {
       throw new BadRequestException("Debt is not active");
     }
-
     if (debt.outstandingAmount <= 0) {
       throw new BadRequestException("Debt has no outstanding amount");
     }

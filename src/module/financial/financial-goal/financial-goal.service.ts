@@ -100,7 +100,6 @@ export class FinancialGoalService extends BaseCrudService<FinancialGoalEntity> {
   }
 
   private enrichGoal(goal: FinancialGoalEntity) {
-    console.log("Enriching goal:", goal);
     return {
       ...goal,
       progressPercentage: this.calculateProgress(

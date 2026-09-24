@@ -33,6 +33,7 @@ import {
   FinancialDebt_Adjust_Request,
   FinancialDebt_Settle_Request,
   FinancialDebt_Cancel_Request,
+  FinancialDebt_Correct_Request,
 } from "./dto/action.dto";
 import { FinancialDebtHistory_GetAll_Response } from "./dto/get-history.dto";
 
@@ -96,13 +97,7 @@ export class FinancialDebtController extends CreateGenericController<
     @Body() dto: FinancialDebt_Payment_Request,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.financialDebtService.payment(
-      id,
-      user.sub,
-      dto.walletId,
-      dto.amount,
-      dto.note,
-    );
+    return this.financialDebtService.payment(id, user.sub, dto);
   }
 
   /**
@@ -116,14 +111,8 @@ export class FinancialDebtController extends CreateGenericController<
     @Body() dto: FinancialDebt_Adjust_Request,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.financialDebtService.adjust(
-      id,
-      user.sub,
-      dto.outstandingAmount,
-      dto.note,
-    );
+    return this.financialDebtService.adjust(id, user.sub, dto);
   }
-
   /**
    * Tất toán khoản nợ (Thỏa thuận đóng nợ)
    */
@@ -135,7 +124,7 @@ export class FinancialDebtController extends CreateGenericController<
     @Body() dto: FinancialDebt_Settle_Request,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.financialDebtService.settle(id, user.sub, dto?.note);
+    return this.financialDebtService.settle(id, user.sub, dto);
   }
 
   /**
@@ -149,7 +138,7 @@ export class FinancialDebtController extends CreateGenericController<
     @Body() dto: FinancialDebt_Cancel_Request,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.financialDebtService.cancel(id, user.sub, dto?.note);
+    return this.financialDebtService.cancel(id, user.sub, dto);
   }
 
   /**
@@ -163,5 +152,18 @@ export class FinancialDebtController extends CreateGenericController<
     @CurrentUser() user: JwtPayload,
   ) {
     return this.financialDebtService.getHistories(id, user.sub);
+  }
+  /**
+   * Chỉnh sửa số tiền gốc của khoản nợ
+   */
+  @Post("/:id/correct")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialDebt_Create_Response)
+  async correct(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: FinancialDebt_Correct_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialDebtService.correctAmount(id, user.sub, dto);
   }
 }

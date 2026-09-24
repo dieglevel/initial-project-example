@@ -31,7 +31,8 @@ import {
 } from "./dto/get-with-transaction-count.dto";
 import type { JwtPayload } from "@/module/auth/payload.type";
 import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
-import { FinancialCategory_GetBudgetStatus_Response } from "./dto/get-budget-status.dto";
+import { FinancialCategory_GetList_Request } from "./dto/list.dto";
+import { FinancialCategory_GetTransactionCategory_Request } from "./dto/get-transaction-category.dto";
 
 @Controller("financial-category")
 @ApiBearerAuth("access-token")
@@ -65,26 +66,28 @@ export class FinancialCategoryController extends CreateGenericController<
   @ApiBaseResponse(FinancialCategory_GetWithTransactionCount_Response, {
     isArray: true,
   })
-  async gets(@Query("date") date: Date, @CurrentUser() user: JwtPayload) {
+  async gets(
+    @Query() query: FinancialCategory_GetList_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.financialCategoryService.gets({
-      date: date,
+      query: query,
       user: user,
     });
   }
 
-  @Get("/budget-status")
+  @Get("/transaction/:categoryId")
   @HttpCode(200)
-  @ApiBaseResponse(FinancialCategory_GetBudgetStatus_Response, {
-    isArray: true,
-  })
-  async getCategoryBudgetStatus(
-    @Query("date") date: Date,
+  async getTransactionCategory(
+    @Param("categoryId", ParseIntPipe) categoryId: number,
+    @Query() query: FinancialCategory_GetTransactionCategory_Request,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.financialCategoryService.getBudgetStatus({
-      date,
+    return this.financialCategoryService.getTransactionCategory(
+      categoryId,
+      query,
       user,
-    });
+    );
   }
 
   @Post("/archive/:categoryId")
