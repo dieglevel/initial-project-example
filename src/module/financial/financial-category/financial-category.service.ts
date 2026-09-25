@@ -286,18 +286,22 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       const uncategorizedItems = await this.financialCategoryRepository.manager
         .createQueryBuilder(FinancialTransactionItemEntity, "transactionItem")
         .innerJoinAndSelect("transactionItem.transaction", "transaction")
-        .where('"transactionItem"."categoryId" IS NULL')
-        .andWhere('"transactionItem"."deletedAt" IS NULL')
-        .andWhere('"transaction"."accountId" = :accountId', {
+        .where("transactionItem.categoryId IS NULL")
+        .andWhere("transactionItem.deletedAt IS NULL")
+        .andWhere("transaction.accountId = :accountId", {
           accountId: user.sub,
         })
-        .andWhere('"transaction"."createdAt" >= :startDate', { startDate })
-        .andWhere('"transaction"."createdAt" < :endDate', { endDate })
-        .andWhere('"transaction"."type" = :transactionType', {
+        .andWhere("transaction.createdAt >= :startDate", {
+          startDate,
+        })
+        .andWhere("transaction.createdAt < :endDate", {
+          endDate,
+        })
+        .andWhere("transaction.type = :transactionType", {
           transactionType: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
         })
-        .andWhere('"transaction"."deletedAt" IS NULL')
-        .orderBy('"transaction"."createdAt"', "DESC")
+        .andWhere("transaction.deletedAt IS NULL")
+        .orderBy("transaction.createdAt", "DESC")
         .getMany();
 
       const uncategorizedCategory: Partial<FinancialCategoryEntity> = {
@@ -310,15 +314,13 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
         icon: "FileQuestionMark",
       };
 
-      const mappedItems = uncategorizedItems.map((item) => ({
-        ...item,
-        category: uncategorizedCategory,
-      }));
-
       return {
         parent: uncategorizedCategory as FinancialCategoryEntity,
         children: [],
-        transactionItems: mappedItems,
+        transactionItems: uncategorizedItems.map((item) => ({
+          ...item,
+          category: uncategorizedCategory,
+        })),
       };
     }
 

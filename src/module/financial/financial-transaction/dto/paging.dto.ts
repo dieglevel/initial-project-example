@@ -16,8 +16,42 @@ import {
 import { FinancialTransactionEntity } from "../_entities/financial-transaction.entity";
 import { BasePaginatedDto } from "@/common/dto/swagger-schema/base-paginated.dto";
 
-// Khai báo các cột cho phép Filter để tránh SQL Injection
-export class FinancialTransaction_Filterable_Columns {
+// Khai báo các cột cho phép Sort để tránh SQL Injection
+export enum FinancialTransactionSortBy {
+  CREATED_AT = "createdAt",
+  AMOUNT = "amount",
+  TYPE = "type",
+  STATUS = "status",
+}
+
+export enum SortOrder {
+  ASC = "ASC",
+  DESC = "DESC",
+}
+
+export class FinancialTransaction_GetAll_Request {
+  // --- PHÂN TRANG (PAGING) ---
+  @ApiPropertyOptional({ default: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  page?: number = 1;
+
+  @ApiPropertyOptional({ default: 10 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: "Tìm theo từ khóa (description, merchant, location)",
+  })
+  @IsString()
+  @IsOptional()
+  search?: string;
+
   @ApiPropertyOptional({ enum: FINANCIAL_TRANSACTION_TYPE })
   @IsEnum(FINANCIAL_TRANSACTION_TYPE)
   @IsOptional()
@@ -55,47 +89,6 @@ export class FinancialTransaction_Filterable_Columns {
   @IsDateString()
   @IsOptional()
   toDate?: string;
-}
-
-// Khai báo các cột cho phép Sort để tránh SQL Injection
-export enum FinancialTransactionSortBy {
-  CREATED_AT = "createdAt",
-  AMOUNT = "amount",
-  TYPE = "type",
-  STATUS = "status",
-}
-
-export enum SortOrder {
-  ASC = "ASC",
-  DESC = "DESC",
-}
-
-export class FinancialTransaction_GetAll_Request {
-  // --- PHÂN TRANG (PAGING) ---
-  @ApiPropertyOptional({ default: 1 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number = 1;
-
-  @ApiPropertyOptional({ default: 10 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  limit?: number = 10;
-
-  @ApiPropertyOptional({
-    description: "Tìm theo từ khóa (description, merchant, location)",
-  })
-  @IsString()
-  @IsOptional()
-  search?: string;
-
-  @ApiPropertyOptional({ type: FinancialTransaction_Filterable_Columns })
-  @IsOptional()
-  filter?: FinancialTransaction_Filterable_Columns;
 
   // --- SẮP XẾP (SORT) ---
   @ApiPropertyOptional({

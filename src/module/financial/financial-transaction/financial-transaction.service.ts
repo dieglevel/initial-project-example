@@ -471,7 +471,21 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     } = query;
 
     const { type, status, walletId, minAmount, maxAmount, fromDate, toDate } =
-      query.filter || {};
+      query;
+
+    console.log("Received query parameters:", {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      type,
+      status,
+      walletId,
+      minAmount,
+      maxAmount,
+      fromDate,
+      toDate,
+    });
 
     const search = query.search?.trim() || undefined;
 
@@ -495,6 +509,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     }
 
     if (type) {
+      console.log("Filtering by type:", type); // Debug log
       queryBuilder.andWhere("transaction.type = :type", { type });
     }
 
@@ -554,8 +569,8 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       totalIncome: totals.totalIncome,
       meta: {
         total,
-        page,
-        limit,
+        page: Number(page),
+        limit: Number(limit),
         totalPages: Math.ceil(total / limit),
       },
     };
