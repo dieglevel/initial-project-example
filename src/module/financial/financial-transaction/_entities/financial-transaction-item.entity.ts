@@ -5,6 +5,7 @@ import { FinancialTransactionEntity } from "./financial-transaction.entity";
 import { FinancialCategoryEntity } from "@/module/financial/financial-category/_entities/financial-category.entity";
 import { IsNumber, IsOptional } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { DecimalTransformer } from "@/common/util/decimal-transformer";
 
 @Entity("financial-transaction-item")
 @ApiEntity()
@@ -12,7 +13,13 @@ export class FinancialTransactionItemEntity extends BaseEntity {
   @Column({ type: "varchar", length: 255, nullable: false })
   description: string;
 
-  @Column({ type: "decimal", precision: 10, scale: 2, nullable: false })
+  @Column({
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: DecimalTransformer,
+  })
   amount: number;
 
   @ManyToOne(

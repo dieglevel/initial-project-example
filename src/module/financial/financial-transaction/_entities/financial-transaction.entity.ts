@@ -26,6 +26,7 @@ import {
 } from "class-validator";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { FinancialTransactionItemEntity } from "./financial-transaction-item.entity";
+import { DecimalTransformer } from "@/common/util/decimal-transformer";
 
 @Entity("financial-transaction")
 @ApiEntity()
@@ -54,10 +55,7 @@ export class FinancialTransactionEntity extends BaseEntity {
     precision: 10,
     scale: 2,
     nullable: false,
-    transformer: {
-      to: (value: number) => value,
-      from: (value: string) => parseFloat(value),
-    },
+    transformer: DecimalTransformer,
   })
   @IsNumber()
   amount: number;
