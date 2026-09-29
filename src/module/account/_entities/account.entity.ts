@@ -10,6 +10,7 @@ import { FinancialGoalEntity } from "@/module/financial/financial-goal/_entities
 import { FinancialRecurringEntity } from "@/module/financial/financial-recurring/_entities/financial-recurring.entity";
 import { FinancialNotificationEntity } from "@/module/financial/financial-notification/_entities/financial-notification.entity";
 import { FinancialDebtEntity } from "@/module/financial/financial-debt/_entities/financial-debt.entity";
+import { FinancialSettingEntity } from "@/module/financial/financial-setting/_entities/financial-setting.entity";
 
 @Entity()
 @ApiEntity()
@@ -90,4 +91,18 @@ export class AccountEntity extends BaseEntity {
   )
   @ApiPropertyOptional({ type: () => [FinancialDebtEntity], default: [] })
   financialDebts: FinancialDebtEntity[];
+
+  @OneToOne(
+    () => FinancialSettingEntity,
+    (financialSetting) => financialSetting.account,
+    {
+      cascade: true,
+      onDelete: "CASCADE",
+    },
+  )
+  @ApiPropertyOptional({
+    type: () => FinancialSettingEntity,
+    default: "FinancialSetting",
+  })
+  financialSetting?: FinancialSettingEntity;
 }

@@ -17,4 +17,10 @@ export class FinancialCategory_GetTransactionCategory_Response {
   transactionItems: (Omit<FinancialTransactionItemEntity, "category"> & {
     category: Partial<FinancialCategoryEntity>;
   })[];
+  overcomeTransactionItems: (Omit<
+    FinancialTransactionItemEntity,
+    "category"
+  > & {
+    category: Partial<FinancialCategoryEntity>;
+  })[];
 }

@@ -314,13 +314,28 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
         icon: "FileQuestionMark",
       };
 
+      const mappedItems = uncategorizedItems.map((item) => ({
+        ...item,
+        category: uncategorizedCategory,
+      }));
+
+      // Tính avg và lọc danh sách vượt trung bình
+      const totalAmount = mappedItems.reduce(
+        (sum, item) => sum + Number(item.amount || 0),
+        0,
+      );
+      const avgAmount =
+        mappedItems.length > 0 ? totalAmount / mappedItems.length : 0;
+
+      const overcomeTransactionItems = mappedItems.filter(
+        (item) => Number(item.amount || 0) > avgAmount,
+      );
+
       return {
         parent: uncategorizedCategory as FinancialCategoryEntity,
         children: [],
-        transactionItems: uncategorizedItems.map((item) => ({
-          ...item,
-          category: uncategorizedCategory,
-        })),
+        transactionItems: mappedItems,
+        overcomeTransactionItems,
       };
     }
 
@@ -407,15 +422,29 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
 
     const allTransactionItems = extractTransactionItems(category);
 
+    // Tính avg và lọc danh sách vượt trung bình
+    const totalAmount = allTransactionItems.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0,
+    );
+    const avgAmount =
+      allTransactionItems.length > 0
+        ? totalAmount / allTransactionItems.length
+        : 0;
+
+    const overcomeTransactionItems = allTransactionItems.filter(
+      (item) => Number(item.amount || 0) > avgAmount,
+    );
+
     const cleanedChildren = cleanChildrenTree(children);
 
     return {
       parent: parentData,
       children: cleanedChildren,
       transactionItems: allTransactionItems,
+      overcomeTransactionItems,
     };
   }
-
   async archiveCategory(categoryId: number, user: JwtPayload): Promise<void> {
     const category = await this.financialCategoryRepository.findOne({
       where: {
