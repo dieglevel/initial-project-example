@@ -10,8 +10,9 @@ export class FinancialCategory_GetList_Request {
 
   @IsOptional()
   @IsString()
-  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, {
-    message: "month must be in YYYY-MM format",
-  })
-  amountMonth?: string;
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  endDate?: string;
 }

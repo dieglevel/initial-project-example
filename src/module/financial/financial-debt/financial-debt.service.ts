@@ -95,6 +95,8 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
 
   /**
    * Thanh toán nợ (một phần hoặc toàn phần)
+   * - Nếu có walletId thì biến động số dư ví (không tạo transaction).
+   * - Nếu trả hết thì chuyển trạng thái nợ sang PAID_OFF.
    */
   async payment(
     id: number,
@@ -102,17 +104,26 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
     dto: DebtActionMeta & { amount: number; walletId?: number | null },
   ) {
     const amount = round2(Number(dto.amount));
-    if (!(amount > 0)) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException("Payment amount must be greater than 0");
+    }
+
+    const occurredAt = dto.occurredAt ?? todayVN();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredAt)) {
+      throw new BadRequestException("occurredAt must be in YYYY-MM-DD format");
+    }
+    if (occurredAt > todayVN()) {
+      throw new BadRequestException("occurredAt cannot be in the future");
     }
 
     return this.dataSource.transaction(async (manager) => {
       const debt = await this.lockDebt(manager, id, accountId);
       this.validateActiveDebt(debt);
 
-      if (amount > debt.outstandingAmount) {
+      const previousOutstandingAmount = round2(Number(debt.outstandingAmount));
+      if (amount > previousOutstandingAmount) {
         throw new BadRequestException(
-          "Payment amount cannot exceed outstanding amount",
+          `Payment amount cannot exceed outstanding amount (${previousOutstandingAmount})`,
         );
       }
 
@@ -125,9 +136,9 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
         );
       }
 
-      const previousOutstandingAmount = debt.outstandingAmount;
-      debt.outstandingAmount = round2(previousOutstandingAmount - amount);
-      if (debt.outstandingAmount === 0) {
+      const newOutstandingAmount = round2(previousOutstandingAmount - amount);
+      debt.outstandingAmount = newOutstandingAmount;
+      if (newOutstandingAmount === 0) {
         debt.status = FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF;
       }
       const savedDebt = await manager.save(debt);
@@ -137,8 +148,8 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
         type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.PAYMENT,
         amount,
         previousOutstandingAmount,
-        outstandingAmount: savedDebt.outstandingAmount,
-        occurredAt: dto.occurredAt ?? todayVN(),
+        outstandingAmount: newOutstandingAmount,
+        occurredAt,
         walletId: dto.walletId ?? null,
         note: dto.note,
       });

@@ -473,20 +473,6 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     const { type, status, walletId, minAmount, maxAmount, fromDate, toDate } =
       query;
 
-    console.log("Received query parameters:", {
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      type,
-      status,
-      walletId,
-      minAmount,
-      maxAmount,
-      fromDate,
-      toDate,
-    });
-
     const search = query.search?.trim() || undefined;
 
     // 1. Khởi tạo QueryBuilder cơ bản

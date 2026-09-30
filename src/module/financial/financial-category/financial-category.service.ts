@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { And, IsNull, LessThan, MoreThanOrEqual, Repository } from "typeorm";
 import { FinancialCategoryEntity } from "./_entities/financial-category.entity";
 import { BaseCrudService } from "@/common/service/base-crud.service";
 import type {
@@ -36,9 +36,13 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     query: FinancialCategory_GetList_Request;
     user: JwtPayload;
   }): Promise<FinancialCategory_GetWithTransactionCount_Response[]> {
-    const { amountMonth } = query;
+    const { startDate, endDate } = query;
 
-    const hasAmountMonth = Boolean(amountMonth && dayjs(amountMonth).isValid());
+    const hasStartDate = Boolean(startDate && dayjs(startDate).isValid());
+    const hasEndDate = Boolean(endDate && dayjs(endDate).isValid());
+
+    const formattedStartDate = hasStartDate ? dayjs(startDate).toDate() : null;
+    const formattedEndDate = hasEndDate ? dayjs(endDate).toDate() : null;
 
     /**
      * 1. Get all categories
@@ -70,13 +74,9 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     let uncategorizedTotal = 0;
 
     /**
-     * Chỉ tính toán số tiền khi có amountMonth hợp lệ
+     * Chỉ tính toán số tiền khi có startDate và endDate hợp lệ
      */
-    if (hasAmountMonth) {
-      const selectedDate = dayjs(amountMonth);
-      const startDate = selectedDate.startOf("month").toDate();
-      const endDate = selectedDate.add(1, "month").startOf("month").toDate();
-
+    if (hasStartDate && hasEndDate) {
       /**
        * 2. Get direct transaction amount by category
        */
@@ -133,8 +133,8 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
         .groupBy(`"financialCategory"."id"`)
         .orderBy(`"financialCategory"."createdAt"`, "ASC")
         .setParameters({
-          startDate,
-          endDate,
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
           transactionType: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
         })
         .getRawMany<{
@@ -165,8 +165,8 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
           accountId: user.sub,
         })
         .setParameters({
-          startDate,
-          endDate,
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
           transactionType: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
         })
         .getRawOne<{ totalAmount: string }>();
@@ -219,9 +219,9 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     }
 
     /**
-     * 5. Aggregate totalAmount recursively (chỉ chạy nếu có amountMonth)
+     * 5. Aggregate totalAmount recursively (chỉ chạy nếu có startDate và endDate)
      */
-    if (hasAmountMonth) {
+    if (hasStartDate && hasEndDate) {
       const calculateTotal = (
         category: FinancialCategory_GetWithTransactionCount_Response,
       ): number => {
@@ -245,7 +245,7 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       }
 
       /**
-       * 6. Thêm category "Chưa phân loại" vào roots nếu có truyền amountMonth
+       * 6. Thêm category "Chưa phân loại" vào roots nếu có truyền startDate và endDate
        */
       const uncategorizedCategory: FinancialCategory_GetWithTransactionCount_Response =
         {
@@ -273,35 +273,47 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     query: FinancialCategory_GetTransactionCategory_Request,
     user: JwtPayload,
   ): Promise<FinancialCategory_GetTransactionCategory_Response> {
-    const { amountMonth } = query;
+    const { startDate, endDate } = query;
 
-    const selectedDate = dayjs(amountMonth);
-    const startDate = selectedDate.startOf("month").toDate();
-    const endDate = selectedDate.add(1, "month").startOf("month").toDate();
+    // Chuẩn hoá range về Date, dùng chung cho cả 2 nhánh
+    const startDateValue = dayjs(
+      startDate ?? dayjs().startOf("month").toDate(),
+    ).toDate();
+    const endDateValue = dayjs(
+      endDate ?? dayjs(startDateValue).add(1, "month").toDate(),
+    ).toDate();
 
-    /**
-     * TH1: Xử lý danh mục "Chưa phân loại" (categoryId = 0)
-     */
-    if (categoryId === 0) {
-      const uncategorizedItems = await this.financialCategoryRepository.manager
-        .createQueryBuilder(FinancialTransactionItemEntity, "transactionItem")
-        .innerJoinAndSelect("transactionItem.transaction", "transaction")
-        .where("transactionItem.categoryId IS NULL")
-        .andWhere("transactionItem.deletedAt IS NULL")
-        .andWhere("transaction.accountId = :accountId", {
-          accountId: user.sub,
-        })
-        .andWhere("transaction.createdAt >= :startDate", {
-          startDate,
-        })
-        .andWhere("transaction.createdAt < :endDate", {
-          endDate,
-        })
+    const calcOvercome = <T extends { amount: number | string }>(
+      items: T[],
+    ) => {
+      const total = items.reduce(
+        (sum, item) => sum + Number(item.amount || 0),
+        0,
+      );
+      const avg = items.length > 0 ? total / items.length : 0;
+      return items.filter((item) => Number(item.amount || 0) > avg);
+    };
+
+    const itemQuery = () =>
+      this.financialCategoryRepository.manager
+        .createQueryBuilder(FinancialTransactionItemEntity, "item")
+        .innerJoinAndSelect("item.transaction", "transaction")
+        .where("item.deletedAt IS NULL")
+        .andWhere("transaction.accountId = :accountId", { accountId: user.sub })
+        .andWhere("transaction.createdAt >= :start", { start: startDateValue })
+        .andWhere("transaction.createdAt < :end", { end: endDateValue })
         .andWhere("transaction.type = :transactionType", {
           transactionType: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
         })
         .andWhere("transaction.deletedAt IS NULL")
-        .orderBy("transaction.createdAt", "DESC")
+        .orderBy("transaction.createdAt", "DESC");
+
+    /**
+     * TH1: Danh mục "Chưa phân loại" (categoryId = 0)
+     */
+    if (categoryId === 0) {
+      const uncategorizedItems = await itemQuery()
+        .andWhere("item.categoryId IS NULL")
         .getMany();
 
       const uncategorizedCategory: Partial<FinancialCategoryEntity> = {
@@ -319,132 +331,95 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
         category: uncategorizedCategory,
       }));
 
-      // Tính avg và lọc danh sách vượt trung bình
-      const totalAmount = mappedItems.reduce(
-        (sum, item) => sum + Number(item.amount || 0),
-        0,
-      );
-      const avgAmount =
-        mappedItems.length > 0 ? totalAmount / mappedItems.length : 0;
-
-      const overcomeTransactionItems = mappedItems.filter(
-        (item) => Number(item.amount || 0) > avgAmount,
-      );
-
       return {
         parent: uncategorizedCategory as FinancialCategoryEntity,
         children: [],
         transactionItems: mappedItems,
-        overcomeTransactionItems,
+        overcomeTransactionItems: calcOvercome(mappedItems),
       };
     }
 
     /**
-     * TH2: Xử lý category bình thường (categoryId > 0)
+     * TH2: Category bình thường (categoryId > 0)
      */
-    const category = await this.financialCategoryRepository.findOne({
-      where: {
-        id: categoryId,
-        account: {
-          id: user.sub,
+
+    // 1. Lấy toàn bộ category của account (giống điều kiện ở gets())
+    const allCategories = await this.financialCategoryRepository.find({
+      where: [
+        {
+          account: { id: user.sub },
+          type: FINANCIAL_CATEGORY_TYPE.EXPENSE,
         },
-      },
-      relations: {
-        transactionItems: true,
-        children: {
-          transactionItems: true,
-          children: {
-            transactionItems: true,
-          },
+        {
+          account: { id: user.sub },
+          type: IsNull(),
         },
-      },
+      ],
+      order: { createdAt: "ASC" },
     });
+
+    const categoryById = new Map(allCategories.map((c) => [c.id, c]));
+    const childrenByParent = new Map<number, FinancialCategoryEntity[]>();
+
+    for (const c of allCategories) {
+      if (c.parentId != null) {
+        const list = childrenByParent.get(c.parentId) ?? [];
+        list.push(c);
+        childrenByParent.set(c.parentId, list);
+      }
+    }
+
+    const category = categoryById.get(categoryId);
 
     if (!category) {
       throw new Error("Category not found");
     }
 
-    const extractTransactionItems = (
-      cat: FinancialCategoryEntity,
-    ): (Omit<FinancialTransactionItemEntity, "category"> & {
-      category: Partial<FinancialCategoryEntity>;
-    })[] => {
-      const items: (Omit<FinancialTransactionItemEntity, "category"> & {
-        category: Partial<FinancialCategoryEntity>;
-      })[] = [];
+    // 2. Dựng cây con (mọi cấp) và gom id của cả subtree
+    const categoryIds: number[] = [];
 
-      // Lấy transaction items của category hiện tại
-      if (cat.transactionItems && cat.transactionItems.length > 0) {
-        cat.transactionItems.forEach((item) => {
-          const itemDate = new Date(item.createdAt);
-
-          if (itemDate >= startDate && itemDate < endDate) {
-            items.push({
-              ...item,
-              category: {
-                id: cat.id,
-                name: cat.name,
-                color: cat.color,
-                icon: cat.icon,
-                type: cat.type,
-                monthlyBudget: cat.monthlyBudget,
-                archived: cat.archived,
-              },
-            });
-          }
-        });
-      }
-
-      if (cat.children && cat.children.length > 0) {
-        cat.children.forEach((child) => {
-          items.push(...extractTransactionItems(child));
-        });
-      }
-
-      return items;
+    const buildTree = (
+      node: FinancialCategoryEntity,
+    ): FinancialCategoryEntity => {
+      categoryIds.push(node.id);
+      const kids = childrenByParent.get(node.id) ?? [];
+      return {
+        ...node,
+        children: kids.map(buildTree),
+      } as FinancialCategoryEntity;
     };
 
-    const cleanChildrenTree = (
-      nodes: FinancialCategoryEntity[],
-    ): FinancialCategoryEntity[] => {
-      return nodes.map((node) => {
-        const { transactionItems, children, ...rest } = node;
-        return {
-          ...rest,
-          ...(children && children.length > 0
-            ? { children: cleanChildrenTree(children) }
-            : { children: [] }),
-        } as FinancialCategoryEntity;
-      });
-    };
+    const { children: cleanedChildren = [], ...parentData } =
+      buildTree(category);
 
-    const { children = [], transactionItems = [], ...parentData } = category;
+    // 3. Lấy item của cả subtree, cùng điều kiện như gets()
+    const rows = await itemQuery()
+      .innerJoinAndSelect("item.category", "category")
+      .andWhere("item.categoryId IN (:...categoryIds)", { categoryIds })
+      .getMany();
 
-    const allTransactionItems = extractTransactionItems(category);
-
-    // Tính avg và lọc danh sách vượt trung bình
-    const totalAmount = allTransactionItems.reduce(
-      (sum, item) => sum + Number(item.amount || 0),
-      0,
-    );
-    const avgAmount =
-      allTransactionItems.length > 0
-        ? totalAmount / allTransactionItems.length
-        : 0;
-
-    const overcomeTransactionItems = allTransactionItems.filter(
-      (item) => Number(item.amount || 0) > avgAmount,
-    );
-
-    const cleanedChildren = cleanChildrenTree(children);
+    // 4. Giữ nguyên shape cũ: category rút gọn trong từng item
+    const allTransactionItems = rows.map(({ category: cat, ...item }) => ({
+      ...item,
+      category: {
+        id: cat?.id,
+        name: cat?.name,
+        color: cat?.color,
+        icon: cat?.icon,
+        type: cat?.type,
+        monthlyBudget: cat?.monthlyBudget,
+        archived: cat?.archived,
+      },
+    }));
 
     return {
-      parent: parentData,
+      parent: parentData as FinancialCategoryEntity,
       children: cleanedChildren,
       transactionItems: allTransactionItems,
-      overcomeTransactionItems,
+      overcomeTransactionItems: calcOvercome(allTransactionItems),
     };
   }
+
   async archiveCategory(categoryId: number, user: JwtPayload): Promise<void> {
     const category = await this.financialCategoryRepository.findOne({
       where: {

@@ -1,14 +1,16 @@
 import { IsOptional, IsString, Matches } from "class-validator";
 import { FinancialTransactionItemEntity } from "../../financial-transaction/_entities/financial-transaction-item.entity";
 import { FinancialCategoryEntity } from "../_entities/financial-category.entity";
+import dayjs from "dayjs";
 
 export class FinancialCategory_GetTransactionCategory_Request {
   @IsOptional()
   @IsString()
-  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, {
-    message: "month must be in YYYY-MM format",
-  })
-  amountMonth?: string;
+  startDate?: dayjs.Dayjs | string | Date;
+
+  @IsOptional()
+  @IsString()
+  endDate?: dayjs.Dayjs | string | Date;
 }
 
 export class FinancialCategory_GetTransactionCategory_Response {

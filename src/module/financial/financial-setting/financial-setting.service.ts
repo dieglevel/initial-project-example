@@ -45,13 +45,6 @@ export class FinancialSettingService {
     userId: number,
     updateData: Partial<FinancialSettingEntity>,
   ): Promise<FinancialSettingEntity> {
-    console.log(
-      "Updating financial setting for userId:",
-      userId,
-      "with data:",
-      updateData,
-    );
-
     const existingSetting = await this.getFinancialSettingByUserId(userId);
 
     if (!existingSetting) {
