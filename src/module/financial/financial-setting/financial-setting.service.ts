@@ -14,48 +14,41 @@ export class FinancialSettingService {
     private readonly FinancialSettingRepository: Repository<FinancialSettingEntity>,
   ) {}
 
-  private async initializeFinancialSetting(userId: number): Promise<void> {
-    const defaultSettings: Partial<FinancialSettingEntity> = {
+  private async initializeFinancialSetting(
+    userId: number,
+  ): Promise<FinancialSettingEntity> {
+    const newSetting = this.FinancialSettingRepository.create({
+      accountId: userId,
       cycleStartDate: 1,
       theme: FINANCIAL_SETTING_THEME.HUTAO,
       themeMode: FINANCIAL_SETTING_THEME_MODE.LIGHT,
-    };
-
-    const newSetting = this.FinancialSettingRepository.create({
-      ...defaultSettings,
-      accountId: userId,
     });
-    await this.FinancialSettingRepository.save(newSetting);
+
+    return this.FinancialSettingRepository.save(newSetting);
   }
 
   public async getFinancialSettingByUserId(
     userId: number,
   ): Promise<FinancialSettingEntity | null> {
-    const setting = await this.FinancialSettingRepository.findOne({
-      where: { accountId: userId },
+    return this.FinancialSettingRepository.findOne({
+      where: {
+        accountId: userId,
+      },
     });
-    if (!setting) {
-      await this.initializeFinancialSetting(userId);
-      return this.getFinancialSettingByUserId(userId);
-    }
-    return setting;
   }
 
   public async updateFinancialSetting(
     userId: number,
     updateData: Partial<FinancialSettingEntity>,
   ): Promise<FinancialSettingEntity> {
-    const existingSetting = await this.getFinancialSettingByUserId(userId);
+    let setting = await this.getFinancialSettingByUserId(userId);
 
-    if (!existingSetting) {
-      await this.initializeFinancialSetting(userId);
-      return this.updateFinancialSetting(userId, updateData);
+    if (!setting) {
+      setting = await this.initializeFinancialSetting(userId);
     }
 
-    const updatedSetting = this.FinancialSettingRepository.merge(
-      existingSetting,
-      updateData,
-    );
-    return this.FinancialSettingRepository.save(updatedSetting);
+    this.FinancialSettingRepository.merge(setting, updateData);
+
+    return this.FinancialSettingRepository.save(setting);
   }
 }

@@ -20,7 +20,7 @@ export class FinancialSettingEntity extends BaseEntity {
   })
   @IsEnum(FINANCIAL_SETTING_THEME_MODE)
   @IsOptional()
-  themeMode: FINANCIAL_SETTING_THEME_MODE = FINANCIAL_SETTING_THEME_MODE.LIGHT;
+  themeMode: FINANCIAL_SETTING_THEME_MODE;
 
   @Column({
     type: "enum",
@@ -29,11 +29,11 @@ export class FinancialSettingEntity extends BaseEntity {
   })
   @IsEnum(FINANCIAL_SETTING_THEME)
   @IsOptional()
-  theme: FINANCIAL_SETTING_THEME = FINANCIAL_SETTING_THEME.HUTAO;
+  theme: FINANCIAL_SETTING_THEME;
 
   @Column({ type: "int", default: 1 })
   @IsOptional()
-  cycleStartDate: number = 1;
+  cycleStartDate: number;
 
   @Column({
     type: "enum",

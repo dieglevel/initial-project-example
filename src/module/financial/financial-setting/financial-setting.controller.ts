@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Patch, Post } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
 import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-response.decorator";
 import { FinancialSettingService } from "./financial-setting.service";
@@ -24,7 +24,7 @@ export class FinancialSettingController {
     return this.financialSettingService.getFinancialSettingByUserId(user.sub);
   }
 
-  @Post()
+  @Patch()
   @HttpCode(200)
   @ApiBaseResponse(FinancialSetting_Update_Response)
   async updateFinancialSetting(
