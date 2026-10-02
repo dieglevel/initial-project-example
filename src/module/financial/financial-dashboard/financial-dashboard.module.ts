@@ -25,4 +25,3 @@ import { FinancialDebtEntity } from "../financial-debt/_entities/financial-debt.
   exports: [FinancialDashboardService],
 })
 export class FinancialDashboardModule {}
-

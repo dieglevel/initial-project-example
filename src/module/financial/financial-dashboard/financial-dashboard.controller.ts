@@ -18,7 +18,9 @@ export class FinancialDashboardController {
 
   @Get("/summary")
   @HttpCode(200)
-  @ApiOperation({ summary: "Lấy dữ liệu tổng quan tài chính (Dashboard Summary)" })
+  @ApiOperation({
+    summary: "Lấy dữ liệu tổng quan tài chính (Dashboard Summary)",
+  })
   @ApiBaseResponse(FinancialDashboard_Response)
   async getDashboardSummary(
     @Query() query: GetFinancialDashboard_Request,
