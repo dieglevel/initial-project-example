@@ -38,7 +38,7 @@ export class FinancialSettingEntity extends BaseEntity {
   @Column({
     type: "enum",
     enum: FINANCIAL_SETTING_LANGUAGE,
-    default: FINANCIAL_SETTING_LANGUAGE.VN,
+    default: FINANCIAL_SETTING_LANGUAGE.VI,
   })
   @IsEnum(FINANCIAL_SETTING_LANGUAGE)
   @IsOptional()

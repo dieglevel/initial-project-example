@@ -10,7 +10,7 @@ export enum FINANCIAL_SETTING_THEME {
 export enum FINANCIAL_SETTING_LANGUAGE {
   EN = "en",
   KO = "ko",
-  VN = "vn",
+  VI = "vi",
 }
 
 export enum FINANCIAL_SETTING_CURRENCY {
