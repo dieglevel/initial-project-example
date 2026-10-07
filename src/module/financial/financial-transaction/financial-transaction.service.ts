@@ -405,51 +405,50 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         throw new NotFoundException("Transaction not found");
       }
 
-      // 2. Lock ví nguồn để tránh race condition khi cập nhật lại số dư
-      const wallet = await manager.findOne(FinancialWalletEntity, {
-        where: { id: transaction.wallet.id },
-        lock: { mode: "pessimistic_write" },
-      });
+      // 2. Chỉ hoàn tiền / cập nhật lại số dư nếu giao dịch đã COMPLETED
+      if (transaction.status === FINANCIAL_TRANSACTION_STATUS.COMPLETED) {
+        // Lock ví nguồn để tránh race condition khi cập nhật lại số dư
+        const wallet = await manager.findOne(FinancialWalletEntity, {
+          where: { id: transaction.wallet.id },
+          lock: { mode: "pessimistic_write" },
+        });
 
-      if (!wallet) {
-        throw new NotFoundException("Associated wallet not found");
+        if (!wallet) {
+          throw new NotFoundException("Associated wallet not found");
+        }
+
+        const amount = Number(transaction.amount);
+        let currentBalance = Number(wallet.balance);
+
+        // Hoàn tiền lại ví theo loại giao dịch (Đảo ngược ảnh hưởng)
+        switch (transaction.type) {
+          case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
+          case FINANCIAL_TRANSACTION_TYPE.TRANSFER:
+            // Giao dịch chi/chuyển tiền đã trừ ví -> xóa thì hoàn lại tiền
+            currentBalance += amount;
+            break;
+
+          case FINANCIAL_TRANSACTION_TYPE.INCOME:
+          case FINANCIAL_TRANSACTION_TYPE.REFUND:
+          case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
+            // Giao dịch thu/hoàn tiền đã cộng ví -> xóa thì trừ lại tiền
+            currentBalance -= amount;
+            break;
+
+          default:
+            break;
+        }
+
+        wallet.balance = currentBalance;
+        await manager.save(wallet);
       }
 
-      const amount = Number(transaction.amount);
-      let currentBalance = Number(wallet.balance);
-
-      // 3. Hoàn tiền lại ví theo loại giao dịch (Đảo ngược ảnh hưởng)
-      switch (transaction.type) {
-        case FINANCIAL_TRANSACTION_TYPE.EXPENSE:
-          // Hoàn lại tiền đã chi tiêu
-          currentBalance += amount;
-          break;
-
-        case FINANCIAL_TRANSACTION_TYPE.INCOME:
-        case FINANCIAL_TRANSACTION_TYPE.REFUND:
-        case FINANCIAL_TRANSACTION_TYPE.ADJUSTMENT:
-          // Trừ lại tiền đã cộng trước đó
-          currentBalance -= amount;
-          break;
-
-        case FINANCIAL_TRANSACTION_TYPE.TRANSFER:
-          // Hoàn lại tiền cho ví nguồn gốc
-          currentBalance += amount;
-          break;
-
-        default:
-          break;
-      }
-
-      wallet.balance = currentBalance;
-      await manager.save(wallet);
-
-      // 4. Xóa các Transaction Items liên quan (nếu CASCADE trên DB chưa cấu hình)
+      // 3. Xóa các Transaction Items liên quan (nếu CASCADE trên DB chưa cấu hình)
       await manager.delete(FinancialTransactionItemEntity, {
         transactionId: id,
       });
 
-      // 5. Xóa chính bản ghi Transaction
+      // 4. Xóa chính bản ghi Transaction
       await manager.remove(transaction);
 
       return true;

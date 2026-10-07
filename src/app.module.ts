@@ -11,7 +11,7 @@ import { InformationServerLogService } from "./service/information-server/inform
 import { InitialPostgresModule } from "./common/config/postgres.database.module";
 import { AuthModule } from "./module/auth/auth.module";
 import { InitialJwtModule } from "./common/config/jwt.module";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { AuthGuard } from "./module/auth/jwt.guard";
 import { AccountModule } from "./module/account/account.module";
 import { ProfileModule } from "./module/profile/profile.module";
@@ -22,6 +22,7 @@ import { InitialScheduleModule } from "./common/config/schedule.module";
 import { FinancialModule } from "./module/financial/financial.module";
 import { HealthCheckModule } from "./module/health-check/health-check.module";
 import { AppGateway } from "./gateway/app.gateway";
+import { OpenTelemetryInterceptor } from "./common/interceptor/open-telementry.interceptor";
 // Version: 0.1
 @Module({
   imports: [
@@ -48,6 +49,10 @@ import { AppGateway } from "./gateway/app.gateway";
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: OpenTelemetryInterceptor,
     },
     // AppGateway,
   ],
