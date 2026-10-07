@@ -85,7 +85,9 @@ async function bootstrap() {
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   });
 
-  app.setGlobalPrefix(config.API_PREFIX);
+  app.setGlobalPrefix(config.API_PREFIX, {
+    exclude: ["__otel", "__otel/{*path}"],
+  });
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.useGlobalFilters(new AllExceptionsFilter());

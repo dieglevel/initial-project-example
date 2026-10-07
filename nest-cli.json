@@ -6,7 +6,13 @@
     "spec": false
   },
   "compilerOptions": {
-    "assets": [],
+    "assets": [
+      {
+        "include": "telemetry/dashboard.html",
+        "outDir": "dist/src",
+        "watchAssets": true
+      }
+    ],
     "deleteOutDir": true,
     "plugins": [
       {

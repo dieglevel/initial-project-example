@@ -7,6 +7,7 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { ExportResult, ExportResultCode } from "@opentelemetry/core";
 import { SpanKind, SpanStatusCode } from "@opentelemetry/api";
+import { pushSpan } from "@/telemetry/span-store";
 
 /* ------------------------------ Config ------------------------------ */
 const USE_JSON = process.env.OTEL_LOG_FORMAT === "json";
@@ -130,16 +131,21 @@ const classify = (s: ReadableSpan): SpanType => {
 };
 
 const isNoise = (s: ReadableSpan): boolean => {
+  const target = [
+    s.attributes["url.path"],
+    s.attributes["http.target"],
+    s.attributes["http.route"],
+    s.attributes["http.url"],
+  ]
+    .map(str)
+    .join(" ");
+  if (s.name.includes("OtelDashboardController") || target.includes("/__otel"))
+    return true;
   const scope = s.instrumentationScope.name;
   const isError = s.status.code === SpanStatusCode.ERROR;
   if (scope.endsWith("instrumentation-express")) return true; // middleware/router/request handler
   if (s.name === "pg-pool.connect" && !isError) return true;
-  if (
-    scope.endsWith("instrumentation-nestjs-core") &&
-    s.attributes["nestjs.type"] === "handler" &&
-    false // đổi thành true nếu muốn ẩn cả span handler của Nest
-  )
-    return true;
+
   if (
     !SHOW_OPTIONS &&
     classify(s) === "HTTP_IN" &&
@@ -274,6 +280,8 @@ class TreeConsoleSpanExporter implements SpanExporter {
   export(spans: ReadableSpan[], done: (r: ExportResult) => void): void {
     for (const span of spans) {
       try {
+        const rec = this.toRecord(span);
+        if (rec) pushSpan(rec); // <-- thêm dòng này
         if (USE_JSON) this.printJson(span);
         else this.buffer(span);
       } catch (e) {
@@ -367,6 +375,37 @@ class TreeConsoleSpanExporter implements SpanExporter {
     );
   }
 
+  toRecord = (span: ReadableSpan) => {
+    if (isNoise(span)) return undefined;
+    const ctx = span.spanContext();
+    const a = span.attributes;
+    return {
+      type: classify(span),
+      time: new Date(toMs(span.startTime)).toISOString(),
+      traceId: ctx.traceId,
+      spanId: ctx.spanId,
+      parentSpanId: parentIdOf(span),
+      name: span.name,
+      scope: span.instrumentationScope.name,
+      kind: SpanKind[span.kind],
+      durationMs: durationOf(span),
+      status: SpanStatusCode[span.status.code],
+      method: httpMethod(span),
+      route: str(a["http.route"]) ?? str(a["url.full"]),
+      statusCode:
+        num(a["http.response.status_code"]) ?? num(a["http.status_code"]),
+      clientIp: str(a["client.address"]) ?? str(a["http.client_ip"]),
+      userAgent: str(a["user_agent.original"]) ?? str(a["http.user_agent"]),
+      query: str(a["db.query.text"]) ?? str(a["db.statement"]),
+      db: str(a["db.namespace"]) ?? str(a["db.name"]),
+      host: str(a["server.address"]),
+      errors:
+        span.status.code === SpanStatusCode.ERROR
+          ? collectErrors(span)
+          : undefined,
+    };
+  };
+
   async forceFlush() {
     for (const id of [...this.buffers.keys()]) this.flush(id);
   }
@@ -387,7 +426,9 @@ const sdk = new NodeSDK({
       "@opentelemetry/instrumentation-pg": { enhancedDatabaseReporting: false },
       "@opentelemetry/instrumentation-http": {
         ignoreIncomingRequestHook: (req) =>
-          req.url === "/health" || req.url === "/favicon.ico",
+          req.url === "/health" ||
+          req.url === "/favicon.ico" ||
+          !!req.url?.startsWith("/__otel"),
       },
     }),
   ],

@@ -23,6 +23,7 @@ import { FinancialModule } from "./module/financial/financial.module";
 import { HealthCheckModule } from "./module/health-check/health-check.module";
 import { AppGateway } from "./gateway/app.gateway";
 import { OpenTelemetryInterceptor } from "./common/interceptor/open-telementry.interceptor";
+import { TelemetryModule } from "./telemetry/telemetry.module";
 // Version: 0.1
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { OpenTelemetryInterceptor } from "./common/interceptor/open-telementry.i
     FinancialModule,
 
     HealthCheckModule,
+    TelemetryModule,
   ],
   controllers: [],
   providers: [
@@ -59,6 +61,9 @@ import { OpenTelemetryInterceptor } from "./common/interceptor/open-telementry.i
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes("*path");
+    consumer
+      .apply(LoggerMiddleware)
+      .exclude("__otel", "__otel/{*path}")
+      .forRoutes("*path");
   }
 }

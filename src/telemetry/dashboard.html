@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>NestJS Trace Dashboard</title>
+    <style>
+      :root {
+        --bg: #f3f5f7;
+        --panel: #fff;
+        --ink: #14202b;
+        --mute: #6b7a89;
+        --line: #dde3e9;
+        --ok: #1a9e63;
+        --warn: #c98a00;
+        --bad: #d6334a;
+        --in: #2457d6;
+        --out: #0e8a9c;
+        --db: #8a3fc7;
+        --sp: #7a8794;
+        --acc: #e0234e;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #10161c;
+          --panel: #18212a;
+          --ink: #e6edf3;
+          --mute: #8696a6;
+          --line: #27333f;
+          --ok: #3ddc97;
+          --warn: #f0b429;
+          --bad: #ff5c75;
+          --in: #6c93ff;
+          --out: #3cc6d8;
+          --db: #c18bf2;
+          --sp: #8c99a6;
+        }
+      }
+
+      :root[data-theme="dark"] {
+        --bg: #10161c;
+        --panel: #18212a;
+        --ink: #e6edf3;
+        --mute: #8696a6;
+        --line: #27333f;
+        --ok: #3ddc97;
+        --warn: #f0b429;
+        --bad: #ff5c75;
+        --in: #6c93ff;
+        --out: #3cc6d8;
+        --db: #c18bf2;
+        --sp: #8c99a6;
+      }
+
+      html {
+        scroll-padding-top: env(safe-area-inset-top, 0px);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          14px/1.45 "Segoe UI",
+          system-ui,
+          -apple-system,
+          Roboto,
+          sans-serif;
+      }
+
+      .mono {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        position: sticky;
+        top: env(safe-area-inset-top, 0px);
+        z-index: 5;
+      }
+
+      h1 {
+        font-size: 17px;
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      h1 i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--acc);
+        margin-right: 8px;
+      }
+
+      h2 {
+        font-size: 13px;
+        margin: 0 0 10px;
+        font-weight: 700;
+      }
+
+      .sp {
+        flex: 1;
+      }
+
+      button,
+      select,
+      input {
+        font: inherit;
+        color: var(--ink);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px 10px;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--mute);
+      }
+
+      button.on {
+        background: var(--acc);
+        border-color: var(--acc);
+        color: #fff;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--in);
+        outline-offset: 1px;
+      }
+
+      main {
+        padding: 16px 20px;
+        display: grid;
+        gap: 14px;
+        max-width: 1500px;
+        margin: 0 auto;
+      }
+
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .kpi b {
+        display: block;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .kpi span {
+        color: var(--mute);
+        font-size: 12px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .tools input[type="search"] {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      .scroll {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th {
+        text-align: left;
+        font-weight: 600;
+        color: var(--mute);
+        font-size: 12px;
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      td {
+        padding: 7px 8px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      tr.row {
+        cursor: pointer;
+      }
+
+      tr.row:hover td {
+        background: color-mix(in srgb, var(--mute) 8%, transparent);
+      }
+
+      tr.sel td {
+        background: color-mix(in srgb, var(--in) 12%, transparent);
+      }
+
+      .m {
+        font-weight: 700;
+      }
+
+      .GET {
+        color: var(--ok);
+      }
+
+      .POST {
+        color: var(--warn);
+      }
+
+      .PUT,
+      .PATCH {
+        color: var(--in);
+      }
+
+      .DELETE {
+        color: var(--bad);
+      }
+
+      .s2 {
+        color: var(--ok);
+      }
+
+      .s3 {
+        color: var(--out);
+      }
+
+      .s4 {
+        color: var(--warn);
+      }
+
+      .s5 {
+        color: var(--bad);
+        font-weight: 700;
+      }
+
+      .durbar {
+        display: inline-block;
+        height: 6px;
+        border-radius: 3px;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+
+      .tag {
+        display: inline-block;
+        min-width: 38px;
+        text-align: center;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        padding: 1px 5px;
+      }
+
+      .t-HTTP_IN {
+        background: var(--in);
+      }
+
+      .t-HTTP_OUT {
+        background: var(--out);
+      }
+
+      .t-DB {
+        background: var(--db);
+      }
+
+      .t-SPAN {
+        background: var(--sp);
+      }
+
+      .wf {
+        display: grid;
+        gap: 3px;
+      }
+
+      .wr {
+        display: grid;
+        grid-template-columns: minmax(150px, 42%) 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 3px 0;
+      }
+
+      .wl {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .wt {
+        position: relative;
+        height: 16px;
+        background: color-mix(in srgb, var(--mute) 10%, transparent);
+        border-radius: 3px;
+      }
+
+      .wb {
+        position: absolute;
+        top: 2px;
+        bottom: 2px;
+        border-radius: 2px;
+        min-width: 2px;
+      }
+
+      .wb span {
+        position: absolute;
+        left: calc(100% + 5px);
+        top: -2px;
+        font-size: 11px;
+        color: var(--mute);
+        white-space: nowrap;
+      }
+
+      .wb.r span {
+        left: auto;
+        right: calc(100% + 5px);
+      }
+
+      .sql {
+        grid-column: 1/-1;
+        color: var(--db);
+        padding: 0 0 4px 12px;
+        word-break: break-all;
+      }
+
+      .err {
+        grid-column: 1/-1;
+        color: var(--bad);
+        padding: 0 0 4px 12px;
+      }
+
+      .bad .wb {
+        background: var(--bad) !important;
+      }
+
+      .empty {
+        color: var(--mute);
+        padding: 30px 0;
+        text-align: center;
+      }
+
+      .legend {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        color: var(--mute);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      .legend i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        margin-right: 5px;
+        vertical-align: -1px;
+      }
+
+      dialog {
+        background: var(--panel);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        width: min(680px, 92vw);
+        padding: 18px;
+      }
+
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      textarea {
+        width: 100%;
+        height: 200px;
+        background: var(--bg);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px;
+        resize: vertical;
+      }
+
+      .hint {
+        color: var(--mute);
+        font-size: 12px;
+        margin: 6px 0 10px;
+      }
+
+      svg text {
+        fill: var(--mute);
+        font-size: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1><i></i>NestJS Trace Dashboard</h1>
+      <span class="mono" id="src" style="color: var(--mute)">dữ liệu mẫu</span>
+      <div class="sp"></div>
+      <label style="color: var(--mute)"
+        >Ngưỡng chậm
+        <input
+          id="slow"
+          type="number"
+          value="500"
+          min="1"
+          style="width: 76px"
+        />
+        ms</label
+      >
+      <button id="live" aria-pressed="false">▶ Chạy trực tiếp</button>
+      <button id="imp">Nhập log JSON</button>
+      <button id="theme" aria-label="Đổi giao diện sáng/tối">◐</button>
+    </header>
+
+    <main>
+      <section class="kpis" id="kpis"></section>
+
+      <section class="card">
+        <h2>Request theo phút</h2>
+        <svg
+          id="chart"
+          viewBox="0 0 900 140"
+          width="100%"
+          role="img"
+          aria-label="Biểu đồ số request theo phút"
+        ></svg>
+        <div class="legend">
+          <span><i style="background: var(--in)"></i>Thành công</span
+          ><span><i style="background: var(--warn)"></i>Chậm</span
+          ><span><i style="background: var(--bad)"></i>Lỗi</span>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Traces</h2>
+          <div class="tools">
+            <input
+              type="search"
+              id="q"
+              placeholder="Tìm route, method, trace id…"
+            />
+            <select id="st">
+              <option value="">Mọi trạng thái</option>
+              <option value="ok">Thành công</option>
+              <option value="err">Lỗi (4xx/5xx)</option>
+              <option value="slow">Chậm</option>
+            </select>
+            <select id="mt">
+              <option value="">Mọi method</option>
+              <option>GET</option>
+              <option>POST</option>
+              <option>PUT</option>
+              <option>PATCH</option>
+              <option>DELETE</option>
+            </select>
+          </div>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Giờ</th>
+                  <th>Method</th>
+                  <th>Route</th>
+                  <th>Mã</th>
+                  <th>Thời gian</th>
+                  <th>DB</th>
+                  <th>Trace</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div style="display: grid; gap: 14px">
+          <section class="card">
+            <h2 id="dt">Chi tiết trace</h2>
+            <div id="detail">
+              <div class="empty">Chọn một trace để xem waterfall.</div>
+            </div>
+          </section>
+          <section class="card">
+            <h2>Route chậm nhất (p95)</h2>
+            <div class="scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>Số lần</th>
+                    <th>Trung bình</th>
+                    <th>p95</th>
+                    <th>Lỗi</th>
+                  </tr>
+                </thead>
+                <tbody id="routes"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <dialog id="dlg">
+      <h2>Nhập log JSON</h2>
+      <p class="hint">
+        Chạy app với <span class="mono">OTEL_LOG_FORMAT=json</span>, copy các
+        dòng JSON in ra từ exporter rồi dán vào đây (mỗi dòng một span).
+      </p>
+      <textarea
+        id="ta"
+        class="mono"
+        placeholder='{"type":"HTTP_IN","traceId":"…","spanId":"…","durationMs":42,…}'
+      ></textarea>
+      <div
+        style="
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+          margin-top: 10px;
+        "
+      >
+        <button id="cancel">Đóng</button
+        ><button id="load" class="on">Tải dữ liệu</button>
+      </div>
+    </dialog>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) =>
+        String(s ?? "").replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      const hex = (n) =>
+        [...Array(n)]
+          .map(() => Math.floor(Math.random() * 16).toString(16))
+          .join("");
+      const rnd = (a, b) => a + Math.random() * (b - a);
+      let spans = [],
+        traces = [],
+        selected = null,
+        SLOW = 500,
+        timer = null;
+
+      /* ---------- Dữ liệu mẫu (cùng schema với OTEL_LOG_FORMAT=json) ---------- */
+      const ROUTES = [
+        ["GET", "/api/users", 40],
+        ["GET", "/api/orders", 120],
+        ["POST", "/api/orders", 220],
+        ["GET", "/api/products/:id", 60],
+        ["POST", "/auth/login", 150],
+        ["GET", "/api/reports", 700],
+        ["PUT", "/api/users/:id", 90],
+        ["DELETE", "/api/orders/:id", 70],
+      ];
+      const HANDLERS = {
+        "/api/users": "UsersController.findAll",
+        "/api/orders": "OrdersController.handle",
+        "/api/products/:id": "ProductsController.findOne",
+        "/auth/login": "AuthController.login",
+        "/api/reports": "ReportsController.summary",
+        "/api/users/:id": "UsersController.update",
+        "/api/orders/:id": "OrdersController.remove",
+      };
+      const SQL = [
+        [
+          "SELECT",
+          "users",
+          'SELECT "u"."id", "u"."email", "u"."name" FROM "users" "u" WHERE "u"."id" = $1',
+        ],
+        [
+          "SELECT",
+          "orders",
+          'SELECT "o"."id", "o"."total" FROM "orders" "o" WHERE "o"."user_id" = $1 ORDER BY "o"."created_at" DESC',
+        ],
+        [
+          "INSERT",
+          "orders",
+          'INSERT INTO "orders"("user_id","total") VALUES ($1,$2) RETURNING "id"',
+        ],
+        [
+          "SELECT",
+          "products",
+          'SELECT "p".* FROM "products" "p" WHERE "p"."id" = $1',
+        ],
+        ["UPDATE", "users", 'UPDATE "users" SET "name" = $1 WHERE "id" = $2'],
+      ];
+      function mkTrace(t0) {
+        const [m, r, base] = ROUTES[Math.floor(Math.random() * ROUTES.length)];
+        const traceId = hex(32),
+          root = hex(16),
+          h = hex(16);
+        const fail = Math.random() < 0.07,
+          slowT = Math.random() < 0.06;
+        let off = 2,
+          out = [];
+        const handler = {
+          type: "SPAN",
+          traceId,
+          spanId: h,
+          parentSpanId: root,
+          name: HANDLERS[r] || "Handler",
+          scope: "@opentelemetry/instrumentation-nestjs-core",
+          kind: "INTERNAL",
+          status: "UNSET",
+        };
+        const n = 1 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < n; i++) {
+          const q = SQL[Math.floor(Math.random() * SQL.length)];
+          const d = +(rnd(1, base / 3) * (slowT ? 6 : 1)).toFixed(2);
+          out.push({
+            type: "DB",
+            traceId,
+            spanId: hex(16),
+            parentSpanId: h,
+            name: "pg.query:" + q[0],
+            scope: "@opentelemetry/instrumentation-pg",
+            kind: "CLIENT",
+            time: new Date(t0 + off + 2).toISOString(),
+            durationMs: d,
+            status: "UNSET",
+            query: q[2],
+            db: "app_db",
+            host: "localhost",
+            method: undefined,
+          });
+          off += d + rnd(0.5, 3);
+        }
+        if (r === "/auth/login" || (r === "/api/orders" && m === "POST")) {
+          const d = +rnd(20, 90).toFixed(1);
+          out.push({
+            type: "HTTP_OUT",
+            traceId,
+            spanId: hex(16),
+            parentSpanId: h,
+            name: "POST",
+            scope: "@opentelemetry/instrumentation-http",
+            kind: "CLIENT",
+            time: new Date(t0 + off + 2).toISOString(),
+            durationMs: d,
+            status: "UNSET",
+            method: "POST",
+            route: "https://payments.internal/charge",
+            statusCode: 200,
+          });
+          off += d;
+        }
+        const total = +(off + rnd(2, 8)).toFixed(2);
+        const code = fail
+          ? Math.random() < 0.7
+            ? 500
+            : 404
+          : m === "POST"
+            ? 201
+            : 200;
+        handler.time = new Date(t0 + 1).toISOString();
+        handler.durationMs = +(total - 2).toFixed(2);
+        if (fail && code >= 500) {
+          handler.status = "ERROR";
+          handler.errors = [
+            {
+              type: "QueryFailedError",
+              message: "connection timeout exceeded",
+            },
+          ];
+        }
+        out.unshift(handler);
+        out.unshift({
+          type: "HTTP_IN",
+          traceId,
+          spanId: root,
+          name: m + " " + r,
+          scope: "@opentelemetry/instrumentation-http",
+          kind: "SERVER",
+          time: new Date(t0).toISOString(),
+          durationMs: total,
+          status: code >= 500 ? "ERROR" : "UNSET",
+          method: m,
+          route: r,
+          statusCode: code,
+          clientIp:
+            "::ffff:10.0." +
+            Math.floor(rnd(0, 5)) +
+            "." +
+            Math.floor(rnd(2, 250)),
+          userAgent: "Mozilla/5.0",
+        });
+        return out;
+      }
+      function seed() {
+        const now = Date.now();
+        spans = [];
+        for (let i = 0; i < 260; i++)
+          spans.push(...mkTrace(now - Math.random() * 30 * 60000));
+        rebuild();
+      }
+
+      /* ---------- Gom span thành trace ---------- */
+      function rebuild() {
+        const g = new Map();
+        for (const s of spans) {
+          if (!g.has(s.traceId)) g.set(s.traceId, []);
+          g.get(s.traceId).push(s);
+        }
+        traces = [];
+        for (const [id, list] of g) {
+          const ids = new Set(list.map((s) => s.spanId));
+          const roots = list
+            .filter(
+              (s) =>
+                s.type === "HTTP_IN" ||
+                !s.parentSpanId ||
+                !ids.has(s.parentSpanId),
+            )
+            .sort(
+              (a, b) =>
+                (a.type === "HTTP_IN" ? 0 : 1) -
+                  (b.type === "HTTP_IN" ? 0 : 1) ||
+                new Date(a.time) - new Date(b.time),
+            );
+          const root = roots[0] || list[0];
+          const dbs = list.filter((s) => s.type === "DB");
+          const code = root.statusCode;
+          traces.push({
+            id,
+            root,
+            list,
+            t: new Date(root.time).getTime(),
+            dur: root.durationMs,
+            code,
+            err: list.some((s) => s.status === "ERROR") || code >= 400,
+            server: list.some((s) => s.status === "ERROR") || code >= 500,
+            dbN: dbs.length,
+            dbMs: dbs.reduce((a, s) => a + s.durationMs, 0),
+          });
+        }
+        traces.sort((a, b) => b.t - a.t);
+        render();
+      }
+
+      /* ---------- Hiển thị ---------- */
+      const pct = (arr, p) => {
+        if (!arr.length) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        return s[Math.min(s.length - 1, Math.floor(p * s.length))];
+      };
+      const fmtD = (ms) =>
+        ms >= 1000
+          ? (ms / 1000).toFixed(2) + "s"
+          : (ms < 10 ? ms.toFixed(1) : Math.round(ms)) + "ms";
+      const dcol = (ms) =>
+        ms >= SLOW
+          ? "var(--bad)"
+          : ms >= SLOW / 5
+            ? "var(--warn)"
+            : "var(--ok)";
+      const sc = (c) => (c == null ? "" : "s" + String(c)[0]);
+
+      function render() {
+        SLOW = +$("slow").value || 500;
+        const durs = traces.map((t) => t.dur),
+          errs = traces.filter((t) => t.err).length,
+          slow = traces.filter((t) => t.dur >= SLOW).length;
+        const dbq = traces.reduce((a, t) => a + t.dbN, 0);
+        $("kpis").innerHTML = [
+          ["Request", traces.length, ""],
+          [
+            "Tỷ lệ lỗi",
+            traces.length
+              ? ((errs / traces.length) * 100).toFixed(1) + "%"
+              : "–",
+            errs ? "var(--bad)" : "var(--ok)",
+          ],
+          ["p50", fmtD(pct(durs, 0.5)), ""],
+          ["p95", fmtD(pct(durs, 0.95)), dcol(pct(durs, 0.95))],
+          ["Request chậm", slow, slow ? "var(--warn)" : ""],
+          ["Truy vấn DB", dbq, ""],
+        ]
+          .map(
+            ([l, v, c]) =>
+              `<div class="card kpi"><b style="${c ? `color:${c}` : ""}">${v}</b><span>${l}</span></div>`,
+          )
+          .join("");
+        chart();
+        const q = $("q").value.toLowerCase(),
+          st = $("st").value,
+          mt = $("mt").value;
+        const f = traces.filter((t) => {
+          if (mt && t.root.method !== mt) return false;
+          if (st === "err" && !t.err) return false;
+          if (st === "ok" && t.err) return false;
+          if (st === "slow" && t.dur < SLOW) return false;
+          return (
+            !q ||
+            (t.root.name + " " + t.root.route + " " + t.id)
+              .toLowerCase()
+              .includes(q)
+          );
+        });
+        const mx = Math.max(1, ...f.slice(0, 100).map((t) => t.dur));
+        $("rows").innerHTML =
+          f
+            .slice(0, 100)
+            .map(
+              (
+                t,
+              ) => `<tr class="row ${t.id === selected ? "sel" : ""}" data-id="${t.id}" tabindex="0">
+    <td class="mono">${new Date(t.t).toTimeString().slice(0, 8)}</td>
+    <td class="m ${t.root.method}">${esc(t.root.method || t.root.type)}</td>
+    <td>${esc(t.root.route || t.root.name)}</td>
+    <td class="${sc(t.code)}">${t.code ?? "–"}</td>
+    <td><span class="durbar" style="width:${Math.max(3, (t.dur / mx) * 60)}px;background:${dcol(t.dur)}"></span>${fmtD(t.dur)}</td>
+    <td class="mono">${t.dbN ? t.dbN + " · " + fmtD(t.dbMs) : "–"}</td>
+    <td class="mono" style="color:var(--mute)">${t.id.slice(0, 8)}</td></tr>`,
+            )
+            .join("") ||
+          `<tr><td colspan="7" class="empty">Không có trace khớp bộ lọc.</td></tr>`;
+        routes();
+        detail();
+      }
+
+      function chart() {
+        const N = 30,
+          end = Math.ceil(Date.now() / 60000) * 60000,
+          b = [...Array(N)].map(() => ({ ok: 0, slow: 0, err: 0 }));
+        for (const t of traces) {
+          const i = N - 1 - Math.floor((end - t.t) / 60000);
+          if (i < 0 || i >= N) continue;
+          t.server || t.err
+            ? b[i].err++
+            : t.dur >= SLOW
+              ? b[i].slow++
+              : b[i].ok++;
+        }
+        const mx = Math.max(4, ...b.map((x) => x.ok + x.slow + x.err)),
+          W = 900,
+          H = 110,
+          bw = W / N;
+        let s = "";
+        [0, 0.5, 1].forEach((p) => {
+          const y = H - p * (H - 6);
+          s += `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="2" y="${y - 2}">${Math.round(p * mx)}</text>`;
+        });
+        b.forEach((x, i) => {
+          let y = H;
+          [
+            ["ok", "var(--in)"],
+            ["slow", "var(--warn)"],
+            ["err", "var(--bad)"],
+          ].forEach(([k, c]) => {
+            const h = (x[k] / mx) * (H - 6);
+            if (h > 0) {
+              y -= h;
+              s += `<rect x="${i * bw + 3}" y="${y}" width="${bw - 6}" height="${h}" fill="${c}" rx="1"/>`;
+            }
+          });
+        });
+        s += `<text x="2" y="132">-30 phút</text><text x="${W - 26}" y="132">nay</text>`;
+        $("chart").innerHTML = s;
+      }
+
+      function routes() {
+        const m = new Map();
+        for (const t of traces) {
+          if (t.root.type !== "HTTP_IN") continue;
+          const k = t.root.method + " " + t.root.route;
+          if (!m.has(k)) m.set(k, { d: [], e: 0 });
+          const o = m.get(k);
+          o.d.push(t.dur);
+          if (t.err) o.e++;
+        }
+        const a = [...m]
+          .map(([k, o]) => ({
+            k,
+            n: o.d.length,
+            avg: o.d.reduce((x, y) => x + y, 0) / o.d.length,
+            p95: pct(o.d, 0.95),
+            e: o.e,
+          }))
+          .sort((a, b) => b.p95 - a.p95)
+          .slice(0, 7);
+        $("routes").innerHTML =
+          a
+            .map(
+              (r) =>
+                `<tr><td>${esc(r.k)}</td><td>${r.n}</td><td>${fmtD(r.avg)}</td><td style="color:${dcol(r.p95)};font-weight:700">${fmtD(r.p95)}</td><td class="${r.e ? "s5" : ""}">${r.e}</td></tr>`,
+            )
+            .join("") ||
+          `<tr><td colspan="5" class="empty">Chưa có dữ liệu.</td></tr>`;
+      }
+
+      function detail() {
+        const t = traces.find((x) => x.id === selected);
+        if (!t) {
+          $("dt").textContent = "Chi tiết trace";
+          $("detail").innerHTML =
+            `<div class="empty">Chọn một trace để xem waterfall.</div>`;
+          return;
+        }
+        $("dt").innerHTML =
+          `${esc(t.root.name)} <span class="mono" style="color:var(--mute);font-weight:400">trace=${t.id.slice(0, 8)}</span>`;
+        const byP = new Map();
+        for (const s of t.list) {
+          const p = s.parentSpanId;
+          if (!byP.has(p)) byP.set(p, []);
+          byP.get(p).push(s);
+        }
+        const T0 = Math.min(...t.list.map((s) => new Date(s.time).getTime())),
+          T1 = Math.max(
+            ...t.list.map((s) => new Date(s.time).getTime() + s.durationMs),
+          ),
+          span = Math.max(1, T1 - T0);
+        const ids = new Set(t.list.map((s) => s.spanId)),
+          rows = [];
+        const walk = (s, d) => {
+          rows.push([s, d]);
+          (byP.get(s.spanId) || [])
+            .sort((a, b) => new Date(a.time) - new Date(b.time))
+            .forEach((k) => walk(k, d + 1));
+        };
+        t.list
+          .filter((s) => !s.parentSpanId || !ids.has(s.parentSpanId))
+          .forEach((r) => walk(r, 0));
+        const col = {
+          HTTP_IN: "var(--in)",
+          HTTP_OUT: "var(--out)",
+          DB: "var(--db)",
+          SPAN: "var(--sp)",
+        };
+        const lab = { HTTP_IN: "IN", HTTP_OUT: "OUT", DB: "DB", SPAN: "SPAN" };
+        $("detail").innerHTML =
+          `<div class="mono" style="color:var(--mute);margin-bottom:8px">${fmtD(t.dur)} tổng · ${t.dbN} truy vấn DB (${fmtD(t.dbMs)}) · ${t.list.length} span${t.root.clientIp ? " · ip=" + esc(t.root.clientIp) : ""}</div><div class="wf">` +
+          rows
+            .map(([s, d]) => {
+              const l = ((new Date(s.time).getTime() - T0) / span) * 100,
+                w = Math.max(0.4, (s.durationMs / span) * 100),
+                bad = s.status === "ERROR";
+              const name =
+                s.type === "DB"
+                  ? `${s.name.split(":")[1] || "QUERY"}`
+                  : s.type.startsWith("HTTP")
+                    ? `${s.method || ""} ${s.route || s.name}`
+                    : s.name;
+              return `<div class="wr ${bad ? "bad" : ""}"><div class="wl" style="padding-left:${d * 12}px"><span class="tag t-${s.type}">${lab[s.type]}</span> ${esc(name)}</div>
+    <div class="wt"><div class="wb ${l > 70 ? "r" : ""}" style="left:${l}%;width:${w}%;background:${col[s.type]}"><span>${fmtD(s.durationMs)}</span></div></div>
+    ${s.query ? `<div class="sql mono">↳ ${esc(s.query.replace(/\s+/g, " ").replace(/^SELECT .+? FROM /i, "SELECT … FROM "))}</div>` : ""}
+    ${(s.errors || []).map((e) => `<div class="err mono">✖ ${esc(e.type || "Error")}: ${esc(e.message || "")}</div>`).join("")}</div>`;
+            })
+            .join("") +
+          `</div>`;
+      }
+
+      /* ---------- Tương tác ---------- */
+      $("rows").addEventListener("click", (e) => {
+        const r = e.target.closest("tr.row");
+        if (r) {
+          selected = r.dataset.id;
+          render();
+        }
+      });
+      $("rows").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const r = e.target.closest("tr.row");
+          if (r) {
+            selected = r.dataset.id;
+            render();
+          }
+        }
+      });
+      ["q", "st", "mt", "slow"].forEach((id) =>
+        $(id).addEventListener("input", render),
+      );
+      $("live").onclick = () => {
+        const on = !timer;
+        $("live").classList.toggle("on", on);
+        $("live").setAttribute("aria-pressed", on);
+        $("live").textContent = on ? "⏸ Dừng" : "▶ Chạy trực tiếp";
+        if (on)
+          timer = setInterval(() => {
+            spans.push(...mkTrace(Date.now()));
+            if (spans.length > 4000) spans = spans.slice(-3000);
+            rebuild();
+          }, 1200);
+        else {
+          clearInterval(timer);
+          timer = null;
+        }
+      };
+      $("imp").onclick = () => $("dlg").showModal();
+      $("cancel").onclick = () => $("dlg").close();
+      $("load").onclick = () => {
+        const out = [];
+        for (const line of $("ta").value.split("\n")) {
+          try {
+            const o = JSON.parse(line.trim());
+            if (o && o.traceId && o.spanId) out.push(o);
+          } catch (e) {}
+        }
+        if (!out.length) {
+          alert(
+            "Không đọc được dòng JSON hợp lệ nào. Mỗi dòng cần có traceId và spanId.",
+          );
+          return;
+        }
+        if (timer) $("live").click();
+        spans = out;
+        selected = null;
+        $("src").textContent = `log đã nhập (${out.length} span)`;
+        $("dlg").close();
+        rebuild();
+      };
+      $("theme").onclick = () => {
+        const r = document.documentElement,
+          d =
+            r.dataset.theme === "dark" ||
+            (!r.dataset.theme &&
+              matchMedia("(prefers-color-scheme:dark)").matches);
+        r.dataset.theme = d ? "light" : "dark";
+        render();
+      };
+      /* ---------- Kết nối NestJS (/__otel/spans + /__otel/stream) ---------- */
+      const unwrap = (x) =>
+        Array.isArray(x)
+          ? x
+          : Array.isArray(x?.data)
+            ? x.data
+            : Array.isArray(x?.result)
+              ? x.result
+              : [];
+      const isSelf = (r) => /\/__otel/.test((r.route || "") + (r.name || ""));
+      async function boot() {
+        const BASE = location.pathname.replace(/\/$/, "");
+        try {
+          const res = await fetch(BASE + "/spans" + location.search);
+          if (!res.ok) throw new Error(res.status);
+          spans = unwrap(await res.json()).filter(
+            (r) => r && r.traceId && !isSelf(r),
+          );
+          $("src").textContent = "trực tiếp";
+        } catch (e) {
+          console.warn("Không tải được /spans, dùng dữ liệu mẫu:", e);
+          seed();
+          return;
+        }
+        rebuild();
+        const seen = new Set(spans.map((s) => s.spanId));
+        let t;
+        const es = new EventSource(BASE + "/stream" + location.search);
+        es.onmessage = (e) => {
+          let msg;
+          try {
+            msg = JSON.parse(e.data);
+          } catch {
+            return;
+          }
+          const rec = msg?.traceId ? msg : msg?.data;
+          if (!rec?.traceId || seen.has(rec.spanId) || isSelf(rec)) return;
+          seen.add(rec.spanId);
+          spans.push(rec);
+          if (spans.length > 4000) {
+            spans = spans.slice(-3000);
+            seen.clear();
+            spans.forEach((s) => seen.add(s.spanId));
+          }
+          clearTimeout(t);
+          t = setTimeout(rebuild, 300);
+        };
+        es.onerror = () => {
+          if (es.readyState === EventSource.CLOSED) es.close();
+        };
+      }
+      boot();
+    </script>
+  </body>
+</html>
