@@ -14,7 +14,7 @@
     "start:dev:local": "nest start --watch --env-file .env.local",
     "start:dev:prod": "nest start --watch  --env-file .env.prod",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/src/main -r ts-node/register -r tsconfig-paths/register -r ./instrumentation.ts dist/src/main.js",
+    "start:prod": "node -r ./dist/instrumentation.js dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
