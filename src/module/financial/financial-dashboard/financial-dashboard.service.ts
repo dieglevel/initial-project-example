@@ -8,6 +8,7 @@ import { FinancialTransactionItemEntity } from "../financial-transaction/_entiti
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
 import { FinancialGoalEntity } from "../financial-goal/_entities/financial-goal.entity";
 import { FinancialDebtEntity } from "../financial-debt/_entities/financial-debt.entity";
+import { FinancialSettingEntity } from "../financial-setting/_entities/financial-setting.entity";
 import {
   FINANCIAL_TRANSACTION_TYPE,
   FINANCIAL_TRANSACTION_STATUS,
@@ -37,6 +38,9 @@ export class FinancialDashboardService {
 
     @InjectRepository(FinancialDebtEntity)
     private readonly debtRepository: Repository<FinancialDebtEntity>,
+
+    @InjectRepository(FinancialSettingEntity)
+    private readonly settingRepository: Repository<FinancialSettingEntity>,
   ) {}
 
   async getDashboardSummary({
@@ -48,6 +52,15 @@ export class FinancialDashboardService {
   }): Promise<FinancialDashboard_Response> {
     const accountId = user.sub;
     const { walletId, timeFrame = DashboardTimeFrame.MONTHLY } = query;
+
+    // 0. Fetch user setting for cycleStartDate
+    const userSetting = await this.settingRepository.findOne({
+      where: { accountId },
+    });
+    const cycleStartDate = Math.max(
+      1,
+      Math.min(31, Number(userSetting?.cycleStartDate || 1)),
+    );
 
     // 1. Determine Date Range
     let startDate: Date;
@@ -64,9 +77,25 @@ export class FinancialDashboardService {
       startDate = now.startOf("year").toDate();
       endDate = now.endOf("year").toDate();
     } else {
-      // Default MONTHLY
-      startDate = now.startOf("month").toDate();
-      endDate = now.endOf("month").toDate();
+      // Default / MONTHLY calculated with cycleStartDate
+      if (cycleStartDate === 1) {
+        startDate = now.startOf("month").toDate();
+        endDate = now.endOf("month").toDate();
+      } else {
+        const baseDate =
+          now.date() < cycleStartDate ? now.subtract(1, "month") : now;
+
+        const clampedStartDay = Math.min(cycleStartDate, baseDate.daysInMonth());
+        startDate = baseDate.date(clampedStartDay).startOf("day").toDate();
+
+        const nextMonth = baseDate.add(1, "month");
+        const clampedNextDay = Math.min(cycleStartDate, nextMonth.daysInMonth());
+        endDate = nextMonth
+          .date(clampedNextDay)
+          .startOf("day")
+          .subtract(1, "millisecond")
+          .toDate();
+      }
     }
 
     // 2. Fetch Transactions in date range
@@ -228,8 +257,15 @@ export class FinancialDashboardService {
       .sort((a, b) => b.amount - a.amount);
 
     // 7. Recent Transactions (Top 6)
+    const recentTxWhere: Record<string, any> = {
+      account: { id: accountId },
+    };
+    if (walletId) {
+      recentTxWhere.wallet = { id: walletId };
+    }
+
     const recentTxList = await this.transactionRepository.find({
-      where: { account: { id: accountId } },
+      where: recentTxWhere,
       relations: [
         "wallet",
         "financialTransactionItems",
@@ -254,6 +290,7 @@ export class FinancialDashboardService {
     // 8. Goals Summary
     const activeGoals = await this.goalRepository.find({
       where: { accountId },
+      order: { id: "DESC" },
       take: 4,
     });
 
@@ -268,12 +305,16 @@ export class FinancialDashboardService {
         targetAmount: target,
         currentAmount: current,
         percentage: pct,
+        deadline: g.deadline,
+        status: g.status,
+        type: g.type,
       };
     });
 
     // 9. Debts Summary
     const activeDebts = await this.debtRepository.find({
       where: { accountId },
+      order: { id: "DESC" },
       take: 4,
     });
 
@@ -283,13 +324,22 @@ export class FinancialDashboardService {
       return {
         id: d.id,
         name: d.namePerson || d.name,
+        namePerson: d.namePerson,
         totalAmount: orig,
         paidAmount: Math.max(0, orig - out),
+        remainingAmount: out,
         type: d.direction || d.type,
+        dueDate: d.dueDate,
+        status: d.status,
       };
     });
 
     return {
+      period: {
+        startDate: dayjs(startDate).format("YYYY-MM-DD"),
+        endDate: dayjs(endDate).format("YYYY-MM-DD"),
+        cycleStartDate,
+      },
       summary: {
         totalIncome,
         totalExpense,

@@ -8,6 +8,7 @@ import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-w
 import { FinancialCategoryEntity } from "../financial-category/_entities/financial-category.entity";
 import { FinancialGoalEntity } from "../financial-goal/_entities/financial-goal.entity";
 import { FinancialDebtEntity } from "../financial-debt/_entities/financial-debt.entity";
+import { FinancialSettingEntity } from "../financial-setting/_entities/financial-setting.entity";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { FinancialDebtEntity } from "../financial-debt/_entities/financial-debt.
       FinancialCategoryEntity,
       FinancialGoalEntity,
       FinancialDebtEntity,
+      FinancialSettingEntity,
     ]),
   ],
   controllers: [FinancialDashboardController],

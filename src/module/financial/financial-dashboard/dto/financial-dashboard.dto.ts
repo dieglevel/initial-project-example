@@ -65,14 +65,21 @@ export class GoalSummaryItem {
   targetAmount: number;
   currentAmount: number;
   percentage: number;
+  deadline?: Date | string | null;
+  status?: string;
+  type?: string;
 }
 
 export class DebtSummaryItem {
   id: number;
   name: string;
+  namePerson?: string;
   totalAmount: number;
   paidAmount: number;
+  remainingAmount?: number;
   type: string;
+  dueDate?: string | null;
+  status?: string;
 }
 
 export class RecentTransactionItem {
@@ -88,6 +95,11 @@ export class RecentTransactionItem {
 }
 
 export class FinancialDashboard_Response {
+  period?: {
+    startDate: string;
+    endDate: string;
+    cycleStartDate: number;
+  };
   summary: {
     totalIncome: number;
     totalExpense: number;
