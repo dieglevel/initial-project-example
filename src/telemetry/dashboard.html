@@ -1086,8 +1086,9 @@
               ? x.result
               : [];
       const isSelf = (r) => /\/__otel/.test((r.route || "") + (r.name || ""));
+      
       async function boot() {
-        const BASE = location.pathname.replace(/\/$/, "");
+        const BASE = location.pathname.replace(/\/(index\.html)?$/, "");
         try {
           const res = await fetch(BASE + "/spans" + location.search);
           if (!res.ok) throw new Error(res.status);
