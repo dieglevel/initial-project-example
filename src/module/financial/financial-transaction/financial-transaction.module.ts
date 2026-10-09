@@ -5,6 +5,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { FinancialTransactionEntity } from "./_entities/financial-transaction.entity";
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
 import { FinancialTransactionItemEntity } from "./_entities/financial-transaction-item.entity";
+import { IdempotencyModule } from "@/common/idempotency/idempotency.module";
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { FinancialTransactionItemEntity } from "./_entities/financial-transactio
       FinancialTransactionItemEntity,
       FinancialWalletEntity,
     ]),
+    IdempotencyModule,
   ],
   controllers: [FinancialTransactionController],
   providers: [FinancialTransactionService],
