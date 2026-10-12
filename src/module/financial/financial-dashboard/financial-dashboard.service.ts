@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Between, Repository } from "typeorm";
 import dayjs from "dayjs";
 import type { JwtPayload } from "@/module/auth/payload.type";
 import { FinancialTransactionEntity } from "../financial-transaction/_entities/financial-transaction.entity";
@@ -85,11 +85,17 @@ export class FinancialDashboardService {
         const baseDate =
           now.date() < cycleStartDate ? now.subtract(1, "month") : now;
 
-        const clampedStartDay = Math.min(cycleStartDate, baseDate.daysInMonth());
+        const clampedStartDay = Math.min(
+          cycleStartDate,
+          baseDate.daysInMonth(),
+        );
         startDate = baseDate.date(clampedStartDay).startOf("day").toDate();
 
         const nextMonth = baseDate.add(1, "month");
-        const clampedNextDay = Math.min(cycleStartDate, nextMonth.daysInMonth());
+        const clampedNextDay = Math.min(
+          cycleStartDate,
+          nextMonth.daysInMonth(),
+        );
         endDate = nextMonth
           .date(clampedNextDay)
           .startOf("day")
@@ -256,9 +262,10 @@ export class FinancialDashboardService {
       }))
       .sort((a, b) => b.amount - a.amount);
 
-    // 7. Recent Transactions (Top 6)
+    // 7. Recent Transactions (Top 6 by amount within cycle)
     const recentTxWhere: Record<string, any> = {
       account: { id: accountId },
+      createdAt: Between(startDate, endDate),
     };
     if (walletId) {
       recentTxWhere.wallet = { id: walletId };
@@ -271,7 +278,7 @@ export class FinancialDashboardService {
         "financialTransactionItems",
         "financialTransactionItems.category",
       ],
-      order: { createdAt: "DESC" },
+      order: { amount: "DESC", createdAt: "DESC" },
       take: 6,
     });
 

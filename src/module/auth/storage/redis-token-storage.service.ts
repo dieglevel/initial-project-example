@@ -34,7 +34,9 @@ export class RedisTokenStorageService implements IJwtTokenStorageService {
         this.redisStore = new KeyvRedis(`redis://${host}:${port}`, {
           namespace: prefix,
         });
-        this.logger.log(`RedisTokenStorageService initialized (${host}:${port})`);
+        this.logger.log(
+          `RedisTokenStorageService initialized (${host}:${port})`,
+        );
       } catch (error) {
         this.logger.warn(
           `Failed to initialize Redis store, falling back to MemoryCache: ${error}`,
@@ -72,7 +74,9 @@ export class RedisTokenStorageService implements IJwtTokenStorageService {
         await this.redisStore.set(key, token, ttlSeconds * 1000);
         return;
       } catch (err) {
-        this.logger.warn(`Redis saveToken error, fallback to CacheManager: ${err}`);
+        this.logger.warn(
+          `Redis saveToken error, fallback to CacheManager: ${err}`,
+        );
       }
     }
     await this.cacheManager.set(key, token, ttlSeconds * 1000);
@@ -91,7 +95,9 @@ export class RedisTokenStorageService implements IJwtTokenStorageService {
         await this.redisStore.delete(key);
         return;
       } catch (err) {
-        this.logger.warn(`Redis removeToken error, fallback to CacheManager: ${err}`);
+        this.logger.warn(
+          `Redis removeToken error, fallback to CacheManager: ${err}`,
+        );
       }
     }
     await this.cacheManager.del(key);
@@ -111,7 +117,9 @@ export class RedisTokenStorageService implements IJwtTokenStorageService {
       try {
         cached = await this.redisStore.get(key);
       } catch (err) {
-        this.logger.warn(`Redis validateToken error, fallback to CacheManager: ${err}`);
+        this.logger.warn(
+          `Redis validateToken error, fallback to CacheManager: ${err}`,
+        );
         cached = await this.cacheManager.get<string>(key);
       }
     } else {

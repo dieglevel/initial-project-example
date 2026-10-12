@@ -69,7 +69,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const userId = req.user?.sub;
     if (!userId) {
       // Should not happen if AuthGuard runs first, but guard against it
-      throw new BadRequestException("Cannot determine user for idempotency check.");
+      throw new BadRequestException(
+        "Cannot determine user for idempotency check.",
+      );
     }
 
     const endpoint = IdempotencyService.endpointKey(req.method, req.path);
@@ -98,7 +100,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
           next
             .handle()
             .pipe(
-              switchMap(async (responseData) => {
+              switchMap(async (responseData: unknown) => {
                 // Save the successful response
                 const statusCode =
                   (res as Response & { statusCode?: number }).statusCode ??
@@ -106,7 +108,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
                 if (record) {
                   await this.idempotencyService.complete({
-                    record: record as IdempotencyEntity,
+                    record: record,
                     statusCode,
                     body: responseData as Record<string, unknown>,
                   });
@@ -114,13 +116,16 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
                 return responseData;
               }),
-              catchError((err) => {
+              catchError((err: Error) => {
                 // Mark as failed so clients can retry
                 if (record) {
                   this.idempotencyService
-                    .markFailed(record as IdempotencyEntity)
+                    .markFailed(record)
                     .catch((e) =>
-                      this.logger.error("Failed to mark idempotency as FAILED", e),
+                      this.logger.error(
+                        "Failed to mark idempotency as FAILED",
+                        e,
+                      ),
                     );
                 }
                 return throwError(() => err);
