@@ -24,6 +24,7 @@ import { HealthCheckModule } from "./module/health-check/health-check.module";
 import { AppGateway } from "./gateway/app.gateway";
 import { OpenTelemetryInterceptor } from "./common/interceptor/open-telementry.interceptor";
 import { TelemetryModule } from "./telemetry/telemetry.module";
+import { SystemInformationModule } from "./module/system-information/system-information.module";
 // Version: 0.1
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { TelemetryModule } from "./telemetry/telemetry.module";
     AuthModule,
     AccountModule,
     ProfileModule,
+    SystemInformationModule,
 
     FinancialModule,
 
