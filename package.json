@@ -14,7 +14,7 @@
     "start:dev:local": "nest start --watch --env-file .env.local",
     "start:dev:prod": "nest start --watch  --env-file .env.prod",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node -r dist/src/main.js",
+    "start:prod": "nest start",
     "start:prod:instrumented": "node -r ./dist/instrumentation.js dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
