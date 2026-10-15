@@ -28,7 +28,7 @@ import { databaseConfig } from "../environment/types/database.type";
 
           // migrations: ["@/migrations/*.ts"],
           // logging: true,
-          // logger: "advanced-console",
+          // logger: "simple-console",
         };
       },
     }),

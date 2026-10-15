@@ -9,6 +9,7 @@ import { FileCleanupCron } from "./clean-temp-file.cron";
 @Module({
   imports: [TypeOrmModule.forFeature([FileEntity])],
   controllers: [StaticFileController],
+  exports: [StaticFileService],
   providers: [
     StaticFileService,
     FileCleanupCron,

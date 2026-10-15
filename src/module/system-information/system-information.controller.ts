@@ -4,7 +4,6 @@ import { ApiBaseResponse } from "@/common/decorator/api-swagger/api-base-respons
 import { SystemInformationService } from "./system-information.service";
 import { Public } from "../auth/decorator/public.decorator";
 
-@Public()
 @Controller("system-information")
 export class SystemInformationController {
   constructor(

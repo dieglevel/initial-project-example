@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { FileEntity } from "./_entities/file.entity";
 import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
 import { FileProvider, FileType } from "./enum";
@@ -45,6 +45,7 @@ export class StaticFileService {
       mimeType: uploadResult.mimeType,
       fileKey: uploadResult.fileKey,
       originalName: uploadResult.originalName,
+      isTemporary: true,
     });
 
     try {
@@ -82,6 +83,7 @@ export class StaticFileService {
             fileKey: result.fileKey,
             originalName: result.originalName,
             order: i + 1,
+            isTemporary: true,
           }),
         );
       }
@@ -126,14 +128,18 @@ export class StaticFileService {
     return file;
   }
 
-  async changeTemporaryStatus(
+  async markAsPermanent(
     id: number,
-    isTemporary: boolean,
-  ): Promise<FileEntity> {
-    const file = await this.fileRepo.findOneBy({ id });
-    if (!file) throw new Error("File not found");
+    manager?: EntityManager,
+    oldId?: number,
+  ): Promise<FileEntity | null> {
+    const repo = manager ? manager.getRepository(FileEntity) : this.fileRepo;
 
-    file.isTemporary = isTemporary;
-    return this.fileRepo.save(file);
+    if (oldId != null && oldId !== id) {
+      await repo.update({ id: oldId }, { isTemporary: true });
+    }
+
+    await repo.update({ id, isTemporary: true }, { isTemporary: false });
+    return await repo.findOneBy({ id });
   }
 }
