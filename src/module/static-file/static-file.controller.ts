@@ -21,11 +21,22 @@ import { Public } from "../auth/decorator/public.decorator";
 import { FileEntity } from "./_entities/file.entity";
 import { UploadFileDto, UploadMultipleDto } from "./dto/upload.dto";
 import { StaticFileService } from "./static-file.service";
+import { FileCleanupCron } from "./clean-temp-file.cron";
+import type { Multer } from "multer";
 
 @Controller("static")
 @Public()
 export class StaticFileController {
-  constructor(private readonly fileService: StaticFileService) {}
+  constructor(
+    private readonly fileService: StaticFileService,
+    private readonly cleanCron: FileCleanupCron,
+  ) {}
+
+  @Post("clean-temp")
+  @HttpCode(200)
+  cleanTempFiles() {
+    return this.cleanCron.handleExpiredFiles();
+  }
 
   @Post("upload")
   @HttpCode(200)

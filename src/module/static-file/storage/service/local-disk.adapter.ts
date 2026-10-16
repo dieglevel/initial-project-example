@@ -74,8 +74,12 @@ export class LocalDiskAdapter implements FileStorageAdapter {
     try {
       await fs.unlink(filePath);
       return true;
-    } catch {
-      throw new NotFoundException("File not found");
+    } catch (error: any) {
+      if (error?.code === "ENOENT") {
+        // File already gone — not an error for cleanup purposes
+        return false;
+      }
+      throw error;
     }
   }
 
