@@ -26,6 +26,7 @@ import { OpenTelemetryInterceptor } from "./common/interceptor/open-telementry.i
 import { TelemetryModule } from "./telemetry/telemetry.module";
 import { SystemInformationModule } from "./module/system-information/system-information.module";
 import { FeedbackModule } from "./module/feedback/feedback.module";
+import { SourceInspectorModule } from "./module/source-inspector/source-inspector.module";
 // Version: 0.1
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { FeedbackModule } from "./module/feedback/feedback.module";
 
     HealthCheckModule,
     TelemetryModule,
+    SourceInspectorModule,
   ],
   controllers: [],
   providers: [
