@@ -3,7 +3,6 @@ import { SourceInspectorService } from "./source-inspector.service";
 import { Public } from "../auth/decorator/public.decorator";
 
 @Controller("source-inspector")
-@Public()
 export class SourceInspectorController {
   constructor(
     private readonly sourceInspectorService: SourceInspectorService,
