@@ -17,6 +17,14 @@ interface SourceNode {
 @Injectable()
 export class SourceInspectorService {
   private readonly sourceRoot = resolve(process.cwd());
+  private readonly excludedDirectories = new Set([
+    "node_modules",
+    "dist",
+    ".git",
+    "coverage",
+    ".next",
+    ".turbo",
+  ]);
 
   async getSourceTree(inputPath = "src") {
     const targetPath = resolve(this.sourceRoot, inputPath);
@@ -43,41 +51,43 @@ export class SourceInspectorService {
     };
   }
 
-  private async readDirectory(directory: string): Promise<SourceNode[]> {
+  private async readDirectory(directory: string): Promise<unknown[]> {
     const entries = await readdir(directory, {
       withFileTypes: true,
     });
 
-    const nodes: SourceNode[] = [];
+    const result: unknown[] = [];
 
     for (const entry of entries) {
-      // Không đi theo symbolic link để tránh truy cập ngoài source.
+      // Bỏ qua thư mục nằm trong danh sách loại trừ.
+      if (entry.isDirectory() && this.excludedDirectories.has(entry.name)) {
+        continue;
+      }
+
+      // Không đi theo symbolic link.
       if (entry.isSymbolicLink()) {
         continue;
       }
 
-      const absolutePath = join(directory, entry.name);
-      const relativePath = relative(process.cwd(), absolutePath);
+      const fullPath = join(directory, entry.name);
 
       if (entry.isDirectory()) {
-        nodes.push({
+        result.push({
           name: entry.name,
-          path: relativePath,
           type: "directory",
-          children: await this.readDirectory(absolutePath),
+          children: await this.readDirectory(fullPath),
         });
       } else if (entry.isFile()) {
-        const fileStat = await stat(absolutePath);
+        const fileStat = await stat(fullPath);
 
-        nodes.push({
+        result.push({
           name: entry.name,
-          path: relativePath,
           type: "file",
           size: fileStat.size,
         });
       }
     }
 
-    return nodes;
+    return result;
   }
 }
