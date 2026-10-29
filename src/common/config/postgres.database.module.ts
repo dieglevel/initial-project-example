@@ -37,5 +37,5 @@ import { databaseConfig } from "../environment/types/database.type";
   providers: [],
 })
 export class InitialPostgresModule implements OnModuleInit {
-  onModuleInit() {}
+  onModuleInit() { }
 }

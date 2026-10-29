@@ -25,6 +25,7 @@ import { AppGateway } from "./gateway/app.gateway";
 import { OpenTelemetryInterceptor } from "./common/interceptor/open-telementry.interceptor";
 import { TelemetryModule } from "./telemetry/telemetry.module";
 import { SystemInformationModule } from "./module/system-information/system-information.module";
+import { FeedbackModule } from "./module/feedback/feedback.module";
 // Version: 0.1
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { SystemInformationModule } from "./module/system-information/system-info
     AccountModule,
     ProfileModule,
     SystemInformationModule,
+    FeedbackModule,
 
     FinancialModule,
 

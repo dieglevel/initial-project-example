@@ -1,0 +1,174 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class SyncProductionSchemaAndMigrateData1787717000000 implements MigrationInterface {
+  name = "SyncProductionSchemaAndMigrateData1787717000000";
+
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // 1. Create ENUM types
+    await queryRunner.query(`
+      DO $$ BEGIN
+        CREATE TYPE "public"."account_type_enum" AS ENUM('ADMIN', 'USER');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+
+      DO $$ BEGIN
+        CREATE TYPE "public"."profile_darkmode_enum" AS ENUM('light', 'dark');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+
+      DO $$ BEGIN
+        CREATE TYPE "public"."profile_theme_enum" AS ENUM('hutao');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+
+      DO $$ BEGIN
+        CREATE TYPE "public"."profile_language_enum" AS ENUM('en', 'ko', 'vi');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+
+      DO $$ BEGIN
+        CREATE TYPE "public"."feedback_feature_enum" AS ENUM('DASHBOARD', 'TRANSACTION', 'WALLET', 'CATEGORY', 'DEBT', 'GOAL', 'RECURRING', 'REPORT', 'SETTING', 'PROFILE', 'AUTH', 'OTHER');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+
+      DO $$ BEGIN
+        CREATE TYPE "public"."feedback_type_enum" AS ENUM('BUG', 'FEATURE_REQUEST', 'IMPROVEMENT', 'OTHER');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+
+      DO $$ BEGIN
+        CREATE TYPE "public"."feedback_status_enum" AS ENUM('PENDING', 'IN_REVIEW', 'RESOLVED', 'REJECTED');
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    // 2. Account table: Rename from account_entity if exists, or create
+    const [accountEntityExists] = await queryRunner.query(`
+      SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'account_entity';
+    `);
+
+    if (accountEntityExists) {
+      await queryRunner.query(`ALTER TABLE "account_entity" RENAME TO "account";`);
+      await queryRunner.query(`
+        ALTER TABLE "account" RENAME CONSTRAINT "PK_b482dad15becff9a89ad707dcbe" TO "PK_54115ee388cdb6d86bb4bf5b2ea";
+        ALTER TABLE "account" RENAME CONSTRAINT "UQ_976e2c858e9f73f9d33c7a0408e" TO "UQ_4c8f96ccf523e9a3faefd5bdd4c";
+        ALTER TABLE "account" RENAME CONSTRAINT "UQ_b3b2774feaf52239dd28e4c5e83" TO "UQ_41dfcb70af895ddf9a53094515b";
+      `);
+    }
+
+    await queryRunner.query(`
+      ALTER TABLE "account" ADD COLUMN IF NOT EXISTS "type" "public"."account_type_enum" NOT NULL DEFAULT 'USER';
+    `);
+
+    // 3. Profile table: Rename from profile_entity if exists, or create
+    const [profileEntityExists] = await queryRunner.query(`
+      SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'profile_entity';
+    `);
+
+    if (profileEntityExists) {
+      await queryRunner.query(`ALTER TABLE "profile_entity" RENAME TO "profile";`);
+      await queryRunner.query(`
+        ALTER TABLE "profile" RENAME CONSTRAINT "PK_330d3560db0dac16f06a04609bb" TO "PK_3dd8bfc97e4a77c70971591bdcb";
+        ALTER TABLE "profile" RENAME CONSTRAINT "REL_83507b0bd189de4f451de3f1e8" TO "REL_65588ca8ac212b8357637794d6";
+        ALTER TABLE "profile" RENAME CONSTRAINT "REL_21f0debd1f04baf3260793a4a3" TO "REL_36059b560e94dbaa061527a85c";
+        ALTER TABLE "profile" RENAME CONSTRAINT "FK_8decf8bf1c7ad831d7d39e051b3" TO "FK_65588ca8ac212b8357637794d6f";
+        ALTER TABLE "profile" RENAME CONSTRAINT "FK_21f0debd1f04baf3260793a4a3f" TO "FK_36059b560e94dbaa061527a85ce";
+      `);
+    }
+
+    await queryRunner.query(`
+      ALTER TABLE "profile" ADD COLUMN IF NOT EXISTS "darkMode" "public"."profile_darkmode_enum" NOT NULL DEFAULT 'light';
+      ALTER TABLE "profile" ADD COLUMN IF NOT EXISTS "theme" "public"."profile_theme_enum" NOT NULL DEFAULT 'hutao';
+      ALTER TABLE "profile" ADD COLUMN IF NOT EXISTS "language" "public"."profile_language_enum" NOT NULL DEFAULT 'en';
+    `);
+
+    // 4. Data Migration: Migrate theme/mode/language preferences from financial-setting to profile
+    await queryRunner.query(`
+      UPDATE "profile" p
+      SET 
+        "darkMode" = CASE 
+          WHEN fs."themeMode" = 'dark' THEN 'dark'::"public"."profile_darkmode_enum"
+          ELSE 'light'::"public"."profile_darkmode_enum"
+        END,
+        "theme" = CASE 
+          WHEN fs."theme" = 'hutao' THEN 'hutao'::"public"."profile_theme_enum"
+          ELSE 'hutao'::"public"."profile_theme_enum"
+        END,
+        "language" = CASE 
+          WHEN fs."language" = 'vi' THEN 'vi'::"public"."profile_language_enum"
+          WHEN fs."language" = 'ko' THEN 'ko'::"public"."profile_language_enum"
+          ELSE 'en'::"public"."profile_language_enum"
+        END
+      FROM "financial-setting" fs
+      WHERE p."accountId" = fs."accountId";
+    `);
+
+    // 5. Feedback and Feedback-Files tables
+    await queryRunner.query(`
+      CREATE TABLE IF NOT EXISTS "feedback" (
+        "id" integer GENERATED BY DEFAULT AS IDENTITY NOT NULL,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
+        "deletedAt" TIMESTAMP,
+        "title" character varying(255) NOT NULL,
+        "content" text NOT NULL,
+        "feature" "public"."feedback_feature_enum" NOT NULL DEFAULT 'OTHER',
+        "type" "public"."feedback_type_enum" NOT NULL DEFAULT 'BUG',
+        "status" "public"."feedback_status_enum" NOT NULL DEFAULT 'PENDING',
+        "contactEmail" character varying(255),
+        "contactName" character varying(255),
+        "accountId" integer,
+        CONSTRAINT "PK_8389f9e087a57689cd5be8b2b13" PRIMARY KEY ("id"),
+        CONSTRAINT "FK_41ba949b387b1817e4e8f41dc53" FOREIGN KEY ("accountId") REFERENCES "account"("id") ON DELETE SET NULL ON UPDATE NO ACTION
+      );
+
+      CREATE TABLE IF NOT EXISTS "feedback-files" (
+        "feedbackId" integer NOT NULL,
+        "fileId" integer NOT NULL,
+        CONSTRAINT "PK_d3941737a2cbb11ab96204a9edd" PRIMARY KEY ("feedbackId", "fileId"),
+        CONSTRAINT "FK_c05b334bfa8aaab3d466b7a891e" FOREIGN KEY ("feedbackId") REFERENCES "feedback"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "FK_59f5ff61a8eb8798e3ad4a4d050" FOREIGN KEY ("fileId") REFERENCES "files"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS "IDX_c05b334bfa8aaab3d466b7a891" ON "feedback-files" ("feedbackId");
+      CREATE INDEX IF NOT EXISTS "IDX_59f5ff61a8eb8798e3ad4a4d05" ON "feedback-files" ("fileId");
+    `);
+
+    // 6. Idempotency default expiresAt
+    await queryRunner.query(`
+      ALTER TABLE "idempotency_record" ALTER COLUMN "expiresAt" SET DEFAULT NOW() + INTERVAL '24 hours';
+    `);
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP TABLE IF EXISTS "feedback-files";`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "feedback";`);
+    await queryRunner.query(`
+      ALTER TABLE "profile" DROP COLUMN IF EXISTS "language";
+      ALTER TABLE "profile" DROP COLUMN IF EXISTS "theme";
+      ALTER TABLE "profile" DROP COLUMN IF EXISTS "darkMode";
+      ALTER TABLE "profile" RENAME CONSTRAINT "FK_36059b560e94dbaa061527a85ce" TO "FK_21f0debd1f04baf3260793a4a3f";
+      ALTER TABLE "profile" RENAME CONSTRAINT "FK_65588ca8ac212b8357637794d6f" TO "FK_8decf8bf1c7ad831d7d39e051b3";
+      ALTER TABLE "profile" RENAME CONSTRAINT "REL_36059b560e94dbaa061527a85c" TO "REL_21f0debd1f04baf3260793a4a3";
+      ALTER TABLE "profile" RENAME CONSTRAINT "REL_65588ca8ac212b8357637794d6" TO "REL_83507b0bd189de4f451de3f1e8";
+      ALTER TABLE "profile" RENAME CONSTRAINT "PK_3dd8bfc97e4a77c70971591bdcb" TO "PK_330d3560db0dac16f06a04609bb";
+      ALTER TABLE "profile" RENAME TO "profile_entity";
+    `);
+    await queryRunner.query(`
+      ALTER TABLE "account" DROP COLUMN IF EXISTS "type";
+      ALTER TABLE "account" RENAME CONSTRAINT "UQ_41dfcb70af895ddf9a53094515b" TO "UQ_b3b2774feaf52239dd28e4c5e83";
+      ALTER TABLE "account" RENAME CONSTRAINT "UQ_4c8f96ccf523e9a3faefd5bdd4c" TO "UQ_976e2c858e9f73f9d33c7a0408e";
+      ALTER TABLE "account" RENAME CONSTRAINT "PK_54115ee388cdb6d86bb4bf5b2ea" TO "PK_b482dad15becff9a89ad707dcbe";
+      ALTER TABLE "account" RENAME TO "account_entity";
+    `);
+    await queryRunner.query(`
+      DROP TYPE IF EXISTS "public"."feedback_status_enum";
+      DROP TYPE IF EXISTS "public"."feedback_type_enum";
+      DROP TYPE IF EXISTS "public"."feedback_feature_enum";
+      DROP TYPE IF EXISTS "public"."profile_language_enum";
+      DROP TYPE IF EXISTS "public"."profile_theme_enum";
+      DROP TYPE IF EXISTS "public"."profile_darkmode_enum";
+      DROP TYPE IF EXISTS "public"."account_type_enum";
+    `);
+  }
+}

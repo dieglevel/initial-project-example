@@ -9,7 +9,7 @@ import { AccountEntity } from "./_entities/account.entity";
 import { ProfileEntity } from "../profile/_entities/profile.entity";
 import { RegisterDtoRequest, RegisterDtoResponse } from "./dto/register.dto";
 
-import { hashPassword } from "@/common/util/bcrypt.util";
+import { comparePassword, hashPassword } from "@/common/util/bcrypt.util";
 import { plainToInstance } from "class-transformer";
 import {
   ChangePasswordDto,
@@ -56,12 +56,23 @@ export class AccountService {
   ): Promise<ChangePasswordDtoResponse> {
     const account = await this.accountRepository.findOne({
       where: { id: user.sub },
+      select: {
+        password: true,
+        id: true,
+      },
     });
 
     if (!account) {
       throw new NotFoundException("Account not found");
     }
-    account.password = await hashPassword(data.password);
+
+    if (
+      (await comparePassword(data.currentPassword, account.password)) === false
+    ) {
+      throw new UnauthorizedException("Current password is incorrect");
+    }
+
+    account.password = await hashPassword(data.newPassword);
     await this.accountRepository.save(account);
 
     return { success: true };

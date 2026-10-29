@@ -11,8 +11,9 @@ import { FinancialRecurringEntity } from "@/module/financial/financial-recurring
 import { FinancialNotificationEntity } from "@/module/financial/financial-notification/_entities/financial-notification.entity";
 import { FinancialDebtEntity } from "@/module/financial/financial-debt/_entities/financial-debt.entity";
 import { FinancialSettingEntity } from "@/module/financial/financial-setting/_entities/financial-setting.entity";
+import { AccountType } from "../account.enum";
 
-@Entity()
+@Entity({ name: "account" })
 @ApiEntity()
 export class AccountEntity extends BaseEntity {
   @Column({ unique: true })
@@ -28,6 +29,10 @@ export class AccountEntity extends BaseEntity {
   @Column({ default: false })
   @ApiPropertyOptional()
   isVerified: boolean;
+
+  @Column({ type: "enum", enum: AccountType, default: AccountType.USER })
+  @ApiPropertyOptional({ enum: AccountType, default: AccountType.USER })
+  type: AccountType;
 
   @OneToOne(() => ProfileEntity, (profile) => profile.account, {
     cascade: true,

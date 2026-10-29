@@ -10,6 +10,7 @@ Searchable index of all analyzed modules. Use this to find the relevant document
 | Account | User registration, password management | [account.md](account.md) | `src/module/account/account.module.ts` | Profile entity | AccountService |
 | Profile | User profile CRUD | [profile.md](profile.md) | `src/module/profile/profile.module.ts` | Account entity, FileEntity | ProfileService |
 | Static File | File upload, storage, cleanup | [static-file.md](static-file.md) | `src/module/static-file/static-file.module.ts` | None | StaticFileService, FileCleanupCron, LocalDiskAdapter |
+| Feedback | User feedback, bug reports with images | [feedback.md](feedback.md) | `src/module/feedback/feedback.module.ts` | FileEntity, AccountEntity | FeedbackService, FeedbackController |
 
 ## Financial Domain Modules
 

@@ -6,11 +6,11 @@ A monolithic NestJS backend API for personal finance management. Single PostgreS
 
 ```
 ┌─────────────┐     ┌─────────────────────────────────────────────────┐
-│   Client     │────▶│  NestJS Application (HTTP + optional WS)       │
-│   (FE App)   │◀────│                                                 │
+│   Client     │───▶│  NestJS Application (HTTP + optional WS)        │
+│   (FE App)   │◀───│                                                 │
 └─────────────┘     │  ┌────────────────────────────────────────────┐ │
-                    │  │ Global Middleware & Interceptors            │ │
-                    │  │  • LoggerMiddleware (request logging)       │ │
+                    │  │ Global Middleware & Interceptors           │ │
+                    │  │  • LoggerMiddleware (request logging)      │ │
                     │  │  • ResponseInterceptor (wrap responses)    │ │
                     │  │  • AllExceptionsFilter (error handling)    │ │
                     │  │  • ValidationPipe (DTO validation)         │ │
@@ -31,10 +31,10 @@ A monolithic NestJS backend API for personal finance management. Single PostgreS
                     │  │  • Telemetry (OTel dashboard)              │ │
                     │  └────────────────────────────────────────────┘ │
                     │                                                 │
-                    │  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-                    │  │PostgreSQL│  │  Redis   │  │  File System │  │
-                    │  │ (TypeORM)│  │(optional)│  │ (local disk) │  │
-                    │  └──────────┘  └──────────┘  └──────────────┘  │
+                    │  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
+                    │  │PostgreSQL│  │  Redis   │  │  File System │   │
+                    │  │ (TypeORM)│  │(optional)│  │ (local disk) │   │
+                    │  └──────────┘  └──────────┘  └──────────────┘   │
                     └─────────────────────────────────────────────────┘
 ```
 
@@ -149,5 +149,5 @@ AccountEntity (1)
 3. **All entities must extend BaseEntity** for consistent id/timestamps/soft-delete.
 4. **Soft-delete by default** — `BaseCrudService.delete()` uses `softDelete`.
 5. **Pagination** uses query-string parameters parsed by the `@Pagination()` decorator.
-6. **Financial mutations use idempotency** — `@UseIdempotency()` + `IdempotencyInterceptor`.
+6. **Financial mutations use idempotency** — `@()` + `IdempotencyInterceptor`.
 7. **File uploads are marked as temporary** and cleaned up after 24h by `FileCleanupCron` unless explicitly marked permanent.
