@@ -59,23 +59,21 @@ export class SourceInspectorService {
     const result: unknown[] = [];
 
     for (const entry of entries) {
-      // Bỏ qua thư mục nằm trong danh sách loại trừ.
-      if (entry.isDirectory() && this.excludedDirectories.has(entry.name)) {
+      if (entry.isSymbolicLink()) {
         continue;
       }
 
-      // Không đi theo symbolic link.
-      if (entry.isSymbolicLink()) {
+      if (entry.isDirectory() && this.excludedDirectories.has(entry.name)) {
         continue;
       }
 
       const fullPath = join(directory, entry.name);
 
       if (entry.isDirectory()) {
+        // Chỉ trả về thư mục, không đọc nội dung bên trong.
         result.push({
           name: entry.name,
           type: "directory",
-          children: await this.readDirectory(fullPath),
         });
       } else if (entry.isFile()) {
         const fileStat = await stat(fullPath);
