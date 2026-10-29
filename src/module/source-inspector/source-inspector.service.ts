@@ -22,15 +22,6 @@ export class SourceInspectorService {
     const targetPath = resolve(this.sourceRoot, inputPath);
     const relativePath = relative(this.sourceRoot, targetPath);
 
-    // Chặn truy cập ra ngoài project root.
-    if (
-      relativePath === ".." ||
-      relativePath.startsWith(`..${sep}`) ||
-      resolve(targetPath) === this.sourceRoot + sep
-    ) {
-      throw new BadRequestException("Path is outside project root");
-    }
-
     const info = await stat(targetPath).catch(() => null);
 
     if (!info?.isDirectory()) {
