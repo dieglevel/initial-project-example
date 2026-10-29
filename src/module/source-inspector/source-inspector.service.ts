@@ -17,14 +17,6 @@ interface SourceNode {
 @Injectable()
 export class SourceInspectorService {
   private readonly sourceRoot = resolve(process.cwd());
-  private readonly excludedDirectories = new Set([
-    "node_modules",
-    "dist",
-    ".git",
-    "coverage",
-    ".next",
-    ".turbo",
-  ]);
 
   async getSourceTree(inputPath = "src") {
     const targetPath = resolve(this.sourceRoot, inputPath);
