@@ -55,10 +55,6 @@ export class SourceInspectorService {
         continue;
       }
 
-      if (entry.isDirectory() && this.excludedDirectories.has(entry.name)) {
-        continue;
-      }
-
       const fullPath = join(directory, entry.name);
 
       if (entry.isDirectory()) {
