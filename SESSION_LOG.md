@@ -1,5 +1,11 @@
 # Current Session
 
+## 2026-11-02: Step (a) transactionDate migration
+
+- Added date-only `transactionDate` to financial transactions and migrated category, dashboard, report, notification, and transaction filters/grouping away from `createdAt`.
+- Legacy `createdAt` is `timestamp without time zone` containing UTC values, so the production backfill uses UTC -> Asia/Ho_Chi_Minh conversion; a corrective migration repaired the first applied backfill.
+- Verification: production sample matched stored dates after correction; migration and index verified; full Jest 38/38 passed; backend build passed; full lint retains unrelated pre-existing errors.
+
 ## Status
 Completed
 

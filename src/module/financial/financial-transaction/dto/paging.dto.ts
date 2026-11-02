@@ -19,6 +19,7 @@ import { BasePaginatedDto } from "@/common/dto/swagger-schema/base-paginated.dto
 // Khai báo các cột cho phép Sort để tránh SQL Injection
 export enum FinancialTransactionSortBy {
   CREATED_AT = "createdAt",
+  TRANSACTION_DATE = "transactionDate",
   AMOUNT = "amount",
   TYPE = "type",
   STATUS = "status",
@@ -93,11 +94,12 @@ export class FinancialTransaction_GetAll_Request {
   // --- SẮP XẾP (SORT) ---
   @ApiPropertyOptional({
     enum: FinancialTransactionSortBy,
-    default: FinancialTransactionSortBy.CREATED_AT,
+    default: FinancialTransactionSortBy.TRANSACTION_DATE,
   })
   @IsEnum(FinancialTransactionSortBy)
   @IsOptional()
-  sortBy?: FinancialTransactionSortBy = FinancialTransactionSortBy.CREATED_AT;
+  sortBy?: FinancialTransactionSortBy =
+    FinancialTransactionSortBy.TRANSACTION_DATE;
 
   @ApiPropertyOptional({ enum: SortOrder, default: SortOrder.DESC })
   @IsEnum(SortOrder)

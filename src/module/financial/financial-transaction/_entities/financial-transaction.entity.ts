@@ -64,6 +64,9 @@ export class FinancialTransactionEntity extends BaseEntity {
   @IsEnum(FINANCIAL_TRANSACTION_TYPE)
   type: FINANCIAL_TRANSACTION_TYPE;
 
+  @Column({ type: "date", nullable: false })
+  transactionDate: string;
+
   @Column({
     type: "enum",
     enum: FINANCIAL_TRANSACTION_STATUS,

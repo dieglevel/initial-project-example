@@ -45,6 +45,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       walletId,
       toWalletId,
       financialTransactionItems,
+      date,
       ...transactionData
     } = dto;
 
@@ -123,6 +124,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
               status: FINANCIAL_TRANSACTION_STATUS.COMPLETED,
               wallet: wallet,
               account: { id: user.sub },
+              transactionDate: this.toDateOnly(),
               createdAt: new Date(),
             });
             await manager.save(feeItem);
@@ -137,12 +139,11 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
       // 3. Tạo Transaction record
       const transaction = manager.create(FinancialTransactionEntity, {
         ...transactionData,
+        transactionDate: this.toDateOnly(date),
         wallet,
         status:
           transactionData.status || FINANCIAL_TRANSACTION_STATUS.COMPLETED,
-        createdAt: transactionData.date
-          ? new Date(transactionData.date)
-          : new Date(),
+        createdAt: new Date(),
         account: { id: user.sub },
       });
 
@@ -362,7 +363,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
         status: updatedData.status, // Cập nhật status mới vào DB
         wallet: walletMap.get(updatedData.walletId),
         walletId: updatedData.walletId,
-        ...(date !== undefined && { createdAt: new Date(String(date)) }),
+        ...(date !== undefined && { transactionDate: this.toDateOnly(date) }),
       });
 
       const updatedTransaction = await manager.save(oldTransaction);
@@ -465,7 +466,7 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
     const {
       page = 1,
       limit = 10,
-      sortBy = "createdAt",
+      sortBy = "transactionDate",
       sortOrder = "DESC",
     } = query;
 
@@ -516,13 +517,15 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
 
     // Lọc theo thời gian (Từ ngày - Đến ngày)
     if (fromDate) {
-      const start = dayjs(fromDate).startOf("day").toDate();
-      queryBuilder.andWhere("transaction.createdAt >= :start", { start });
+      const start = dayjs(fromDate).format("YYYY-MM-DD");
+      queryBuilder.andWhere("transaction.transactionDate >= :start", {
+        start,
+      });
     }
 
     if (toDate) {
-      const end = dayjs(toDate).endOf("day").toDate();
-      queryBuilder.andWhere("transaction.createdAt <= :end", { end });
+      const end = dayjs(toDate).format("YYYY-MM-DD");
+      queryBuilder.andWhere("transaction.transactionDate <= :end", { end });
     }
 
     // 3. Tính tổng Income/Expense TRƯỚC KHI phân trang (trên toàn bộ danh sách đã filter)
@@ -641,7 +644,8 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
               },
             }
           : {}),
-        createdAt: date ?? new Date(),
+        transactionDate: this.toDateOnly(date),
+        createdAt: new Date(),
         account: {
           id: accountId,
         },
@@ -664,6 +668,16 @@ export class FinancialTransactionService extends BaseCrudService<FinancialTransa
 
       return savedTransaction;
     });
+  }
+
+  private toDateOnly(value?: Date | string): string {
+    if (value) {
+      const serialized =
+        typeof value === "string" ? value : value.toISOString();
+      return serialized.slice(0, 10);
+    }
+
+    return dayjs().format("YYYY-MM-DD");
   }
 
   async view(

@@ -45,7 +45,10 @@ export class FinancialReportService {
     const transactions = await this.transactionRepository.find({
       where: {
         account: { id: user.sub },
-        createdAt: Between(range.from, range.to),
+        transactionDate: Between(
+          dayjs(range.from).format("YYYY-MM-DD"),
+          dayjs(range.to).format("YYYY-MM-DD"),
+        ),
       },
     });
 
@@ -62,7 +65,7 @@ export class FinancialReportService {
       }
 
       const amount = Number(transaction.amount ?? 0);
-      const dateVal = dayjs(transaction.createdAt);
+      const dateVal = dayjs(transaction.transactionDate);
       const key = dateVal.format(
         groupMode === "month" ? "YYYY-MM" : "YYYY-MM-DD",
       );
@@ -118,7 +121,10 @@ export class FinancialReportService {
       where: {
         account: { id: user.sub },
         type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
-        createdAt: Between(range.from, range.to),
+        transactionDate: Between(
+          dayjs(range.from).format("YYYY-MM-DD"),
+          dayjs(range.to).format("YYYY-MM-DD"),
+        ),
       },
       relations: {
         financialTransactionItems: {
@@ -132,7 +138,10 @@ export class FinancialReportService {
       where: {
         account: { id: user.sub },
         type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
-        createdAt: Between(previousRange.from, previousRange.to),
+        transactionDate: Between(
+          dayjs(previousRange.from).format("YYYY-MM-DD"),
+          dayjs(previousRange.to).format("YYYY-MM-DD"),
+        ),
       },
     });
 
@@ -253,7 +262,10 @@ export class FinancialReportService {
     const transactions = await this.transactionRepository.find({
       where: {
         account: { id: user.sub },
-        createdAt: Between(range.from, range.to),
+        transactionDate: Between(
+          dayjs(range.from).format("YYYY-MM-DD"),
+          dayjs(range.to).format("YYYY-MM-DD"),
+        ),
       },
     });
 
@@ -267,7 +279,7 @@ export class FinancialReportService {
         continue;
       }
 
-      const key = dayjs(transaction.createdAt).format(
+      const key = dayjs(transaction.transactionDate).format(
         groupMode === "month" ? "YYYY-MM" : "YYYY-MM-DD",
       );
 
@@ -322,7 +334,10 @@ export class FinancialReportService {
     const transactions = await this.transactionRepository.find({
       where: {
         account: { id: user.sub },
-        createdAt: Between(range.from, range.to),
+        transactionDate: Between(
+          dayjs(range.from).format("YYYY-MM-DD"),
+          dayjs(range.to).format("YYYY-MM-DD"),
+        ),
         type: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
       },
       relations: {

@@ -90,6 +90,7 @@ export class RecentTransactionItem {
   type: string;
   status: string;
   createdAt: Date;
+  transactionDate: string;
   walletName?: string;
   categoryName?: string;
 }

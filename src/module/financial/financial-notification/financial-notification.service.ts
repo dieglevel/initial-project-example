@@ -15,6 +15,7 @@ import { FINANCIAL_TRANSACTION_TYPE } from "../financial-transaction/financial-t
 import type { JwtPayload } from "@/module/auth/payload.type";
 import type { FinancialNotification_RunSmartAlerts_Response } from "./dto/run-smart-alerts.dto";
 import { FINANCIAL_WALLET_TYPE } from "../financial-wallet/financial-wallet.enum";
+import dayjs from "dayjs";
 
 @Injectable()
 export class FinancialNotificationService extends BaseCrudService<FinancialNotificationEntity> {
@@ -96,24 +97,9 @@ export class FinancialNotificationService extends BaseCrudService<FinancialNotif
   }
 
   private async createBudgetAlerts(accountId?: number): Promise<number> {
-    const now = new Date();
-    const startOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-      0,
-      0,
-      0,
-    );
-    const endOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
+    const now = dayjs();
+    const startOfMonth = now.startOf("month").format("YYYY-MM-DD");
+    const endOfMonth = now.endOf("month").format("YYYY-MM-DD");
 
     const categories = await this.categoryRepository.find({
       where: {
@@ -142,7 +128,7 @@ export class FinancialNotificationService extends BaseCrudService<FinancialNotif
       .select("transaction.accountId", "accountId")
       .addSelect("transaction.categoryId", "categoryId")
       .addSelect("COALESCE(SUM(transaction.amount), 0)", "spent")
-      .where("transaction.createdAt BETWEEN :start AND :end", {
+      .where("transaction.transactionDate BETWEEN :start AND :end", {
         start: startOfMonth,
         end: endOfMonth,
       })
@@ -166,7 +152,7 @@ export class FinancialNotificationService extends BaseCrudService<FinancialNotif
     }
 
     let createdCount = 0;
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const monthKey = now.format("YYYY-MM");
 
     for (const category of filteredCategories) {
       const key = `${category.account.id}:${category.id}`;

@@ -111,8 +111,12 @@ export class FinancialDashboardService {
       .leftJoinAndSelect("tx.financialTransactionItems", "items")
       .leftJoinAndSelect("items.category", "category")
       .where("tx.accountId = :accountId", { accountId })
-      .andWhere("tx.createdAt >= :startDate", { startDate })
-      .andWhere("tx.createdAt <= :endDate", { endDate });
+      .andWhere("tx.transactionDate >= :startDate", {
+        startDate: dayjs(startDate).format("YYYY-MM-DD"),
+      })
+      .andWhere("tx.transactionDate <= :endDate", {
+        endDate: dayjs(endDate).format("YYYY-MM-DD"),
+      });
 
     if (walletId) {
       qb.andWhere("tx.walletId = :walletId", { walletId });
@@ -178,7 +182,7 @@ export class FinancialDashboardService {
     }
 
     transactions.forEach((tx) => {
-      const key = dayjs(tx.createdAt).format(
+      const key = dayjs(tx.transactionDate).format(
         isYearly ? "YYYY-MM" : "YYYY-MM-DD",
       );
       const current = timelineMap.get(key) || { income: 0, expense: 0 };
@@ -265,7 +269,10 @@ export class FinancialDashboardService {
     // 7. Recent Transactions (Top 6 by amount within cycle)
     const recentTxWhere: Record<string, any> = {
       account: { id: accountId },
-      createdAt: Between(startDate, endDate),
+      transactionDate: Between(
+        dayjs(startDate).format("YYYY-MM-DD"),
+        dayjs(endDate).format("YYYY-MM-DD"),
+      ),
     };
     if (walletId) {
       recentTxWhere.wallet = { id: walletId };
@@ -278,7 +285,7 @@ export class FinancialDashboardService {
         "financialTransactionItems",
         "financialTransactionItems.category",
       ],
-      order: { amount: "DESC", createdAt: "DESC" },
+      order: { amount: "DESC", transactionDate: "DESC" },
       take: 6,
     });
 
@@ -290,6 +297,7 @@ export class FinancialDashboardService {
       type: tx.type,
       status: tx.status,
       createdAt: tx.createdAt,
+      transactionDate: tx.transactionDate,
       walletName: tx.wallet?.name,
       categoryName: tx.financialTransactionItems?.[0]?.category?.name,
     }));

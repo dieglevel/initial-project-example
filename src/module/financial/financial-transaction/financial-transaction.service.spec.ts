@@ -332,7 +332,8 @@ describe("FinancialTransactionService", () => {
 
       // Assert
       expect(result.status).toBe(pending);
-      expect(result.createdAt).toEqual(new Date(date));
+      expect(result.transactionDate).toBe("2026-01-02");
+      expect(result.createdAt).not.toEqual(new Date(date));
       expect(result.financialTransactionItems).toEqual([
         expect.objectContaining({
           amount: 120,
@@ -396,7 +397,7 @@ describe("FinancialTransactionService", () => {
           status: completed,
           wallet: newWallet,
           walletId: 2,
-          createdAt: new Date("2026-02-03T00:00:00.000Z"),
+          transactionDate: "2026-02-03",
         }),
       );
       expect(manager.find).toHaveBeenCalledWith(
@@ -770,6 +771,14 @@ describe("FinancialTransactionService", () => {
         expect.stringContaining("description ILIKE"),
         { search: "%coffee%" },
       );
+      expect(builder.andWhere).toHaveBeenCalledWith(
+        "transaction.transactionDate >= :start",
+        { start: "2026-01-01" },
+      );
+      expect(builder.andWhere).toHaveBeenCalledWith(
+        "transaction.transactionDate <= :end",
+        { end: "2026-01-31" },
+      );
       expect(builder.orderBy).toHaveBeenCalledWith("transaction.amount", "ASC");
       expect(builder.skip).toHaveBeenCalledWith(2);
       expect(builder.take).toHaveBeenCalledWith(2);
@@ -791,7 +800,7 @@ describe("FinancialTransactionService", () => {
         totalPages: 0,
       });
       expect(builder.orderBy).toHaveBeenCalledWith(
-        "transaction.createdAt",
+        "transaction.transactionDate",
         "DESC",
       );
       expect(builder.skip).toHaveBeenCalledWith(0);
@@ -860,7 +869,7 @@ describe("FinancialTransactionService", () => {
           tags: ["monthly"],
           receiptImageUrl: "/receipt.png",
           originalTransaction: { id: 4 },
-          createdAt: date,
+          transactionDate: "2026-03-04",
           status: pending,
           account: { id: 7 },
         }),

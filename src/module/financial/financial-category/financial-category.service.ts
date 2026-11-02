@@ -41,8 +41,12 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     const hasStartDate = Boolean(startDate && dayjs(startDate).isValid());
     const hasEndDate = Boolean(endDate && dayjs(endDate).isValid());
 
-    const formattedStartDate = hasStartDate ? dayjs(startDate).toDate() : null;
-    const formattedEndDate = hasEndDate ? dayjs(endDate).toDate() : null;
+    const formattedStartDate = hasStartDate
+      ? dayjs(startDate).format("YYYY-MM-DD")
+      : null;
+    const formattedEndDate = hasEndDate
+      ? dayjs(endDate).format("YYYY-MM-DD")
+      : null;
 
     /**
      * 1. Get all categories
@@ -95,8 +99,8 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
           "transaction",
           `
           "transaction"."id" = "transactionItem"."transactionId"
-          AND "transaction"."createdAt" >= :startDate
-          AND "transaction"."createdAt" < :endDate
+          AND "transaction"."transactionDate" >= CAST(:startDate AS date)
+          AND "transaction"."transactionDate" <= CAST(:endDate AS date)
           AND "transaction"."type" = :transactionType
           AND "transaction"."deletedAt" IS NULL
         `,
@@ -152,8 +156,8 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
           "transaction",
           `
           "transaction"."id" = "transactionItem"."transactionId"
-          AND "transaction"."createdAt" >= :startDate
-          AND "transaction"."createdAt" < :endDate
+          AND "transaction"."transactionDate" >= CAST(:startDate AS date)
+          AND "transaction"."transactionDate" <= CAST(:endDate AS date)
           AND "transaction"."type" = :transactionType
           AND "transaction"."deletedAt" IS NULL
         `,
@@ -278,10 +282,11 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     // Chuẩn hoá range về Date, dùng chung cho cả 2 nhánh
     const startDateValue = dayjs(
       startDate ?? dayjs().startOf("month").toDate(),
-    ).toDate();
+    ).format("YYYY-MM-DD");
     const endDateValue = dayjs(
-      endDate ?? dayjs(startDateValue).add(1, "month").toDate(),
-    ).toDate();
+      endDate ??
+        dayjs(startDateValue).add(1, "month").subtract(1, "day").toDate(),
+    ).format("YYYY-MM-DD");
 
     const calcOvercome = <T extends { amount: number | string }>(
       items: T[],
@@ -300,13 +305,17 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
         .innerJoinAndSelect("item.transaction", "transaction")
         .where("item.deletedAt IS NULL")
         .andWhere("transaction.accountId = :accountId", { accountId: user.sub })
-        .andWhere("transaction.createdAt >= :start", { start: startDateValue })
-        .andWhere("transaction.createdAt < :end", { end: endDateValue })
+        .andWhere("transaction.transactionDate >= :start", {
+          start: startDateValue,
+        })
+        .andWhere("transaction.transactionDate <= :end", {
+          end: endDateValue,
+        })
         .andWhere("transaction.type = :transactionType", {
           transactionType: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
         })
         .andWhere("transaction.deletedAt IS NULL")
-        .orderBy("transaction.createdAt", "DESC");
+        .orderBy("transaction.transactionDate", "DESC");
 
     /**
      * TH1: Danh mục "Chưa phân loại" (categoryId = 0)

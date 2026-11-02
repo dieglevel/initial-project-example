@@ -4,6 +4,25 @@ This file tracks completed development tasks, major architectural milestones, an
 
 ---
 
+## 2026-11-02: Step (a) transactionDate migration
+
+- **Task Summary**: Added a date-only transaction field and switched financial period calculations from creation time to transaction date.
+- **Relevant Files**:
+  - `src/common/database/migrations/1794000000000-AddTransactionDate.ts`
+  - `src/common/database/migrations/1794000001000-CorrectTransactionDateTimezone.ts`
+  - `src/module/financial/financial-transaction/`
+  - `src/module/financial/financial-category/financial-category.service.ts`
+  - `src/module/financial/financial-dashboard/financial-dashboard.service.ts`
+  - `src/module/financial/financial-report/financial-report.service.ts`
+  - `src/module/financial/financial-notification/financial-notification.service.ts`
+- **Verification Results**:
+  - Production migration and corrective backfill completed successfully.
+  - Full Jest suite: 1 suite, 38 tests passed.
+  - Backend build passed.
+  - Full lint still reports unrelated existing errors.
+
+---
+
 ## 2026-10-16: Established Shared AI Context and Codebase Documentation System
 
 - **Task Summary**: Analyzed the monolithic NestJS backend, documented core architecture, established multi-agent workflows, and generated granular module documentation for all 17 feature subsystems.
