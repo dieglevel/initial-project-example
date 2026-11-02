@@ -12,6 +12,12 @@
 - Backfilled each category from its first transaction month through the current month; current/next month rollover is idempotent with `ON CONFLICT DO NOTHING`.
 - Verification: production migration created 34 unique rows; 23 nullable amounts preserved; full Jest 40/40 passed; backend build and scoped ESLint passed.
 
+## 2026-11-02: Step (c) and (d) income plans and budget calculations
+
+- Added independent `income_plans` GET/PUT API and pure budget/income allocation calculators.
+- Category list responses now include uncapped percent, status, remaining, child allocation, and over-allocation fields; budget summary exposes expected income allocation.
+- Verification: income plan and calculator tests pass; backend build passes. UI remains unchanged.
+
 ## Status
 Completed
 

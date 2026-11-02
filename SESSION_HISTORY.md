@@ -38,6 +38,20 @@ This file tracks completed development tasks, major architectural milestones, an
 
 ---
 
+## 2026-11-02: Step (c) and (d) income plans and budget calculations
+
+- **Task Summary**: Added independent monthly income plans and query-time budget metrics for category trees and income allocation summaries.
+- **Relevant Files**:
+  - `src/module/financial/financial-income-plan/`
+  - `src/module/financial/financial-category/budget-calculator.ts`
+  - `src/module/financial/financial-category/financial-category.service.ts`
+- **Verification Results**:
+  - Income plan and calculator tests passed (5 tests).
+  - Backend build passed.
+  - No frontend files were modified.
+
+---
+
 ## 2026-10-16: Established Shared AI Context and Codebase Documentation System
 
 - **Task Summary**: Analyzed the monolithic NestJS backend, documented core architecture, established multi-agent workflows, and generated granular module documentation for all 17 feature subsystems.

@@ -12,6 +12,8 @@ Manages user financial categories for classifying income and expenditure, suppor
 - Support category archiving without hard deletion.
 - Calculate category-based transaction counts and summaries.
 - Calculate category spending by `financial-transaction.transactionDate`, not insertion time.
+- Return derived `remaining`, uncapped `percent`, `status`, child allocation, and over-allocation warning fields; these values are computed at query time.
+- Expose `/financial-category/budget-summary/:month` for expected-income allocation totals.
 
 ## Source Map
 

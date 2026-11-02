@@ -12,6 +12,7 @@ import { FinancialTransactionItemEntity } from "./financial-transaction/_entitie
 import { FinancialDashboardModule } from "./financial-dashboard/financial-dashboard.module";
 import { FinancialRecordModule } from "./financial-record/financial-record.module";
 import { FinancialDebtModule } from "./financial-debt/financial-debt.module";
+import { FinancialIncomePlanModule } from "./financial-income-plan/financial-income-plan.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { FinancialDebtModule } from "./financial-debt/financial-debt.module";
     FinancialDashboardModule,
     FinancialRecordModule,
     FinancialDebtModule,
+    FinancialIncomePlanModule,
   ],
   providers: [],
 })
