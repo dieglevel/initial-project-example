@@ -8,7 +8,7 @@ Manages user financial categories for classifying income and expenditure, suppor
 
 - Provide CRUD operations for categories belonging to authenticated accounts.
 - Support hierarchical parent-child category tree structures.
-- Track monthly budgets and spending natures (`ESSENTIAL`, `NON_ESSENTIAL`, etc.).
+- Track monthly budgets in `financial-category-budget` and spending natures (`ESSENTIAL`, `NON_ESSENTIAL`, etc.).
 - Support category archiving without hard deletion.
 - Calculate category-based transaction counts and summaries.
 - Calculate category spending by `financial-transaction.transactionDate`, not insertion time.
@@ -50,6 +50,7 @@ src/module/financial/financial-category/
 
 - Many-to-One with `AccountEntity` (onDelete: CASCADE).
 - Self-referencing Many-to-One `parent` (onDelete: SET NULL) and One-to-Many `children`.
+- One-to-Many with `FinancialCategoryBudgetEntity`, unique by `(categoryId, month)`; the legacy `monthlyBudget` column remains deprecated for compatibility.
 - One-to-Many with `FinancialTransactionItemEntity` (onDelete: SET NULL).
 
 ## Dependencies and Integrations
@@ -71,6 +72,7 @@ src/module/financial/financial-category/
 
 - Deleting or archiving parent categories must handle child categories appropriately (TypeORM is configured with `SET NULL` on delete).
 - Always ensure category queries filter by `account.id = user.sub` to prevent cross-account category leakage.
+- Budget rollover is idempotent and only creates rows for the current or next opened month; historical months are read-only.
 
 ## Tests and Verification
 

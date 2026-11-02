@@ -23,6 +23,21 @@ This file tracks completed development tasks, major architectural milestones, an
 
 ---
 
+## 2026-11-02: Step (b) monthly budgets
+
+- **Task Summary**: Added per-category monthly budget persistence, historical backfill, rollover copy logic, and budget upsert API.
+- **Relevant Files**:
+  - `src/module/financial/financial-category/_entities/financial-category-budget.entity.ts`
+  - `src/module/financial/financial-category/financial-category-budget.service.ts`
+  - `src/common/database/migrations/1794000002000-CreateCategoryBudgets.ts`
+  - `src/module/financial/financial-category/financial-category.controller.ts`
+- **Verification Results**:
+  - Migration completed successfully; 34 unique rows created and null values preserved.
+  - Full Jest suite: 2 suites, 40 tests passed.
+  - Backend build passed; scoped ESLint passed.
+
+---
+
 ## 2026-10-16: Established Shared AI Context and Codebase Documentation System
 
 - **Task Summary**: Analyzed the monolithic NestJS backend, documented core architecture, established multi-agent workflows, and generated granular module documentation for all 17 feature subsystems.

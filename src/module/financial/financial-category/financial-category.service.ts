@@ -1,6 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { And, IsNull, LessThan, MoreThanOrEqual, Repository } from "typeorm";
+import {
+  And,
+  In,
+  IsNull,
+  LessThan,
+  MoreThanOrEqual,
+  Repository,
+} from "typeorm";
 import { FinancialCategoryEntity } from "./_entities/financial-category.entity";
 import { BaseCrudService } from "@/common/service/base-crud.service";
 import type {
@@ -19,12 +26,17 @@ import {
   FinancialCategory_GetTransactionCategory_Request,
   FinancialCategory_GetTransactionCategory_Response,
 } from "./dto/get-transaction-category.dto";
+import { FinancialCategoryBudgetEntity } from "./_entities/financial-category-budget.entity";
+import { DataSource } from "typeorm";
 
 @Injectable()
 export class FinancialCategoryService extends BaseCrudService<FinancialCategoryEntity> {
   constructor(
     @InjectRepository(FinancialCategoryEntity)
     private readonly financialCategoryRepository: Repository<FinancialCategoryEntity>,
+    @InjectRepository(FinancialCategoryBudgetEntity)
+    private readonly financialCategoryBudgetRepository: Repository<FinancialCategoryBudgetEntity>,
+    private readonly dataSource: DataSource,
   ) {
     super(financialCategoryRepository);
   }
@@ -73,6 +85,28 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       .andWhere(`"financialCategory"."deletedAt" IS NULL`)
       .orderBy(`"financialCategory"."createdAt"`, "ASC")
       .getMany();
+
+    const budgetMonth = dayjs(startDate ?? new Date()).format("YYYY-MM");
+    await this.ensureBudgetMonth(user.sub, budgetMonth);
+    const budgetRows = await this.financialCategoryBudgetRepository.find({
+      where: {
+        categoryId: In(categories.map((category) => category.id)),
+        month: budgetMonth,
+      },
+    });
+    const budgetMap = new Map(
+      budgetRows.map((budget) => [budget.categoryId, budget.amount]),
+    );
+    for (const category of categories) {
+      category.monthlyBudget = budgetMap.has(category.id)
+        ? (budgetMap.get(category.id) ?? null)
+        : null;
+      for (const child of category.children ?? []) {
+        child.monthlyBudget = budgetMap.has(child.id)
+          ? (budgetMap.get(child.id) ?? null)
+          : null;
+      }
+    }
 
     const directAmountMap = new Map<number, number>();
     let uncategorizedTotal = 0;
@@ -270,6 +304,36 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     }
 
     return roots;
+  }
+
+  private async ensureBudgetMonth(
+    accountId: number,
+    month: string,
+  ): Promise<void> {
+    const currentMonth = dayjs().format("YYYY-MM");
+    const nextMonth = dayjs().add(1, "month").format("YYYY-MM");
+    if (month < currentMonth || month > nextMonth) return;
+
+    await this.dataSource.query(
+      `
+      INSERT INTO "financial-category-budget" ("categoryId", "month", "amount", "createdAt", "updatedAt")
+      SELECT category.id, $2, previous.amount, NOW(), NOW()
+      FROM "financial-category" category
+      LEFT JOIN LATERAL (
+        SELECT budget.amount
+        FROM "financial-category-budget" budget
+        WHERE budget."categoryId" = category.id
+          AND budget."month" < $2
+        ORDER BY budget."month" DESC
+        LIMIT 1
+      ) previous ON TRUE
+      WHERE category."accountId" = $1
+        AND category.archived = false
+        AND category."deletedAt" IS NULL
+      ON CONFLICT ("categoryId", "month") DO NOTHING
+      `,
+      [accountId, month],
+    );
   }
 
   async getTransactionCategory(

@@ -17,6 +17,7 @@ import {
 } from "../financial-category.enum";
 import { FinancialTransactionItemEntity } from "../../financial-transaction/_entities/financial-transaction-item.entity";
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { FinancialCategoryBudgetEntity } from "./financial-category-budget.entity";
 
 @Entity("financial-category")
 @ApiEntity()
@@ -110,6 +111,9 @@ export class FinancialCategoryEntity extends BaseEntity {
     name: "transactionItems",
   })
   transactionItems?: FinancialTransactionItemEntity[];
+
+  @OneToMany(() => FinancialCategoryBudgetEntity, (budget) => budget.category)
+  budgets?: FinancialCategoryBudgetEntity[];
 
   @ManyToOne(() => AccountEntity, (account) => account.financialCategories, {
     nullable: false,

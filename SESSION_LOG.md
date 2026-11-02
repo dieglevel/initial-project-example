@@ -6,6 +6,12 @@
 - Legacy `createdAt` is `timestamp without time zone` containing UTC values, so the production backfill uses UTC -> Asia/Ho_Chi_Minh conversion; a corrective migration repaired the first applied backfill.
 - Verification: production sample matched stored dates after correction; migration and index verified; full Jest 38/38 passed; backend build passed; full lint retains unrelated pre-existing errors.
 
+## 2026-11-02: Step (b) monthly budgets
+
+- Added `financial-category-budget` with nullable amount and unique `(categoryId, month)`.
+- Backfilled each category from its first transaction month through the current month; current/next month rollover is idempotent with `ON CONFLICT DO NOTHING`.
+- Verification: production migration created 34 unique rows; 23 nullable amounts preserved; full Jest 40/40 passed; backend build and scoped ESLint passed.
+
 ## Status
 Completed
 

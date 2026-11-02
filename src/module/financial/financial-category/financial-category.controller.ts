@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Query,
 } from "@nestjs/common";
 import { ApiBearerAuth } from "@nestjs/swagger";
@@ -33,6 +34,11 @@ import type { JwtPayload } from "@/module/auth/payload.type";
 import { CurrentUser } from "@/module/auth/decorator/current-user.decorator";
 import { FinancialCategory_GetList_Request } from "./dto/list.dto";
 import { FinancialCategory_GetTransactionCategory_Request } from "./dto/get-transaction-category.dto";
+import {
+  FinancialCategory_Budget_Request,
+  FinancialCategory_Budget_Response,
+} from "./dto/budget.dto";
+import { FinancialCategoryBudgetService } from "./financial-category-budget.service";
 
 @Controller("financial-category")
 @ApiBearerAuth("access-token")
@@ -57,6 +63,7 @@ export class FinancialCategoryController extends CreateGenericController<
 }) {
   constructor(
     private readonly financialCategoryService: FinancialCategoryService,
+    private readonly financialCategoryBudgetService: FinancialCategoryBudgetService,
   ) {
     super(financialCategoryService);
   }
@@ -97,5 +104,16 @@ export class FinancialCategoryController extends CreateGenericController<
     @CurrentUser() user: JwtPayload,
   ) {
     return this.financialCategoryService.archiveCategory(categoryId, user);
+  }
+
+  @Put("/budget/:categoryId")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialCategory_Budget_Response)
+  async upsertBudget(
+    @Param("categoryId", ParseIntPipe) categoryId: number,
+    @Body() body: FinancialCategory_Budget_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialCategoryBudgetService.upsert(categoryId, body, user);
   }
 }
