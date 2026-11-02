@@ -28,6 +28,12 @@ import {
 } from "./dto/get-transaction-category.dto";
 import { FinancialCategoryBudgetEntity } from "./_entities/financial-category-budget.entity";
 import { DataSource } from "typeorm";
+import {
+  calculateBudgetMetrics,
+  calculateIncomeAllocation,
+  type BudgetCategoryNode,
+} from "./budget-calculator";
+import { FinancialIncomePlanEntity } from "../financial-income-plan/_entities/financial-income-plan.entity";
 
 @Injectable()
 export class FinancialCategoryService extends BaseCrudService<FinancialCategoryEntity> {
@@ -37,6 +43,8 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     @InjectRepository(FinancialCategoryBudgetEntity)
     private readonly financialCategoryBudgetRepository: Repository<FinancialCategoryBudgetEntity>,
     private readonly dataSource: DataSource,
+    @InjectRepository(FinancialIncomePlanEntity)
+    private readonly incomePlanRepository: Repository<FinancialIncomePlanEntity>,
   ) {
     super(financialCategoryRepository);
   }
@@ -303,6 +311,24 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       roots.push(uncategorizedCategory);
     }
 
+    const applyBudgetMetrics = (
+      category: FinancialCategory_GetWithTransactionCount_Response,
+    ) => {
+      Object.assign(
+        category,
+        calculateBudgetMetrics(category as unknown as BudgetCategoryNode),
+      );
+      for (const child of category.children ?? []) {
+        applyBudgetMetrics(
+          child as FinancialCategory_GetWithTransactionCount_Response,
+        );
+      }
+    };
+
+    for (const root of roots) {
+      applyBudgetMetrics(root);
+    }
+
     return roots;
   }
 
@@ -334,6 +360,102 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
       `,
       [accountId, month],
     );
+  }
+
+  async getBudgetSummary(month: string, user: JwtPayload) {
+    await this.ensureBudgetMonth(user.sub, month);
+    const categories = await this.financialCategoryRepository.find({
+      where: { account: { id: user.sub }, parentId: IsNull(), archived: false },
+    });
+    const budgets = await this.financialCategoryBudgetRepository.find({
+      where: {
+        categoryId: In(categories.map((category) => category.id)),
+        month,
+      },
+    });
+    const budgetMap = new Map(
+      budgets.map((budget) => [budget.categoryId, budget.amount]),
+    );
+    const incomePlan = await this.incomePlanRepository.findOne({
+      where: { accountId: user.sub, month },
+    });
+    const monthStart = `${month}-01`;
+    const monthEnd = dayjs(monthStart).endOf("month").format("YYYY-MM-DD");
+    const actualTotals = await this.financialCategoryRepository.manager
+      .createQueryBuilder(FinancialTransactionEntity, "transaction")
+      .select(
+        `COALESCE(SUM(CASE WHEN transaction.type = :incomeType THEN transaction.amount ELSE 0 END), 0)`,
+        "actualIncome",
+      )
+      .addSelect(
+        `COALESCE(SUM(CASE WHEN transaction.type = :expenseType THEN transaction.amount ELSE 0 END), 0)`,
+        "totalSpent",
+      )
+      .where("transaction.accountId = :accountId", { accountId: user.sub })
+      .andWhere(
+        "transaction.transactionDate BETWEEN :monthStart AND :monthEnd",
+        { monthStart, monthEnd },
+      )
+      .andWhere("transaction.deletedAt IS NULL")
+      .setParameters({
+        incomeType: FINANCIAL_TRANSACTION_TYPE.INCOME,
+        expenseType: FINANCIAL_TRANSACTION_TYPE.EXPENSE,
+      })
+      .getRawOne<{ actualIncome: string; totalSpent: string }>();
+    const actualIncome = Number(actualTotals?.actualIncome ?? 0);
+    const totalSpent = Number(actualTotals?.totalSpent ?? 0);
+    const allocation = calculateIncomeAllocation(
+      categories.map((category) => ({
+        monthlyBudget: budgetMap.has(category.id)
+          ? (budgetMap.get(category.id) ?? null)
+          : null,
+        totalAmount: 0,
+        spendingNature: category.spendingNature,
+      })),
+      incomePlan?.expectedAmount ?? null,
+    );
+
+    return {
+      month,
+      expectedIncome: incomePlan?.expectedAmount ?? null,
+      totalSpent,
+      remainingToSpend: allocation.allocatedTotal - totalSpent,
+      actualIncome,
+      actualSurplus: actualIncome - totalSpent,
+      ...allocation,
+    };
+  }
+
+  async deleteCategory(
+    categoryId: number,
+    user: JwtPayload,
+    transferToCategoryId: number | null,
+  ): Promise<{ success: true }> {
+    await this.dataSource.transaction(async (manager) => {
+      const category = await manager.findOne(FinancialCategoryEntity, {
+        where: { id: categoryId, account: { id: user.sub } },
+      });
+      if (!category) throw new Error("Category not found");
+
+      if (transferToCategoryId !== null) {
+        const target = await manager.findOne(FinancialCategoryEntity, {
+          where: { id: transferToCategoryId, account: { id: user.sub } },
+        });
+        if (!target || target.id === categoryId) {
+          throw new Error("Invalid transfer category");
+        }
+      }
+
+      await manager
+        .createQueryBuilder()
+        .update(FinancialTransactionItemEntity)
+        .set({ categoryId: transferToCategoryId ?? null })
+        .where('"categoryId" = :categoryId', { categoryId })
+        .execute();
+      await manager.softRemove(category);
+    });
+
+    return { success: true };
   }
 
   async getTransactionCategory(

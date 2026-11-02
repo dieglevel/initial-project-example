@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -94,6 +95,29 @@ export class FinancialCategoryController extends CreateGenericController<
       categoryId,
       query,
       user,
+    );
+  }
+
+  @Get("/budget-summary/:month")
+  @HttpCode(200)
+  async getBudgetSummary(
+    @Param("month") month: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialCategoryService.getBudgetSummary(month, user);
+  }
+
+  @Delete("/delete/:id")
+  @HttpCode(200)
+  async deleteCategory(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() body: { transferToCategoryId?: number | null },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialCategoryService.deleteCategory(
+      id,
+      user,
+      body?.transferToCategoryId ?? null,
     );
   }
 
