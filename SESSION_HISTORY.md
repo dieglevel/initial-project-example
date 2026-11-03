@@ -52,6 +52,19 @@ This file tracks completed development tasks, major architectural milestones, an
 
 ---
 
+## 2026-11-02: Legacy category budget backfill repair
+
+- **Task Summary**: Backfilled active category budget rows and repaired existing null budget rows from non-null legacy `monthlyBudget` values.
+- **Relevant Files**:
+  - `src/common/database/migrations/1794000004000-BackfillLegacyCategoryBudgets.ts`
+  - `src/common/database/migrations/1794000005000-RepairLegacyCategoryBudgetAmounts.ts`
+- **Verification Results**:
+  - Migrations applied successfully to PostgreSQL.
+  - Non-null legacy limits are now present in `financial-category-budget`.
+  - Categories whose legacy value was already NULL remain unlimited by design.
+
+---
+
 ## 2026-10-16: Established Shared AI Context and Codebase Documentation System
 
 - **Task Summary**: Analyzed the monolithic NestJS backend, documented core architecture, established multi-agent workflows, and generated granular module documentation for all 17 feature subsystems.

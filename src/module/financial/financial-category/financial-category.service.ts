@@ -96,6 +96,7 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
 
     const budgetMonth = dayjs(startDate ?? new Date()).format("YYYY-MM");
     await this.ensureBudgetMonth(user.sub, budgetMonth);
+
     const budgetRows = await this.financialCategoryBudgetRepository.find({
       where: {
         categoryId: In(categories.map((category) => category.id)),
@@ -105,14 +106,23 @@ export class FinancialCategoryService extends BaseCrudService<FinancialCategoryE
     const budgetMap = new Map(
       budgetRows.map((budget) => [budget.categoryId, budget.amount]),
     );
+
+    // Có dòng budget của tháng -> dùng (kể cả null = không giới hạn).
+    // Không có dòng -> lấy giá trị monthlyBudget đang lưu trên category.
+    const resolveBudget = (category: {
+      id: number;
+      monthlyBudget: number | null;
+    }): number | null => {
+      if (budgetMap.has(category.id)) {
+        return budgetMap.get(category.id) ?? null;
+      }
+      return category.monthlyBudget ?? null;
+    };
+
     for (const category of categories) {
-      category.monthlyBudget = budgetMap.has(category.id)
-        ? (budgetMap.get(category.id) ?? null)
-        : null;
+      category.monthlyBudget = resolveBudget(category);
       for (const child of category.children ?? []) {
-        child.monthlyBudget = budgetMap.has(child.id)
-          ? (budgetMap.get(child.id) ?? null)
-          : null;
+        child.monthlyBudget = resolveBudget(child);
       }
     }
 

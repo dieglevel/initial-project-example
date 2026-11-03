@@ -18,6 +18,12 @@
 - Category list responses now include uncapped percent, status, remaining, child allocation, and over-allocation fields; budget summary exposes expected income allocation.
 - Verification: income plan and calculator tests pass; backend build passes. UI remains unchanged.
 
+## 2026-11-02: Legacy category budget backfill repair
+
+- Added idempotent migrations to create missing budget rows for active categories and copy non-null legacy `monthlyBudget` values into existing null budget rows.
+- Production verification: legacy limits for `Trọ`, `Ăn uống`, `Di chuyển`, `Shopping / Mua sắm`, and `Sức khỏe & Y tế` are present in the new budget table.
+- `Điện`, `Nước`, `Phòng`, and `Đồ uống` remain unlimited because their legacy `monthlyBudget` values are already NULL in the database.
+
 ## Status
 Completed
 
