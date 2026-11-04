@@ -149,6 +149,7 @@ export class FinancialRecordService {
       status: FINANCIAL_TRANSACTION_STATUS.PENDING,
       description: parsed.description || "Bank Notification",
       merchant: parsed.merchant || "Bank Notification",
+      transactionDate: new Date().toISOString().split("T")[0], // YYYY-MM-DD
     });
 
     const savedTransaction =
