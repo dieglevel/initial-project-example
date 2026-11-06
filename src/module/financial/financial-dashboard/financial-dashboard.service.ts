@@ -8,6 +8,8 @@ import { FinancialTransactionItemEntity } from "../financial-transaction/_entiti
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
 import { FinancialGoalEntity } from "../financial-goal/_entities/financial-goal.entity";
 import { FinancialDebtEntity } from "../financial-debt/_entities/financial-debt.entity";
+import { FINANCIAL_DEBT_STATUS_ENUM } from "../financial-debt/financial-debt.enum";
+import { FINANCIAL_GOAL_STATUS } from "../financial-goal/financial-goal.enum";
 import { FinancialSettingEntity } from "../financial-setting/_entities/financial-setting.entity";
 import {
   FINANCIAL_TRANSACTION_TYPE,
@@ -20,6 +22,10 @@ import {
   CategoryBreakdownItem,
   DashboardTimeFrame,
 } from "./dto/financial-dashboard.dto";
+
+const VN_TZ = "Asia/Ho_Chi_Minh";
+/** Số ngày trước hạn được coi là "sắp đến hạn" */
+const DEBT_DUE_SOON_DAYS = 7;
 
 @Injectable()
 export class FinancialDashboardService {
@@ -67,37 +73,40 @@ export class FinancialDashboardService {
     let endDate: Date;
 
     const now = dayjs();
+    // offset: 0 = kỳ hiện tại, -1 = kỳ trước, ... (đơn vị theo timeFrame)
+    const offset = Math.min(0, Math.trunc(Number(query.offset ?? 0)));
     if (query.fromDate && query.toDate) {
       startDate = dayjs(query.fromDate).startOf("day").toDate();
       endDate = dayjs(query.toDate).endOf("day").toDate();
     } else if (timeFrame === DashboardTimeFrame.WEEKLY) {
-      startDate = now.startOf("week").toDate();
-      endDate = now.endOf("week").toDate();
+      const ref = now.add(offset, "week");
+      startDate = ref.startOf("week").toDate();
+      endDate = ref.endOf("week").toDate();
     } else if (timeFrame === DashboardTimeFrame.YEARLY) {
-      startDate = now.startOf("year").toDate();
-      endDate = now.endOf("year").toDate();
+      const ref = now.add(offset, "year");
+      startDate = ref.startOf("year").toDate();
+      endDate = ref.endOf("year").toDate();
     } else {
       // Default / MONTHLY calculated with cycleStartDate
       if (cycleStartDate === 1) {
-        startDate = now.startOf("month").toDate();
-        endDate = now.endOf("month").toDate();
+        const ref = now.add(offset, "month");
+        startDate = ref.startOf("month").toDate();
+        endDate = ref.endOf("month").toDate();
       } else {
-        const baseDate =
-          now.date() < cycleStartDate ? now.subtract(1, "month") : now;
+        // Ngày bắt đầu chu kỳ trong 1 tháng (vd 31 → 28/29 ở tháng 2)
+        const cycleDayIn = (d: dayjs.Dayjs) =>
+          Math.min(cycleStartDate, d.daysInMonth());
 
-        const clampedStartDay = Math.min(
-          cycleStartDate,
-          baseDate.daysInMonth(),
-        );
-        startDate = baseDate.date(clampedStartDay).startOf("day").toDate();
+        // Tháng chứa ngày bắt đầu của chu kỳ hiện tại, rồi lùi theo offset
+        const currentBase =
+          now.date() < cycleDayIn(now) ? now.subtract(1, "month") : now;
+        const baseDate = currentBase.startOf("month").add(offset, "month");
+
+        startDate = baseDate.date(cycleDayIn(baseDate)).startOf("day").toDate();
 
         const nextMonth = baseDate.add(1, "month");
-        const clampedNextDay = Math.min(
-          cycleStartDate,
-          nextMonth.daysInMonth(),
-        );
         endDate = nextMonth
-          .date(clampedNextDay)
+          .date(cycleDayIn(nextMonth))
           .startOf("day")
           .subtract(1, "millisecond")
           .toDate();
@@ -303,9 +312,10 @@ export class FinancialDashboardService {
     }));
 
     // 8. Goals Summary
+    // Chỉ mục tiêu đang chạy; gần deadline nhất trước, không có deadline xếp sau
     const activeGoals = await this.goalRepository.find({
-      where: { accountId },
-      order: { id: "DESC" },
+      where: { accountId, status: FINANCIAL_GOAL_STATUS.ACTIVE },
+      order: { deadline: { direction: "ASC", nulls: "LAST" }, id: "DESC" },
       take: 4,
     });
 
@@ -326,28 +336,48 @@ export class FinancialDashboardService {
       };
     });
 
-    // 9. Debts Summary
-    const activeDebts = await this.debtRepository.find({
-      where: { accountId },
-      order: { id: "DESC" },
-      take: 4,
+    // 9. Debts Summary — chỉ khoản đang mở (ACTIVE), tối đa 4.
+    // Ưu tiên: quá hạn (lâu nhất trước) → sắp đến hạn (gần nhất trước) → mới tạo nhất.
+    const openDebts = await this.debtRepository.find({
+      where: { accountId, status: FINANCIAL_DEBT_STATUS_ENUM.ACTIVE },
     });
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: VN_TZ,
+    }).format(new Date());
+    const dueSoonLimit = dayjs(today)
+      .add(DEBT_DUE_SOON_DAYS, "day")
+      .format("YYYY-MM-DD");
+    const debtPriority = (d: FinancialDebtEntity) => {
+      if (d.dueDate && d.dueDate < today) return 0;
+      if (d.dueDate && d.dueDate <= dueSoonLimit) return 1;
+      return 2;
+    };
 
-    const debtsSummary = activeDebts.map((d) => {
-      const orig = Number(d.originalAmount || 0);
-      const out = Number(d.outstandingAmount || 0);
-      return {
-        id: d.id,
-        name: d.namePerson || d.name,
-        namePerson: d.namePerson,
-        totalAmount: orig,
-        paidAmount: Math.max(0, orig - out),
-        remainingAmount: out,
-        type: d.direction || d.type,
-        dueDate: d.dueDate,
-        status: d.status,
-      };
-    });
+    const debtsSummary = openDebts
+      .sort((a, b) => {
+        const pa = debtPriority(a);
+        const pb = debtPriority(b);
+        if (pa !== pb) return pa - pb;
+        if (pa < 2) return String(a.dueDate).localeCompare(String(b.dueDate));
+        return dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf();
+      })
+      .slice(0, 4)
+      .map((d) => {
+        const orig = Number(d.originalAmount || 0);
+        const out = Number(d.outstandingAmount || 0);
+        return {
+          id: d.id,
+          name: d.name,
+          namePerson: d.namePerson,
+          totalAmount: orig,
+          paidAmount: Math.max(0, orig - out),
+          remainingAmount: out,
+          direction: d.direction,
+          type: d.type,
+          dueDate: d.dueDate,
+          status: d.status,
+        };
+      });
 
     return {
       period: {

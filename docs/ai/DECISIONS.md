@@ -114,3 +114,17 @@ This document records architectural and design decisions that are verified from 
 - **Evidence / Source Paths**:
   - `src/common/util/decimal-transformer.ts`
   - `src/module/financial/financial-transaction/_entities/financial-transaction.entity.ts`
+
+---
+
+## ADR-009: Debt and Goal Money Moves Adjust Wallet Balance Without Transactions
+
+- **Status**: Accepted (2026-11-07)
+- **Context**: Lending/borrowing (debt) and putting money into savings goals move real money between a wallet and a "bucket", but they are neither income nor spending. Creating `FinancialTransaction` rows would distort monthly spending, category budgets and reports.
+- **Decision**: These flows call `applyWalletBalanceChange(manager, walletId, accountId, delta)` (`financial-wallet/wallet-balance.helper.ts`) inside the caller's DB transaction. It checks ownership, locks the wallet row, rejects a negative result and saves the new balance. No transaction row is created. The wallet is optional per operation (`walletId` omitted = "record only").
+- **Rationale**: Keeps spending analytics clean while still letting wallet balances reflect reality; one helper keeps locking/validation identical across modules.
+- **Consequences**: Wallet balance history is not reconstructible from transactions alone — debt/goal histories carry `walletId` for audit. Deleting a debt/goal does not refund wallets; refunds are explicit (debt payments, goal withdraw / cancel-with-refund).
+- **Evidence / Source Paths**:
+  - `src/module/financial/financial-wallet/wallet-balance.helper.ts`
+  - `src/module/financial/financial-debt/financial-debt.service.ts`
+  - `src/module/financial/financial-goal/financial-goal.service.ts`

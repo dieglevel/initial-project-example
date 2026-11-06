@@ -1,5 +1,15 @@
 # Current Session
 
+## 2026-11-07: Financial goal overhaul
+
+- Owner-scoped goal `paging` / `update` / `delete` (were open to any user); update copies only whitelisted fields, status changes via cancel / pause / resume.
+- Wallet link: optional `walletId` on manual contribution, pending confirmation, withdrawal (new) and cancel refund; goal `walletId` = default auto-contribution wallet. Shared `financial-wallet/wallet-balance.helper.ts` (debt now uses it too). ADR-009.
+- Daily auto-contribution cron (00:10 VN): debits default wallet when enough, else creates PENDING; idempotent per (goalId, period) with a partial unique index.
+- Contributions can no longer exceed the remaining amount; `isLocked` blocks withdraw/refund; INACTIVE = paused; projection DTO fixed + deadline metrics; dashboard goals = ACTIVE only.
+- Migration `1794000006000-GoalWalletLinkAndWithdrawals` applied to `defaultdb` and **production** (prod had 0 goals; pre-checked for duplicate SYSTEM rows).
+- Dependency fix: `node_modules` had been reinstalled with pnpm (2026-11-06 14:42), which hid packages the code imports but `package.json` did not declare. Declared them at the versions already in the lock: `express@^5.2.1`, `socket.io@^4.8.3`, `dotenv@^16.6.1`, `@opentelemetry/core@^2.12.0`, `@opentelemetry/sdk-trace-base@^2.12.0`. pnpm reports ignored build scripts (bcrypt, @swc/core…) — bcrypt v6 ships prebuilds and was verified to hash.
+- Verification: goal spec 17/17, full Jest 62/62, `pnpm run build` passes, app boots (`dist/src/main.js` on a temp port) with all 15 goal routes mapped once; unauthenticated call → 401.
+
 ## 2026-11-02: Step (a) transactionDate migration
 
 - Added date-only `transactionDate` to financial transactions and migrated category, dashboard, report, notification, and transaction filters/grouping away from `createdAt`.

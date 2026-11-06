@@ -11,7 +11,7 @@ import {
   Max,
   Min,
 } from "class-validator";
-import { Column, Entity, ManyToOne, OneToMany } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
 
 import {
   FINANCIAL_GOAL_SAVING_MODE,
@@ -20,6 +20,7 @@ import {
 } from "../financial-goal.enum";
 
 import { FinancialGoalHistoryEntity } from "../financial-goal-history/_entities/financial-goal-history.entity";
+import { FinancialWalletEntity } from "../../financial-wallet/_entities/financial-wallet.entity";
 
 @Entity("financial-goal")
 @ApiEntity()
@@ -150,12 +151,33 @@ export class FinancialGoalEntity extends BaseEntity {
   @Max(31)
   autoContributionDay?: number | null;
 
+  /**
+   * Khóa rút tiền: chặn rút (withdraw) và hoàn tiền khi hủy cho tới khi mở khóa.
+   * Không ảnh hưởng việc góp thêm.
+   */
   @Column({
     type: "boolean",
     nullable: false,
     default: false,
   })
   isLocked: boolean;
+
+  /**
+   * Ví mặc định cho góp tự động (AUTO). null = góp tự động chỉ tạo khoản
+   * chờ xác nhận, không trừ ví.
+   */
+  @Column({ type: "int", nullable: true })
+  @IsOptional()
+  @IsInt()
+  walletId?: number | null;
+
+  @ManyToOne(() => FinancialWalletEntity, {
+    nullable: true,
+    onDelete: "SET NULL",
+  })
+  @JoinColumn({ name: "walletId" })
+  @ApiPropertyOptional({ type: () => FinancialWalletEntity })
+  wallet?: FinancialWalletEntity | null;
 
   @ManyToOne(() => AccountEntity, (account) => account.financialGoals, {
     nullable: false,

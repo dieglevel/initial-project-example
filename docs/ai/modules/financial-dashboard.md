@@ -58,6 +58,11 @@ src/module/financial/financial-dashboard/
 - Run `pnpm run test` for unit tests.
 - Run `pnpm run build` to verify DTO and type safety.
 
+## Notes (verified 2026-11-07)
+- **Period navigation**: `GET /financial-dashboard/summary` accepts `offset` (int, `-240..0`, default 0) — 0 = current period, -1 = previous week/month/year depending on `timeFrame`. Monthly periods respect `cycleStartDate` (the current cycle's start month is computed first, then shifted), so consecutive offsets are contiguous; a cycle day larger than the month length is clamped (e.g. 31 → 28/29 in February).
+- **`goalsSummary`**: `ACTIVE` goals only, nearest `deadline` first (nulls last), then newest; max 4.
+- **`debtsSummary`**: `ACTIVE` debts only, max 4: overdue (oldest due first) → due within 7 days → newest. Items include `name`, `namePerson` and `direction`.
+
 ## Documentation Status
 - Status: Verified
 - Last Verified: 2026-10-16

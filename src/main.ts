@@ -36,6 +36,7 @@ async function bootstrap() {
             "'self'",
             "http://localhost:3002",
             "http://localhost:5173",
+            "http://localhost:5174",
             "https://dieglevel.github.io",
           ],
         },
@@ -81,7 +82,11 @@ async function bootstrap() {
 
   app.enableCors({
     credentials: true,
-    origin: ["https://dieglevel.github.io", "http://localhost:5173"],
+    origin: [
+      "https://dieglevel.github.io",
+      "http://localhost:5173",
+      "http://localhost:5174",
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
   });
 

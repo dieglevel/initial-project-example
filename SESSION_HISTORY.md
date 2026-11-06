@@ -111,3 +111,21 @@ This file tracks completed development tasks, major architectural milestones, an
   - Verified user data integrity on `account` and `profile`.
   - `npm run build` passed with zero errors.
 
+---
+
+## 2026-11-07: Financial goal overhaul
+
+- Owner-scoped goal `paging` / `update` / `delete` (were open to any user); update copies only whitelisted fields, status changes via cancel / pause / resume.
+- Wallet link: optional `walletId` on manual contribution, pending confirmation, withdrawal (new) and cancel refund; goal `walletId` = default auto-contribution wallet. Shared `financial-wallet/wallet-balance.helper.ts` (debt now uses it too). ADR-009.
+- Daily auto-contribution cron (00:10 VN): debits default wallet when enough, else creates PENDING; idempotent per (goalId, period) with a partial unique index.
+- Contributions can no longer exceed the remaining amount; `isLocked` blocks withdraw/refund; INACTIVE = paused; projection DTO fixed + deadline metrics; dashboard goals = ACTIVE only.
+- Migration `1794000006000-GoalWalletLinkAndWithdrawals` **run on defaultdb only**; production pending.
+- Verification: goal spec 17/17, full Jest 62/62, `tsc --noEmit` clean, scoped ESLint clean. `pnpm run build` fails only on 6 pre-existing missing-module errors (see below).
+- **Blocker (pre-existing, not from this task)**: `node_modules` was reinstalled with pnpm on 2026-11-06 14:42 (`pnpm-lock.yaml` modified, uncommitted). `socket.io`, `dotenv`, `@opentelemetry/*`, `express`… are not declared in `package.json`, so they are no longer resolvable; `nest start --watch` cannot boot. Needs a decision: declare the deps or use a hoisted node-linker.
+
+---
+
+## 2026-11-07: Goal follow-up — dependencies and production migration
+
+- Declared missing runtime deps (`express`, `socket.io`, `dotenv`, `@opentelemetry/core`, `@opentelemetry/sdk-trace-base`) at the versions already locked; `pnpm run build` now passes and the app boots.
+- Ran `1794000006000-GoalWalletLinkAndWithdrawals` on production; verified columns `financial-goal.walletId`, `financial-goal-history.walletId`/`type` and index `UQ_goal_history_system_period`.

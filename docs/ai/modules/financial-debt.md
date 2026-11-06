@@ -64,7 +64,7 @@ src/module/financial/financial-debt/
 
 ## Constraints and Common Pitfalls
 - Payment amounts cannot exceed `outstandingAmount`.
-- Payments that impact wallet balances must execute inside a database transaction.
+- Payments that impact wallet balances must execute inside a database transaction. Wallet changes go through the shared `applyWalletBalanceChange` helper (`financial-wallet/wallet-balance.helper.ts`, ADR-009); no financial transaction is created.
 
 ## Tests and Verification
 - Run `pnpm run test` for unit tests.

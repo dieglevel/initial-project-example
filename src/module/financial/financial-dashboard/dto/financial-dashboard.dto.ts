@@ -1,6 +1,14 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsDateString, IsEnum, IsNumber, IsOptional } from "class-validator";
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  Max,
+  Min,
+} from "class-validator";
 
 export enum DashboardTimeFrame {
   WEEKLY = "weekly",
@@ -33,6 +41,17 @@ export class GetFinancialDashboard_Request {
   @IsEnum(DashboardTimeFrame)
   @IsOptional()
   timeFrame?: DashboardTimeFrame = DashboardTimeFrame.MONTHLY;
+  @ApiPropertyOptional({
+    description:
+      "Lùi kỳ theo timeFrame: 0 = kỳ hiện tại, -1 = kỳ trước (tuần/tháng/năm), ...",
+    default: 0,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(-240)
+  @Max(0)
+  @IsOptional()
+  offset?: number = 0;
 }
 
 export class CashFlowTimelinePoint {
@@ -77,6 +96,8 @@ export class DebtSummaryItem {
   totalAmount: number;
   paidAmount: number;
   remainingAmount?: number;
+  /** INCOMING = cho vay (phải thu), OUTGOING = đi vay (phải trả) */
+  direction: string;
   type: string;
   dueDate?: string | null;
   status?: string;

@@ -15,5 +15,6 @@ export enum FINANCIAL_GOAL_STATUS {
   ACTIVE = "ACTIVE",
   COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
+  /** Tạm dừng: không góp (tay hoặc tự động), vẫn rút được nếu không khóa */
   INACTIVE = "INACTIVE",
 }

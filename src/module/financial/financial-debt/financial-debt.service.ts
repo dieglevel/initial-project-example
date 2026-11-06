@@ -16,7 +16,10 @@ import { FINANCIAL_DEBT_HISTORY_TYPE_ENUM } from "./financial-debt-history.enum"
 import { FinancialWalletEntity } from "../financial-wallet/_entities/financial-wallet.entity";
 import { BaseCrudService } from "@/common/service/base-crud.service";
 
-const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+import {
+  applyWalletBalanceChange,
+  round2,
+} from "../financial-wallet/wallet-balance.helper";
 
 /** "YYYY-MM-DD" theo giờ Việt Nam (không phụ thuộc múi giờ server) */
 const todayVN = () =>
@@ -356,36 +359,14 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
     return moneyIn ? amount : -amount;
   }
 
-  /**
-   * Kiểm tra ví thuộc account, khóa dòng, cập nhật số dư. Không tạo transaction.
-   */
-  private async applyWalletChange(
+  /** Cập nhật số dư ví (không tạo transaction) — dùng helper chung của module ví */
+  private applyWalletChange(
     manager: EntityManager,
     walletId: number,
     accountId: number,
     delta: number,
   ) {
-    // Kiểm tra quyền sở hữu (query có join relation nên không khóa ở đây)
-    const owned = await manager.findOne(FinancialWalletEntity, {
-      where: { id: walletId, account: { id: accountId } },
-    });
-    if (!owned) {
-      throw new NotFoundException("Financial wallet not found");
-    }
-
-    // Đọc lại số dư mới nhất dưới khóa
-    const wallet = await manager.findOneOrFail(FinancialWalletEntity, {
-      where: { id: walletId },
-      lock: { mode: "pessimistic_write" },
-    });
-
-    const newBalance = round2(Number(wallet.balance) + delta);
-    if (newBalance < 0) {
-      throw new BadRequestException("Insufficient wallet balance");
-    }
-
-    wallet.balance = newBalance;
-    return manager.save(wallet);
+    return applyWalletBalanceChange(manager, walletId, accountId, delta);
   }
 
   private async lockDebt(
