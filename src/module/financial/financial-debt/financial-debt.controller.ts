@@ -34,6 +34,9 @@ import {
   FinancialDebt_Settle_Request,
   FinancialDebt_Cancel_Request,
   FinancialDebt_Correct_Request,
+  FinancialDebt_Increase_Request,
+  FinancialDebt_Merge_Request,
+  FinancialDebt_PersonPayment_Request,
 } from "./dto/action.dto";
 import { FinancialDebtHistory_GetAll_Response } from "./dto/get-history.dto";
 
@@ -74,6 +77,32 @@ export class FinancialDebtController extends CreateGenericController<
   }
 
   /**
+   * Gộp nhiều khoản đang nợ cùng chiều vào một khoản
+   */
+  @Post("/merge")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialDebt_Create_Response)
+  async merge(
+    @Body() dto: FinancialDebt_Merge_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialDebtService.merge(user.sub, dto);
+  }
+
+  /**
+   * Thu / trả nợ theo người, phân bổ khoản cũ trước (FIFO)
+   */
+  @Post("/person-payment")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialDebt_Create_Response, { isArray: true })
+  async paymentByPerson(
+    @Body() dto: FinancialDebt_PersonPayment_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialDebtService.paymentByPerson(user.sub, dto);
+  }
+
+  /**
    * Lấy chi tiết khoản nợ
    */
   @Get("/:id")
@@ -98,6 +127,20 @@ export class FinancialDebtController extends CreateGenericController<
     @CurrentUser() user: JwtPayload,
   ) {
     return this.financialDebtService.payment(id, user.sub, dto);
+  }
+
+  /**
+   * Vay / cho vay thêm vào khoản đang có
+   */
+  @Post("/:id/increase")
+  @HttpCode(200)
+  @ApiBaseResponse(FinancialDebt_Create_Response)
+  async increase(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: FinancialDebt_Increase_Request,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.financialDebtService.increase(id, user.sub, dto);
   }
 
   /**

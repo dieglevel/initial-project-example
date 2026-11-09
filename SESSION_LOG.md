@@ -1,5 +1,13 @@
 # Current Session
 
+## 2026-11-09: Debt — gộp nhiều lần vay của một người vào một khoản
+
+- Model: one debt per person + direction. New `POST /financial-debt/:id/increase` (vay / cho vay thêm; reopens PAID_OFF), `POST /financial-debt/merge` (same direction, ACTIVE only; sources → status `MERGED`, `mergedIntoId`, outstanding 0; history `MERGED_OUT` / `MERGED_IN`; no wallet change), `POST /financial-debt/person-payment` (FIFO by `startDate`, `id`; one wallet change for the total, one PAYMENT history per debt).
+- Person matching: `normalizePersonName` (trim, collapse spaces, lower case) in `financial-debt.allocation.ts`; merge does not require identical names (lets users merge typo variants).
+- Migration `1794000007000-DebtMergeAndIncrease` (enum values + `mergedIntoId`) **not run yet** — run `pnpm run migration:run` on each DB before deploying.
+- Follow-up: payments may exceed the outstanding amount (single and person payment). Debt goes to 0 / PAID_OFF, wallet moves the full amount, the excess is a separate `INTEREST` history row (person payment: excess on the newest debt). Migration `1794000008000-DebtHistoryInterest`. Both migrations applied to local `defaultdb` (production not yet). Allocation spec 7/7.
+- Verification: allocation spec 4/4, `pnpm run build` and `tsc --noEmit` pass, scoped ESLint clean. Endpoints not exercised against a live DB.
+
 ## 2026-11-07: Financial goal overhaul
 
 - Owner-scoped goal `paging` / `update` / `delete` (were open to any user); update copies only whitelisted fields, status changes via cancel / pause / resume.

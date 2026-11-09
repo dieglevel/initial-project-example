@@ -17,7 +17,8 @@ src/module/financial/financial-debt/
 ├── financial-debt.service.ts             # Debt lifecycle and wallet integration
 ├── financial-debt.module.ts              # Module definition
 ├── financial-debt.enum.ts                # DIRECTION, STATUS, TYPE
-├── financial-debt-history.enum.ts        # ACTION_ENUM (PAYMENT, ADJUST, SETTLE, etc.)
+├── financial-debt-history.enum.ts        # CREATED, PAYMENT, ADJUSTMENT, SETTLED, CANCELLED, CORRECTED, INCREASED, MERGED_IN, MERGED_OUT, INTEREST
+├── financial-debt.allocation.ts          # normalizePersonName + allocateFifo (pure, spec'd)
 ├── _entities/
 │   ├── financial-debt.entity.ts          # Main debt record
 │   └── financial-debt-history.entity.ts  # Historical audit log
@@ -35,7 +36,7 @@ src/module/financial/financial-debt/
 - **`FinancialDebtEntity`**: Stores debtor/creditor name (`namePerson`), direction, amounts, start and due dates, and status (`ACTIVE`, `PAID`, `CANCELLED`).
 - **`FinancialDebtHistoryEntity`**: Audit trail of every action (payment, adjustment, settlement).
 - **`FinancialDebtService`**: Manages debt operations, recalculating `outstandingAmount` and updating wallet balances on payment.
-- **`FinancialDebtController`**: Base generic controller plus `/my-debts`, `/:id/payment`, `/:id/adjust`, `/:id/settle`, `/:id/cancel`, `/:id/correct`, `/:id/histories`.
+- **`FinancialDebtController`**: Base generic controller plus `/my-debts`, `/merge`, `/person-payment`, `/:id/payment`, `/:id/increase`, `/:id/adjust`, `/:id/settle`, `/:id/cancel`, `/:id/correct`, `/:id/histories`.
 
 ## Business and Data Flows
 1. User records a debt: specifies debtor name, amount, direction (`BORROW` or `LEND`), and optional due date.
@@ -45,6 +46,10 @@ src/module/financial/financial-debt/
    - Records an entry in `FinancialDebtHistoryEntity`.
    - If `outstandingAmount` reaches 0, sets status to `PAID`.
 3. If negotiated, user can settle or forgive the balance via `POST /:id/settle`.
+4. One debt per person + direction ("gộp"):
+   - `POST /:id/increase` — borrow / lend more into an existing ACTIVE or PAID_OFF debt (reopened as ACTIVE); adds to `originalAmount` and `outstandingAmount`, optional wallet change (same direction as create), history `INCREASED`.
+   - `POST /merge` `{ targetId, sourceIds }` — ACTIVE debts with the same direction only (names may differ). Target gets the sum of original/outstanding, earliest `startDate` and `dueDate`; each source becomes `MERGED` with `mergedIntoId`, outstanding 0, history `MERGED_OUT` (target gets `MERGED_IN`). No wallet change.
+   - `POST /person-payment` `{ namePerson, direction, amount, walletId? }` — pays all ACTIVE debts of that person (normalized name) and direction, oldest `startDate` first (FIFO). One wallet change for the total, one PAYMENT history per debt.
 
 ## Data Model and Relationships
 - Belongs to `AccountEntity` via `accountId` (onDelete: CASCADE).
@@ -63,7 +68,10 @@ src/module/financial/financial-debt/
 - To support compound interest or automated late fee penalties, add interest rate fields and a scheduled cron evaluation job.
 
 ## Constraints and Common Pitfalls
-- Payment amounts cannot exceed `outstandingAmount`.
+- Payments may exceed `outstandingAmount`: the debt goes to 0 (PAID_OFF), the wallet moves the full amount, and the excess is recorded as an `INTEREST` history row (person payment: on the newest debt). Migration `1794000008000-DebtHistoryInterest`.
+- `MERGED` debts keep their original amount but zero outstanding — exclude them from totals (dashboard only counts ACTIVE).
+- `correctAmount` compensates only the wallet of the `CREATED` history, not wallets used by later `INCREASED` entries.
+- Migration `1794000007000-DebtMergeAndIncrease` adds the enum values and `mergedIntoId`.
 - Payments that impact wallet balances must execute inside a database transaction. Wallet changes go through the shared `applyWalletBalanceChange` helper (`financial-wallet/wallet-balance.helper.ts`, ADR-009); no financial transaction is created.
 
 ## Tests and Verification
@@ -72,7 +80,7 @@ src/module/financial/financial-debt/
 
 ## Documentation Status
 - Status: Verified
-- Last Verified: 2026-10-16
+- Last Verified: 2026-11-09
 - Source Paths:
   - `src/module/financial/financial-debt/financial-debt.controller.ts`
   - `src/module/financial/financial-debt/financial-debt.service.ts`

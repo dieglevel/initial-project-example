@@ -11,6 +11,8 @@ export enum FINANCIAL_DEBT_STATUS_ENUM {
   PAID_OFF = "PAID_OFF",
   CANCELLED = "CANCELLED",
   SETTLED = "SETTLED",
+  /** Đã gộp vào khoản khác (xem mergedIntoId) */
+  MERGED = "MERGED",
 }
 
 export enum FINANCIAL_DEBT_DIRECTION_ENUM {

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, DataSource, EntityManager } from "typeorm";
+import { Repository, DataSource, EntityManager, In } from "typeorm";
 
 import { FinancialDebtEntity } from "./_entities/financial-debt.entity";
 import { FinancialDebtHistoryEntity } from "./_entities/financial-debt-history.entity";
@@ -20,6 +20,11 @@ import {
   applyWalletBalanceChange,
   round2,
 } from "../financial-wallet/wallet-balance.helper";
+import {
+  allocateFifo,
+  normalizePersonName,
+  splitPayment,
+} from "./financial-debt.allocation";
 
 /** "YYYY-MM-DD" theo giờ Việt Nam (không phụ thuộc múi giờ server) */
 const todayVN = () =>
@@ -52,7 +57,13 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   async create(
     data: Partial<FinancialDebtEntity> & { walletId?: number | null },
   ) {
-    const { walletId, ...debtData } = data;
+    // status / mergedIntoId do server quản lý
+    const {
+      walletId,
+      status: _status,
+      mergedIntoId: _mergedIntoId,
+      ...debtData
+    } = data;
     const { account, direction } = debtData;
     const originalAmount = round2(Number(debtData.originalAmount));
     const accountId = account?.id;
@@ -106,29 +117,12 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
     accountId: number,
     dto: DebtActionMeta & { amount: number; walletId?: number | null },
   ) {
-    const amount = round2(Number(dto.amount));
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException("Payment amount must be greater than 0");
-    }
-
-    const occurredAt = dto.occurredAt ?? todayVN();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredAt)) {
-      throw new BadRequestException("occurredAt must be in YYYY-MM-DD format");
-    }
-    if (occurredAt > todayVN()) {
-      throw new BadRequestException("occurredAt cannot be in the future");
-    }
+    const amount = this.requirePositiveAmount(dto.amount, "Payment amount");
+    const occurredAt = this.resolvePastOrToday(dto.occurredAt);
 
     return this.dataSource.transaction(async (manager) => {
       const debt = await this.lockDebt(manager, id, accountId);
       this.validateActiveDebt(debt);
-
-      const previousOutstandingAmount = round2(Number(debt.outstandingAmount));
-      if (amount > previousOutstandingAmount) {
-        throw new BadRequestException(
-          `Payment amount cannot exceed outstanding amount (${previousOutstandingAmount})`,
-        );
-      }
 
       if (dto.walletId) {
         await this.applyWalletChange(
@@ -139,25 +133,222 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
         );
       }
 
-      const newOutstandingAmount = round2(previousOutstandingAmount - amount);
-      debt.outstandingAmount = newOutstandingAmount;
-      if (newOutstandingAmount === 0) {
-        debt.status = FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF;
+      return this.applyPayment(manager, debt, amount, {
+        occurredAt,
+        note: dto.note,
+        walletId: dto.walletId ?? null,
+      });
+    });
+  }
+
+  /**
+   * Thu / trả nợ theo người: tổng tiền phân bổ vào các khoản đang nợ cùng chiều
+   * của người đó, khoản bắt đầu sớm nhất được trả trước (FIFO).
+   * Ví chỉ biến động một lần với tổng số tiền; mỗi khoản đều ghi lịch sử riêng.
+   */
+  async paymentByPerson(
+    accountId: number,
+    dto: DebtActionMeta & {
+      namePerson: string;
+      direction: FINANCIAL_DEBT_DIRECTION_ENUM;
+      amount: number;
+      walletId?: number | null;
+    },
+  ) {
+    const amount = this.requirePositiveAmount(dto.amount, "Payment amount");
+    const occurredAt = this.resolvePastOrToday(dto.occurredAt);
+    const person = normalizePersonName(dto.namePerson ?? "");
+    if (!person) {
+      throw new BadRequestException("namePerson is required");
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const candidates = await manager.find(FinancialDebtEntity, {
+        where: {
+          accountId,
+          direction: dto.direction,
+          status: FINANCIAL_DEBT_STATUS_ENUM.ACTIVE,
+        },
+        order: { id: "ASC" },
+        lock: { mode: "pessimistic_write" },
+      });
+      const debts = candidates.filter(
+        (d) => normalizePersonName(d.namePerson) === person,
+      );
+      if (debts.length === 0) {
+        throw new NotFoundException("No active debt found for this person");
       }
+
+      if (dto.walletId) {
+        await this.applyWalletChange(
+          manager,
+          dto.walletId,
+          accountId,
+          this.walletDelta(dto.direction, "PAYMENT", amount),
+        );
+      }
+
+      const byId = new Map(debts.map((d) => [d.id, d]));
+      const saved: FinancialDebtEntity[] = [];
+      for (const allocation of allocateFifo(debts, amount)) {
+        saved.push(
+          await this.applyPayment(
+            manager,
+            byId.get(allocation.id),
+            allocation.amount,
+            { occurredAt, note: dto.note, walletId: dto.walletId ?? null },
+          ),
+        );
+      }
+      return saved;
+    });
+  }
+
+  /**
+   * Vay / cho vay thêm vào khoản đang có (cộng vào gốc và dư nợ).
+   * Khoản đã trả xong được mở lại thành ACTIVE.
+   */
+  async increase(
+    id: number,
+    accountId: number,
+    dto: DebtActionMeta & { amount: number; walletId?: number | null },
+  ) {
+    const amount = this.requirePositiveAmount(dto.amount, "Amount");
+    const occurredAt = this.resolvePastOrToday(dto.occurredAt);
+
+    return this.dataSource.transaction(async (manager) => {
+      const debt = await this.lockDebt(manager, id, accountId);
+      if (
+        debt.status !== FINANCIAL_DEBT_STATUS_ENUM.ACTIVE &&
+        debt.status !== FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF
+      ) {
+        throw new BadRequestException(
+          "Only active or paid off debts can be increased",
+        );
+      }
+
+      if (dto.walletId) {
+        await this.applyWalletChange(
+          manager,
+          dto.walletId,
+          accountId,
+          this.walletDelta(debt.direction, "CREATE", amount),
+        );
+      }
+
+      const previousOutstandingAmount = round2(Number(debt.outstandingAmount));
+      debt.originalAmount = round2(Number(debt.originalAmount) + amount);
+      debt.outstandingAmount = round2(previousOutstandingAmount + amount);
+      debt.status = FINANCIAL_DEBT_STATUS_ENUM.ACTIVE;
       const savedDebt = await manager.save(debt);
 
       await this.createHistory(manager, {
         debtId: savedDebt.id,
-        type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.PAYMENT,
+        type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.INCREASED,
         amount,
         previousOutstandingAmount,
-        outstandingAmount: newOutstandingAmount,
+        outstandingAmount: savedDebt.outstandingAmount,
         occurredAt,
         walletId: dto.walletId ?? null,
         note: dto.note,
       });
 
       return savedDebt;
+    });
+  }
+
+  /**
+   * Gộp nhiều khoản đang nợ cùng chiều vào một khoản (không đụng ví).
+   * - Khoản đích: cộng gốc + dư nợ của từng khoản nguồn, ngày bắt đầu sớm nhất,
+   *   hạn trả sớm nhất.
+   * - Khoản nguồn: dư nợ về 0, status MERGED, mergedIntoId = đích; lịch sử giữ nguyên.
+   */
+  async merge(
+    accountId: number,
+    dto: { targetId: number; sourceIds: number[]; note?: string },
+  ) {
+    const sourceIds = [...new Set(dto.sourceIds)];
+    if (sourceIds.length === 0) {
+      throw new BadRequestException("sourceIds must not be empty");
+    }
+    if (sourceIds.includes(dto.targetId)) {
+      throw new BadRequestException("targetId must not be in sourceIds");
+    }
+    const occurredAt = todayVN();
+
+    return this.dataSource.transaction(async (manager) => {
+      const ids = [dto.targetId, ...sourceIds];
+      // Khóa theo thứ tự id để tránh deadlock
+      const debts = await manager.find(FinancialDebtEntity, {
+        where: { id: In(ids), accountId },
+        order: { id: "ASC" },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (debts.length !== ids.length) {
+        throw new NotFoundException("Financial debt not found");
+      }
+
+      const byId = new Map(debts.map((d) => [d.id, d]));
+      const target = byId.get(dto.targetId);
+      const sources = sourceIds.map((sid) => byId.get(sid));
+
+      for (const debt of debts) {
+        if (debt.status !== FINANCIAL_DEBT_STATUS_ENUM.ACTIVE) {
+          throw new BadRequestException(
+            `Debt #${debt.id} is not active and cannot be merged`,
+          );
+        }
+        if (debt.direction !== target.direction) {
+          throw new BadRequestException(
+            "Only debts with the same direction can be merged",
+          );
+        }
+      }
+
+      for (const source of sources) {
+        const moved = round2(Number(source.outstandingAmount));
+        const targetPrevious = round2(Number(target.outstandingAmount));
+
+        target.originalAmount = round2(
+          Number(target.originalAmount) + Number(source.originalAmount),
+        );
+        target.outstandingAmount = round2(targetPrevious + moved);
+        if (source.startDate < target.startDate) {
+          target.startDate = source.startDate;
+        }
+        if (
+          source.dueDate &&
+          (!target.dueDate || source.dueDate < target.dueDate)
+        ) {
+          target.dueDate = source.dueDate;
+        }
+
+        source.outstandingAmount = 0;
+        source.status = FINANCIAL_DEBT_STATUS_ENUM.MERGED;
+        source.mergedIntoId = target.id;
+        await manager.save(source);
+
+        await this.createHistory(manager, {
+          debtId: source.id,
+          type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.MERGED_OUT,
+          amount: moved,
+          previousOutstandingAmount: moved,
+          outstandingAmount: 0,
+          occurredAt,
+          note: dto.note ?? `Gộp vào "${target.name}" (#${target.id})`,
+        });
+        await this.createHistory(manager, {
+          debtId: target.id,
+          type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.MERGED_IN,
+          amount: moved,
+          previousOutstandingAmount: targetPrevious,
+          outstandingAmount: target.outstandingAmount,
+          occurredAt,
+          note: dto.note ?? `Gộp từ "${source.name}" (#${source.id})`,
+        });
+      }
+
+      return manager.save(target);
     });
   }
 
@@ -342,6 +533,76 @@ export class FinancialDebtService extends BaseCrudService<FinancialDebtEntity> {
   }
 
   // ───────────────────────── helpers ─────────────────────────
+
+  /**
+   * Trừ dư nợ + ghi lịch sử PAYMENT (ví đã được xử lý ở nơi gọi, với toàn bộ số tiền).
+   * Phần vượt dư nợ được ghi thêm một dòng INTEREST (tiền lãi); dư nợ không âm.
+   */
+  private async applyPayment(
+    manager: EntityManager,
+    debt: FinancialDebtEntity,
+    amount: number,
+    meta: { occurredAt: string; note?: string; walletId: number | null },
+  ) {
+    const previousOutstandingAmount = round2(Number(debt.outstandingAmount));
+    const { principal, excess } = splitPayment(
+      previousOutstandingAmount,
+      amount,
+    );
+
+    const newOutstandingAmount = round2(previousOutstandingAmount - principal);
+    debt.outstandingAmount = newOutstandingAmount;
+    if (newOutstandingAmount === 0) {
+      debt.status = FINANCIAL_DEBT_STATUS_ENUM.PAID_OFF;
+    }
+    const savedDebt = await manager.save(debt);
+
+    await this.createHistory(manager, {
+      debtId: savedDebt.id,
+      type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.PAYMENT,
+      amount: principal,
+      previousOutstandingAmount,
+      outstandingAmount: newOutstandingAmount,
+      occurredAt: meta.occurredAt,
+      walletId: meta.walletId,
+      note: meta.note,
+    });
+
+    if (excess > 0) {
+      await this.createHistory(manager, {
+        debtId: savedDebt.id,
+        type: FINANCIAL_DEBT_HISTORY_TYPE_ENUM.INTEREST,
+        amount: excess,
+        previousOutstandingAmount: newOutstandingAmount,
+        outstandingAmount: newOutstandingAmount,
+        occurredAt: meta.occurredAt,
+        walletId: meta.walletId,
+        note: meta.note,
+      });
+    }
+
+    return savedDebt;
+  }
+
+  private requirePositiveAmount(value: number, label: string) {
+    const amount = round2(Number(value));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException(`${label} must be greater than 0`);
+    }
+    return amount;
+  }
+
+  /** occurredAt mặc định hôm nay; không cho ngày tương lai */
+  private resolvePastOrToday(value?: string) {
+    const occurredAt = value ?? todayVN();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredAt)) {
+      throw new BadRequestException("occurredAt must be in YYYY-MM-DD format");
+    }
+    if (occurredAt > todayVN()) {
+      throw new BadRequestException("occurredAt cannot be in the future");
+    }
+    return occurredAt;
+  }
 
   /**
    * Chiều tiền của VÍ:

@@ -129,3 +129,13 @@ This file tracks completed development tasks, major architectural milestones, an
 
 - Declared missing runtime deps (`express`, `socket.io`, `dotenv`, `@opentelemetry/core`, `@opentelemetry/sdk-trace-base`) at the versions already locked; `pnpm run build` now passes and the app boots.
 - Ran `1794000006000-GoalWalletLinkAndWithdrawals` on production; verified columns `financial-goal.walletId`, `financial-goal-history.walletId`/`type` and index `UQ_goal_history_system_period`.
+
+---
+
+## 2026-11-09: Debt — gộp nhiều lần vay của một người vào một khoản
+
+- Model: one debt per person + direction. New `POST /financial-debt/:id/increase` (vay / cho vay thêm; reopens PAID_OFF), `POST /financial-debt/merge` (same direction, ACTIVE only; sources → status `MERGED`, `mergedIntoId`, outstanding 0; history `MERGED_OUT` / `MERGED_IN`; no wallet change), `POST /financial-debt/person-payment` (FIFO by `startDate`, `id`; one wallet change for the total, one PAYMENT history per debt).
+- Person matching: `normalizePersonName` (trim, collapse spaces, lower case) in `financial-debt.allocation.ts`; merge does not require identical names (lets users merge typo variants).
+- Migration `1794000007000-DebtMergeAndIncrease` (enum values + `mergedIntoId`) **not run yet** — run `pnpm run migration:run` on each DB before deploying.
+- Follow-up: payments may exceed the outstanding amount (single and person payment). Debt goes to 0 / PAID_OFF, wallet moves the full amount, the excess is a separate `INTEREST` history row (person payment: excess on the newest debt). Migration `1794000008000-DebtHistoryInterest`. Both migrations applied to local `defaultdb` (production not yet). Allocation spec 7/7.
+- Verification: allocation spec 4/4, `pnpm run build` and `tsc --noEmit` pass, scoped ESLint clean. Endpoints not exercised against a live DB.

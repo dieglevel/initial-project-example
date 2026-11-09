@@ -63,6 +63,10 @@ export class FinancialDebtEntity extends BaseEntity {
   @Column({ type: "varchar", length: 500, nullable: true })
   description?: string | null;
 
+  /** Khoản đích khi khoản này đã được gộp (status = MERGED) */
+  @Column({ type: "int", nullable: true })
+  mergedIntoId?: number | null;
+
   @Column({ type: "int" })
   accountId: number;
 
